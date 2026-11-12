@@ -59,7 +59,7 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 		pose.mulPose(new Matrix4f().rotationY((float) Math.toRadians(-s.yaw)));
 		final int light = s.lightCoords;
 		final float hw = s.moto ? 0.25f : 0.6f, hl = s.moto ? 0.9f : 1.1f, hh = s.moto ? 0.9f : 1.0f;
-		collector.submitCustomGeometry(pose, RenderTypes.entityCutoutNoCull(WHITE), (p, vc) -> box(p, vc, hw, hl, hh, s.color, light));
+		collector.submitCustomGeometry(pose, RenderTypes.entitySolid(WHITE), (p, vc) -> box(p, vc, hw, hl, hh, s.color, light));
 		pose.popPose();
 		super.submit(s, pose, collector, camera);
 	}
@@ -86,6 +86,11 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 		v(pp, vc, x2, y2, z2, 1, 0, nx, ny, nz, color, light);
 		v(pp, vc, x3, y3, z3, 1, 1, nx, ny, nz, color, light);
 		v(pp, vc, x4, y4, z4, 0, 1, nx, ny, nz, color, light);
+		// обратная сторона (нет отсечения граней у entitySolid): те же вершины в обратном порядке
+		v(pp, vc, x4, y4, z4, 0, 1, -nx, -ny, -nz, color, light);
+		v(pp, vc, x3, y3, z3, 1, 1, -nx, -ny, -nz, color, light);
+		v(pp, vc, x2, y2, z2, 1, 0, -nx, -ny, -nz, color, light);
+		v(pp, vc, x1, y1, z1, 0, 0, -nx, -ny, -nz, color, light);
 	}
 
 	private static void v(PoseStack.Pose pp, VertexConsumer vc, float x, float y, float z, float u, float w,
