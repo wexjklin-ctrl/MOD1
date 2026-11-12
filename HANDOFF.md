@@ -67,3 +67,11 @@
 - Анимации (колёса, руль, подвеска) = переписать Molang из `client_scripts` в vehicles.json на Java, двигая матрицы костей по именам.
 - Текстуры: `tools/convert_textures.py` делает labPBR `_s` и маску `_e`; bmw:m3whitered 3092x3092 надо ужать до размера geo (256).
 - Размер репозитория: текстуры 307 машин могут быть большими; держать PNG разумного размера (<100 МБ на файл — лимит git).
+
+## Реальные 3D-модели (сессия 3, НЕ проверено в игре)
+- Аддон лежит в релизе `addon` (addon1.zip, RP/ с geo, textures, animations, sounds, ui, particles). Скачивать: `https://github.com/wexjklin-ctrl/MOD1/releases/download/addon/addon1.zip`.
+- Сделано: `GeoModel` (клиент) читает `assets/rz_auto/geo/*.geo.json` (21 геометрия на 307 машин), текстуры из `assets/rz_auto/textures/entity/` (конвертер -> labPBR `_s`, `_e`; m3whitered ужата до 256).
+  Формулы системы координат проверены offline (Python-прототип рендерил 458 с текстурой): x_j = x_файл, z_j = -z_файл, повороты X:+rx, Y:-ry, Z:-rz, `east/west` по зеркальной X (см. комментарий в GeoModel).
+  `riogreentantanfd*` = копия `...hd*` (так в texture_set оригинала).
+- Не сделано: анимации (колёса крутятся, руль, подвеска из `RP/animations/*.animation.json` и Molang из `client_scripts`), правка hitbox по `collision` из vehicles.json, высота сидений по моделям, свет фар (`_e` маски), звук (`RP/sounds`), HUD (`RP/ui/hud_screen.json`), частицы (`RP/particles`), иконки предметов (spawn_egg_texture), крыша/attachables.
+- Рендер статичный: каждый кадр заново считает вершины (до 545 кубов). Если упадёт FPS, закешировать вершины (когда нет анимации) или перейти на статичные буферы.
