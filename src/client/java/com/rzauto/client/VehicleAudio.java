@@ -46,7 +46,7 @@ final class VehicleAudio {
 	private static final class Siren extends net.minecraft.client.resources.sounds.AbstractTickableSoundInstance {
 		private final VehicleEntity car;
 		Siren(VehicleEntity car) {
-			super(Identifier.fromNamespaceAndPath("rz_auto", "explorer.siren"), SoundSource.NEUTRAL, SoundInstance.createUnseededRandom());
+			super(net.minecraft.sounds.SoundEvent.createVariableRangeEvent(Identifier.fromNamespaceAndPath("rz_auto", "explorer.siren")), SoundSource.NEUTRAL, SoundInstance.createUnseededRandom());
 			this.car = car; this.looping = true; this.volume = 1.4f; this.pitch = 1f;
 			this.x = car.getX(); this.y = car.getY(); this.z = car.getZ();
 		}
