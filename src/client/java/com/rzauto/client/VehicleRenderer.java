@@ -20,7 +20,7 @@ import com.rzauto.logic.VehicleSpec;
  * Настоящие geo-модели из оригинала подключаются на этапе 3.
  */
 public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRenderer.State> {
-	private static final Identifier WHITE = Identifier.withDefaultNamespace("textures/misc/white.png");
+	private static final Identifier WHITE = Identifier.withDefaultNamespace("textures/block/white_concrete.png");
 
 	public static class State extends EntityRenderState {
 		public float yaw;
