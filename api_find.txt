@@ -1,2 +1,3 @@
 fabric/api/(creativetab|itemgroup)/.*Events
 net/minecraft/world/entity/(InterpolationHandler|vehicle/.*Boat|vehicle/.*Minecart)
+net/minecraft/.*Interpolat.*
