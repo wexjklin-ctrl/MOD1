@@ -16,3 +16,5 @@ net.minecraft.world.entity.InterpolationHandler
 net.minecraft.world.entity.Entity
 net.minecraft.world.entity.InterpolationTracker
 net.minecraft.world.entity.vehicle.boat.AbstractBoat
+net.minecraft.world.entity.LinearInterpolationHandler
+net.minecraft.world.entity.AbstractInterpolationHandler
