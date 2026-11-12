@@ -39,7 +39,12 @@ public final class VehicleCatalog {
 				o.get("max_auto_step").getAsDouble(), o.get("health").getAsInt());
 			BY_ID.put(s.bedrockId(), s);
 			if (o.has("geometry")) GEOM.put(s.bedrockId(), o.get("geometry").getAsString());
-			if (o.has("animations") && o.get("animations").isJsonObject() && o.getAsJsonObject("animations").has("drive")) ANIM.put(s.bedrockId(), o.getAsJsonObject("animations").get("drive").getAsString());
+			if (o.has("animations") && o.get("animations").isJsonObject()) {
+				JsonObject an = o.getAsJsonObject("animations");
+				String pick = an.has("drive") ? "drive" : null;
+				if (pick == null) for (String k : an.keySet()) if (k.startsWith("drive")) { pick = k; break; }   // у «слэм»-машин ключ drives
+				if (pick != null) ANIM.put(s.bedrockId(), an.get(pick).getAsString());
+			}
 			if (o.has("texture")) { String t = o.get("texture").getAsString(); TEX.put(s.bedrockId(), t.substring(t.lastIndexOf('/') + 1).toLowerCase()); }
 			if (o.has("seats") && o.get("seats").isJsonArray()) {
 				JsonArray sa = o.getAsJsonArray("seats");

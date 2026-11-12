@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """RP Bedrock -> текстуры Java. Запуск: python3 tools/build_textures.py /path/to/RP
 Для каждого texture_set:
-  NAME.png    цвет. У материала entity_emissive_alpha (jeep, e46, mr2, f30...) альфа = маска свечения, а не прозрачность -> в цвете альфа 255.
+  NAME.png    цвет. У материала entity_emissive_alpha (jeep, e46, mr2, f30...) пиксели с промежуточной альфой светятся -> в цвете они непрозрачны.
   NAME_s.png  labPBR specular для шейдеров (R гладкость, G F0, A свечение 0..254, 255 = нет)
   NAME_e.png  RGBA: цвет, альфа = сила свечения (слой «eyes» без шейдеров; там, где альфа 0, ничего не рисуется)"""
 import json, os, sys, glob
@@ -27,12 +27,18 @@ for ts in sorted(glob.glob(os.path.join(src, '*.texture_set.json'))):
     if mer is not None and mer.size != color.size: mer = mer.resize(color.size, Image.NEAREST)
     emissive_alpha = mat.get(name) == 'entity_emissive_alpha'
     a = color.getchannel('A')
+    mer_e = mer.split()[1].point(lambda v: 255 if v > 0 else 0) if mer is not None else Image.new('L', color.size, 0)
     if emissive_alpha:
-        mask = a; n_emis_alpha += 1
-        base = color.copy(); base.putalpha(255)
+        # alpha 0 = не закрашено/прозрачно, 255 = обычный пиксель, промежуточная (например 48) = светящийся пиксель
+        # (свечение = 255 - alpha). Для Java: прозрачность только у alpha 0, светящиеся пиксели делаем непрозрачными.
+        n_emis_alpha += 1
+        glow = a.point(lambda v: (255 - v) if 0 < v < 255 else 0)
+        base = color.copy(); base.putalpha(a.point(lambda v: 255 if v > 0 else 0))
+        from PIL import ImageChops
+        mask = ImageChops.lighter(glow, mer_e)
     else:
         base = color
-        mask = mer.split()[1].point(lambda v: 255 if v > 0 else 0) if mer is not None else Image.new('L', color.size, 0)
+        mask = mer_e
     # размер
     sz = color.size
     if sz[0] > MAXW:

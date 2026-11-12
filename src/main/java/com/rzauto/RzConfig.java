@@ -13,7 +13,7 @@ public final class RzConfig {
 	private RzConfig() {}
 
 	/** Во сколько раз увеличить машины сверх размера из оригинала (модель, посадочные места, хитбокс). 1.0 = как в Bedrock. */
-	public static float renderScale = 1.25f;
+	public static float renderScale = 1.0f;
 	/** Смещение высоты сидений Java относительно значений Bedrock (блоки). */
 	public static float seatYOffset = 0.36f;
 
