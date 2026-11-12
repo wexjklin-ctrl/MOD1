@@ -133,6 +133,9 @@ final class GeoModel {
 			float[] fr = rect[face];
 			if (mirror && (face == 2 || face == 3)) fr = rect[5 - face];   // east <-> west
 			float[] uvs = {fr[0], fr[1], fr[0] + fr[2], fr[1], fr[0] + fr[2], fr[1] + fr[3], fr[0], fr[1] + fr[3]};
+			// Ориентация верхней/нижней граней (проверено по стыкам цветов на 8 моделях, tools/seam_check.py): up повёрнута на 180°, down зеркальна по u
+			if (face == 4) uvs = new float[] {uvs[4], uvs[5], uvs[6], uvs[7], uvs[0], uvs[1], uvs[2], uvs[3]};
+			else if (face == 5) uvs = new float[] {uvs[2], uvs[3], uvs[0], uvs[1], uvs[6], uvs[7], uvs[4], uvs[5]};
 			if (mirror) uvs = new float[] {uvs[2], uvs[3], uvs[0], uvs[1], uvs[6], uvs[7], uvs[4], uvs[5]};
 			Vector3f[] p = new Vector3f[4];
 			for (int k = 0; k < 4; k++) {
