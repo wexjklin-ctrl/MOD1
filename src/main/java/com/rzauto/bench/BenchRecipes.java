@@ -1,4 +1,4 @@
-package com.rzauto.logic;
+package com.rzauto.bench;
 
 import com.google.gson.*;
 import java.io.InputStreamReader;

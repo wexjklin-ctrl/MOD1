@@ -38,7 +38,7 @@ public class RzAutoMod implements ModInitializer {
 	private static void benchCraft(net.minecraft.server.level.ServerPlayer p, com.rzauto.net.BenchCraftPayload pl) {
 		net.minecraft.core.BlockPos pos = net.minecraft.core.BlockPos.of(pl.pos());
 		if (p.distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5) > 64 || !p.level().getBlockState(pos).is(VehicleRegistry.BENCH)) return;
-		com.rzauto.logic.BenchRecipes.Recipe r = com.rzauto.logic.BenchRecipes.byId(pl.recipe());
+		com.rzauto.bench.BenchRecipes.Recipe r = com.rzauto.bench.BenchRecipes.byId(pl.recipe());
 		if (r == null) return;
 		net.minecraft.world.Container inv = p.getInventory();
 		java.util.Map<String, Integer> have = new java.util.HashMap<>();

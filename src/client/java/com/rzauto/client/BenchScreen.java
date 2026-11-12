@@ -1,6 +1,6 @@
 package com.rzauto.client;
 
-import com.rzauto.logic.BenchRecipes;
+import com.rzauto.bench.BenchRecipes;
 import com.rzauto.net.BenchCraftPayload;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
