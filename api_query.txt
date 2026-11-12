@@ -1,3 +1,1 @@
-net.minecraft.server.level.ServerLevel
-net.minecraft.world.level.Level
-net.minecraft.server.MinecraftServer
+net.minecraft.world.level.storage.LevelData$RespawnData
