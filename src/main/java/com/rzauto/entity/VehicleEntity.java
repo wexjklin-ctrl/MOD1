@@ -35,7 +35,7 @@ public class VehicleEntity extends Entity {
 	private VehicleSpec spec;
 	private final Physics.State st = new Physics.State();
 	private final double[] vel = new double[2];
-	private static final double TURN_STRENGTH = 5.0;   // по умолчанию в оригинале; настройка из VehicleState позже
+	private static final double TURN_STRENGTH = com.rzauto.logic.VehicleState.DEFAULT_TURN_STRENGTH;   // по умолчанию 1 (как в оригинале)
 	private static final double GRAVITY = 0.08;
 
 	public VehicleEntity(EntityType<?> type, Level level) {
