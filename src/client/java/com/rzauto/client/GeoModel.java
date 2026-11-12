@@ -35,7 +35,7 @@ final class GeoModel {
 			String name = geometryId.startsWith("geometry.") ? geometryId.substring(9) : geometryId;
 			var in = GeoModel.class.getResourceAsStream("/assets/rz_auto/geo/" + name + ".geo.json");
 			if (in != null) try (var r = new InputStreamReader(in, StandardCharsets.UTF_8)) { m = parse(JsonParser.parseReader(r).getAsJsonObject(), geometryId); }
-			if (m != null) { m.applyStatic(animId); m.applyDyn(animId); }
+			if (m != null) { m.applyStatic(animId); m.applyDyn(animId); m.assignWheels(); }
 		} catch (Throwable t) {
 			com.rzauto.RzAutoMod.LOG.error("geo {} не загрузилась", geometryId, t);
 		}
@@ -55,6 +55,7 @@ final class GeoModel {
 		float sx = 1, sy = 1, sz = 1, ax, ay, az, tx, ty, tz;
 		/** динамика поворота по осям X,Y,Z: {вид, k}; вид 0 = константа (градусы), 1 = пройденный путь (блоки) * k, 2 = скорость поворота (град/с) * k; null = нет */
 		float[] dyn;
+		int wheelIdx = -1;
 		final List<Cube> cubes = new ArrayList<>();
 	}
 
@@ -183,6 +184,30 @@ final class GeoModel {
 		}
 	}
 
+	private float[][] wheelPts = new float[0][];
+	private float[] curWdy;
+
+	/** Колёса = кости, которые крутятся от пути (вид 1 по оси X). Для каждого запоминаем место в модели {x, z, масштаб по Y}. */
+	private void assignWheels() {
+		java.util.List<float[]> pts = new ArrayList<>();
+		Matrix4f[] memo = new Matrix4f[bones.length];
+		Vector3f v = new Vector3f(), sc = new Vector3f();
+		for (int i = 0; i < bones.length && pts.size() < 8; i++) {
+			Bone b = bones[i];
+			if (b.dyn == null || b.dyn[0] != 1f) continue;
+			Matrix4f m = world(i, memo, 0f, 0f);
+			v.set(b.px, b.py, b.pz); m.transformPosition(v);
+			float ys = 1f;
+			if (b.parent >= 0 && b.parent != i) { world(b.parent, memo, 0f, 0f).getScale(sc); ys = Math.max(0.2f, sc.y); }
+			b.wheelIdx = pts.size();
+			pts.add(new float[] {v.x, v.z, ys});
+		}
+		wheelPts = pts.toArray(new float[0][]);
+	}
+
+	/** Места колёс в системе модели: {x, z, масштаб Y}; пусто, если колёс нет. */
+	float[][] wheelPoints() { return wheelPts; }
+
 	private static JsonObject DYN;
 
 	private static synchronized JsonObject dynData() {
@@ -232,6 +257,7 @@ final class GeoModel {
 			ey = dynVal(b.dyn[2], b.dyn[3], dist, steer);
 			ez = dynVal(b.dyn[4], b.dyn[5], dist, steer);
 		}
+		if (b.wheelIdx >= 0 && curWdy != null) m.translate(0f, curWdy[b.wheelIdx], 0f);
 		m.translate(b.tx, b.ty, b.tz).translate(b.px, b.py, b.pz)
 			.rotateZ((float) Math.toRadians(-(b.rz + ez))).rotateY((float) Math.toRadians(-(b.ry + ey))).rotateX((float) Math.toRadians(b.rx + ex))
 			.scale(b.sx, b.sy, b.sz)
@@ -347,7 +373,7 @@ final class GeoModel {
 	 * @param push сдвиг граней наружу по нормали (слой свечения, чтобы не мерцал на тех же координатах, что кузов)
 	 * @param steer скорость поворота в градусах за секунду (знак как у yaw в Minecraft), от неё поворачиваются передние колёса и руль
 	 */
-	void render(Baked bk, PoseStack.Pose pp, VertexConsumer vc, int light, float dist, float steer, float push) {
+	void render(Baked bk, PoseStack.Pose pp, VertexConsumer vc, int light, float dist, float steer, float push, float[] wdy) {
 		float[] sp = bk.sp;
 		for (int q = 0; q < bk.sn; q++) {
 			int o = q * 23;
@@ -359,6 +385,7 @@ final class GeoModel {
 			}
 		}
 		if (bk.dc.length == 0) return;
+		curWdy = wdy;
 		Matrix4f[] memo = new Matrix4f[bones.length];
 		Vector3f v = new Vector3f(), n = new Vector3f();
 		for (int i = 0; i < bk.dc.length; i++) {
@@ -375,6 +402,7 @@ final class GeoModel {
 					.setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pp, n.x, n.y, n.z);
 			}
 		}
+		curWdy = null;
 	}
 
 	/** Минимальный разбор PNG: только альфа-канал (8 бит RGBA, без чересстрочности: так сохраняет tools/build_textures.py). */

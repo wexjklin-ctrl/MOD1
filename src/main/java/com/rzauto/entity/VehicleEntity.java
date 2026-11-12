@@ -205,9 +205,23 @@ public class VehicleEntity extends Entity {
 		msg(p, "§eСвободных мест нет.");
 	}
 
+	/** Хитбокс по форме машины: повёрнутый прямоугольник (ширина x длина модели), вписанный в осевой бокс. */
+	private void fitBox() {
+		VehicleSpec sp = spec();
+		double[] dm = sp == null ? null : VehicleCatalog.dims(sp.bedrockId());
+		if (dm == null) return;
+		double k = com.rzauto.RzConfig.renderScale;
+		double W = Math.max(sp.motorcycle() ? 0.7 : 1.4, Math.min(3.2, dm[0] * 0.95)) * k;
+		double L = Math.max(sp.motorcycle() ? 1.6 : 2.4, Math.min(6.5, dm[1] * 0.92)) * k;
+		double yr = Math.toRadians(getYRot()), c = Math.abs(Math.cos(yr)), sn = Math.abs(Math.sin(yr));
+		double hx = (W * c + L * sn) / 2, hz = (W * sn + L * c) / 2;
+		setBoundingBox(new net.minecraft.world.phys.AABB(getX() - hx, getY(), getZ() - hz, getX() + hx, getY() + getBbHeight(), getZ() + hz));
+	}
+
 	@Override
 	public void tick() {
 		super.tick();
+		fitBox();
 		if (level().isClientSide()) return;
 		VehicleSpec s = spec();
 		if (s == null) return;
@@ -263,6 +277,7 @@ public class VehicleEntity extends Entity {
 			st.speed = Physics.collisionBleed(st.speed, max);
 		}
 		setYRot((float) st.yawDeg);
+		fitBox();
 	}
 
 	/** Только для тестов CI. */

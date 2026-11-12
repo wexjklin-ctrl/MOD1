@@ -18,3 +18,11 @@ net.minecraft.client.gui.Hud
 net.minecraft.world.entity.player.Player
 net.minecraft.world.entity.LivingEntity
 net.minecraft.server.level.ServerPlayer
+net.minecraft.client.Camera
+net.minecraft.world.level.block.Block
+net.minecraft.world.level.block.state.BlockBehaviour$Properties
+net.minecraft.world.level.block.state.BlockBehaviour
+net.minecraft.world.item.BlockItem
+net.minecraft.world.level.block.HorizontalDirectionalBlock
+net.minecraft.world.InteractionResult
+net.minecraft.world.item.Item$Properties

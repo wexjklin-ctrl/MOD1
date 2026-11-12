@@ -32,6 +32,8 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 		/** путь вперёд в блоках (по модулю 18, чтобы не терять точность) и скорость поворота (град/с) для колёс и руля */
 		public float dist, steer, pitch, roll;
 		public Identifier tex, texE;
+		/** сдвиг каждого колеса по высоте (в единицах модели) по рельефу под ним */
+		public float[] wdy;
 	}
 
 	public VehicleRenderer(EntityRendererProvider.Context ctx) {
@@ -50,6 +52,8 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 		boolean init;
 		double x, z, dist;
 		float yaw, steer, vel, acc, pitch, roll, pp, pv, rp, rv;
+		final float[] wy = new float[8];
+		long wns;
 		long ns;
 	}
 	private static final java.util.Map<VehicleEntity, Track> TRACKS = new java.util.WeakHashMap<>();
@@ -81,6 +85,50 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 		float p = (float) -Math.toDegrees(Math.atan2(hf - hr, 2 * halfL));
 		float r = (float) Math.toDegrees(Math.atan2(hl - hrr, 2 * halfW));
 		return new float[] { net.minecraft.util.Mth.clamp(p, -32f, 32f), net.minecraft.util.Mth.clamp(r, -22f, 22f) };
+	}
+
+	/** Подвеска колёс: каждое колесо идёт по высоте земли под ним относительно плоскости кузова (по методу наименьших квадратов). */
+	private static void wheelSurface(VehicleEntity e, State s, float partial) {
+		float[][] wp = s.model == null ? new float[0][] : s.model.wheelPoints();
+		int n = wp.length;
+		if (n == 0) { s.wdy = null; return; }
+		Track t = TRACKS.get(e);
+		if (t == null) return;
+		net.minecraft.world.phys.Vec3 pos = e.getPosition(partial);
+		double yr = Math.toRadians(e.getYRot(partial)), c = Math.cos(yr), sn = Math.sin(yr);
+		double[] h = new double[n];
+		for (int i = 0; i < n; i++) {
+			double mx = wp[i][0], mz = wp[i][1];
+			double wx = pos.x + mx * c - mz * sn, wz = pos.z + mx * sn + mz * c;
+			double g = ground(e.level(), wx, pos.y, wz);
+			h[i] = Double.isNaN(g) ? pos.y : g;
+		}
+		// плоскость h = a + b*x + c*z по всем колёсам (с лёгкой регуляризацией, чтобы два колеса у мотоцикла не давали вырожденную систему)
+		double[][] A = new double[3][4];
+		for (int i = 0; i < n; i++) {
+			double[] r = {1, wp[i][0], wp[i][1]};
+			for (int a = 0; a < 3; a++) { for (int b = 0; b < 3; b++) A[a][b] += r[a] * r[b]; A[a][3] += r[a] * h[i]; }
+		}
+		A[1][1] += 1e-3; A[2][2] += 1e-3;
+		for (int col = 0; col < 3; col++) {
+			int piv = col;
+			for (int r = col + 1; r < 3; r++) if (Math.abs(A[r][col]) > Math.abs(A[piv][col])) piv = r;
+			double[] tmp = A[col]; A[col] = A[piv]; A[piv] = tmp;
+			if (Math.abs(A[col][col]) < 1e-9) continue;
+			for (int r = 0; r < 3; r++) if (r != col) { double f = A[r][col] / A[col][col]; for (int k = col; k < 4; k++) A[r][k] -= f * A[col][k]; }
+		}
+		double pa = A[0][3] / A[0][0], pb = A[1][3] / A[1][1], pc = A[2][3] / A[2][2];
+		long now = System.nanoTime();
+		float dt = t.wns == 0 ? 0f : net.minecraft.util.Mth.clamp((now - t.wns) / 1.0e9f, 0f, 0.1f);
+		t.wns = now;
+		float k = dt == 0f ? 1f : 1f - (float) Math.exp(-dt / 0.05f);
+		if (s.wdy == null || s.wdy.length != n) s.wdy = new float[n];
+		for (int i = 0; i < n; i++) {
+			double fit = pa + pb * wp[i][0] + pc * wp[i][1];
+			float target = (float) net.minecraft.util.Mth.clamp(h[i] - fit, -0.3, 0.3);
+			t.wy[i] += (target - t.wy[i]) * k;
+			s.wdy[i] = t.wy[i] / wp[i][2];
+		}
 	}
 
 	private static void track(VehicleEntity e, State s, float partial) {
@@ -158,6 +206,7 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 			if (s.bakeE != null && s.bakeE.quads() == 0) s.bakeE = null;
 			if (s.bakeBar != null && s.bakeBar.quads() == 0) s.bakeBar = null;
 			if (s.bakeE == null && s.bakeBar == null) s.texE = null;
+			wheelSurface(e, s, partial);
 		}
 	}
 
@@ -172,9 +221,9 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 			pose.scale(com.rzauto.RzConfig.renderScale, com.rzauto.RzConfig.renderScale, com.rzauto.RzConfig.renderScale);
 			final int lt = s.lightCoords;
 			final GeoModel gm = s.model;
-			collector.submitCustomGeometry(pose, RenderTypes.entityCutout(s.tex), (p, vc) -> gm.render(s.bake, p, vc, lt, s.dist, s.steer, 0f));
-			if (s.texE != null && s.bakeE != null && s.lights) collector.submitCustomGeometry(pose, RenderTypes.eyes(s.texE), (p, vc) -> gm.render(s.bakeE, p, vc, 0xF000F0, s.dist, s.steer, 0.006f));
-			if (s.texE != null && s.bakeBar != null && s.siren && (System.currentTimeMillis() / 220 % 2 == 0)) collector.submitCustomGeometry(pose, RenderTypes.eyes(s.texE), (p, vc) -> gm.render(s.bakeBar, p, vc, 0xF000F0, s.dist, s.steer, 0.006f));
+			collector.submitCustomGeometry(pose, RenderTypes.entityCutout(s.tex), (p, vc) -> gm.render(s.bake, p, vc, lt, s.dist, s.steer, 0f, s.wdy));
+			if (s.texE != null && s.bakeE != null && s.lights) collector.submitCustomGeometry(pose, RenderTypes.eyes(s.texE), (p, vc) -> gm.render(s.bakeE, p, vc, 0xF000F0, s.dist, s.steer, 0.006f, s.wdy));
+			if (s.texE != null && s.bakeBar != null && s.siren && (System.currentTimeMillis() / 220 % 2 == 0)) collector.submitCustomGeometry(pose, RenderTypes.eyes(s.texE), (p, vc) -> gm.render(s.bakeBar, p, vc, 0xF000F0, s.dist, s.steer, 0.006f, s.wdy));
 			pose.popPose();
 			super.submit(s, pose, collector, camera);
 			return;
