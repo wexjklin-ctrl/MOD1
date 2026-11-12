@@ -1,5 +1,0 @@
-net/minecraft/client/renderer/(rendertype/)?RenderType(s)?\.class
-net/minecraft/client/renderer/(rendertype/)?RenderPipelines?\.class
-net/minecraft/client/renderer/.*CustomGeometry
-net/minecraft/client/renderer/state/.*Camera
-net/minecraft/util/ARGB\.class
