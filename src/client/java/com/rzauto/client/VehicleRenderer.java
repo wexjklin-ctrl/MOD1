@@ -27,6 +27,8 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 		public int color = 0xFF8899AA;
 		public boolean moto;
 		public boolean hide;
+		public GeoModel model;
+		public Identifier tex;
 	}
 
 	public VehicleRenderer(EntityRendererProvider.Context ctx) {
@@ -49,11 +51,24 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 			int r = 90 + (h & 0x7F), g = 90 + ((h >> 7) & 0x7F), b = 90 + ((h >> 14) & 0x7F);
 			s.color = 0xFF000000 | (r << 16) | (g << 8) | b;
 			s.moto = spec.motorcycle();
+			s.model = GeoModel.get(com.rzauto.logic.VehicleCatalog.geometry(spec.bedrockId()));
+			String tn = com.rzauto.logic.VehicleCatalog.texture(spec.bedrockId());
+			s.tex = (s.model != null && tn != null) ? Identifier.fromNamespaceAndPath("rz_auto", "textures/entity/" + tn + ".png") : null;
 		}
 	}
 
 	@Override
 	public void submit(State s, PoseStack pose, SubmitNodeCollector collector, CameraRenderState camera) {
+		if (s.model != null && s.tex != null) {
+			pose.pushPose();
+			pose.mulPose(new Matrix4f().rotationY((float) Math.toRadians(-s.yaw)));
+			final int lt = s.lightCoords;
+			final GeoModel gm = s.model;
+			collector.submitCustomGeometry(pose, RenderTypes.entityCutout(s.tex), (p, vc) -> gm.render(p, vc, lt));
+			pose.popPose();
+			super.submit(s, pose, collector, camera);
+			return;
+		}
 		if (s.hide) { super.submit(s, pose, collector, camera); return; }
 		pose.pushPose();
 		pose.mulPose(new Matrix4f().rotationY((float) Math.toRadians(-s.yaw)));
