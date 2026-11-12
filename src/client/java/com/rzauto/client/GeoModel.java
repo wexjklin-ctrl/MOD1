@@ -53,6 +53,8 @@ final class GeoModel {
 		float px, py, pz, rx, ry, rz;
 		/** статичная часть анимации езды: масштаб, добавка к повороту (градусы), смещение (блоки, Java-оси) */
 		float sx = 1, sy = 1, sz = 1, ax, ay, az, tx, ty, tz;
+		/** динамика поворота по осям X,Y,Z: {вид, k}; вид 0 = константа (градусы), 1 = пройденный путь (блоки) * k, 2 = скорость поворота (град/с) * k; null = нет */
+		float[] dyn;
 		final List<Cube> cubes = new ArrayList<>();
 	}
 
@@ -178,26 +180,65 @@ final class GeoModel {
 		}
 	}
 
-	private Matrix4f world(int i, Matrix4f[] memo) {
+	private static JsonObject DYN;
+
+	private static synchronized JsonObject dynData() {
+		if (DYN == null) {
+			DYN = new JsonObject();
+			try (var in = GeoModel.class.getResourceAsStream("/assets/rz_auto/geo/anim_dyn.json")) {
+				if (in != null) DYN = JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8)).getAsJsonObject();
+			} catch (Throwable t) { com.rzauto.RzAutoMod.LOG.error("anim_dyn.json", t); }
+		}
+		return DYN;
+	}
+
+	/** Динамические каналы анимации езды: вращение колёс, поворот передних колёс, руль, крен кузова (формулы из оригинала, tools/extract_anim_dyn.py). */
+	private void applyDyn(String animId) {
+		if (animId == null) return;
+		JsonObject a = dynData().has(animId) ? dynData().getAsJsonObject(animId) : null;
+		if (a == null) return;
+		for (Bone b : bones) {
+			if (!a.has(b.name)) continue;
+			JsonArray c = a.getAsJsonArray(b.name);
+			b.dyn = new float[6];
+			for (int k = 0; k < 3; k++) { JsonArray e = c.get(k).getAsJsonArray(); b.dyn[k * 2] = f(e, 0); b.dyn[k * 2 + 1] = f(e, 1); }
+		}
+	}
+
+	private static float dynVal(float kind, float k, float dist, float steer) {
+		return kind == 1f ? dist * k : kind == 2f ? steer * k : k;
+	}
+
+	private Matrix4f world(int i, Matrix4f[] memo, float dist, float steer) {
 		if (memo[i] != null) return memo[i];
 		Bone b = bones[i];
-		Matrix4f m = b.parent >= 0 && b.parent != i ? new Matrix4f(world(b.parent, memo)) : new Matrix4f();
+		Matrix4f m = b.parent >= 0 && b.parent != i ? new Matrix4f(world(b.parent, memo, dist, steer)) : new Matrix4f();
+		float ex = b.ax, ey = b.ay, ez = b.az;
+		if (b.dyn != null) {
+			ex = dynVal(b.dyn[0], b.dyn[1], dist, steer);
+			ey = dynVal(b.dyn[2], b.dyn[3], dist, steer);
+			ez = dynVal(b.dyn[4], b.dyn[5], dist, steer);
+		}
 		m.translate(b.tx, b.ty, b.tz).translate(b.px, b.py, b.pz)
-			.rotateZ((float) Math.toRadians(-(b.rz + b.az))).rotateY((float) Math.toRadians(-(b.ry + b.ay))).rotateX((float) Math.toRadians(b.rx + b.ax))
+			.rotateZ((float) Math.toRadians(-(b.rz + ez))).rotateY((float) Math.toRadians(-(b.ry + ey))).rotateX((float) Math.toRadians(b.rx + ex))
 			.scale(b.sx, b.sy, b.sz)
 			.translate(-b.px, -b.py, -b.pz);
 		memo[i] = m;
 		return m;
 	}
 
-	/** Статичная поза (анимации колёс, руля и подвески добавляются позже через повороты костей по имени). */
-	void render(PoseStack.Pose pp, VertexConsumer vc, int light) {
+	/**
+	 * Поза: статичные каналы анимации + колёса/руль.
+	 * @param dist  путь машины вперёд в блоках (назад = уменьшается), от него вращаются колёса
+	 * @param steer скорость поворота в градусах за секунду (знак как у yaw в Minecraft), от неё поворачиваются передние колёса и руль
+	 */
+	void render(PoseStack.Pose pp, VertexConsumer vc, int light, float dist, float steer) {
 		Matrix4f[] memo = new Matrix4f[bones.length];
 		Vector3f v = new Vector3f(), n = new Vector3f();
 		for (int i = 0; i < bones.length; i++) {
 			Bone b = bones[i];
 			if (b.cubes.isEmpty()) continue;
-			Matrix4f m = world(i, memo);
+			Matrix4f m = world(i, memo, dist, steer);
 			for (Cube c : b.cubes) {
 				for (int k = 0; k < 24; k++) {
 					v.set(c.pos[k * 3], c.pos[k * 3 + 1], c.pos[k * 3 + 2]);

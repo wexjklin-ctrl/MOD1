@@ -28,6 +28,8 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 		public boolean moto;
 		public boolean hide;
 		public GeoModel model;
+		/** путь вперёд в блоках (по модулю 18, чтобы не терять точность) и скорость поворота (град/с) для колёс и руля */
+		public float dist, steer;
 		public Identifier tex, texE;
 	}
 
@@ -42,6 +44,41 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 			.getResource(Identifier.fromNamespaceAndPath("rz_auto", "textures/entity/" + k + "_e.png")).isPresent());
 	}
 
+	/** Клиентская кинематика для анимации: пройденный путь вперёд и сглаженная скорость поворота. Машина сама по клиенту не считается, только позиция с сервера. */
+	private static final class Track {
+		boolean init;
+		double x, z, dist;
+		float yaw, steer;
+		long ns;
+	}
+	private static final java.util.Map<VehicleEntity, Track> TRACKS = new java.util.WeakHashMap<>();
+
+	private static void track(VehicleEntity e, State s, float partial) {
+		Track t = TRACKS.computeIfAbsent(e, k -> new Track());
+		net.minecraft.world.phys.Vec3 pos = e.getPosition(partial);
+		double x = pos.x, z = pos.z;
+		float yaw = e.getYRot(partial);
+		long now = System.nanoTime();
+		float dt = (now - t.ns) / 1.0e9f;
+		if (t.init && dt > 1e-4f && dt < 1f) {
+			double dx = x - t.x, dz = z - t.z;
+			double step = Math.hypot(dx, dz);
+			if (step < 8) {
+				double yr = Math.toRadians(yaw);
+				double fwd = dx * -Math.sin(yr) + dz * Math.cos(yr);   // перед машины в мире: (-sin yaw, cos yaw)
+				t.dist += fwd;
+			}
+			float dyaw = net.minecraft.util.Mth.wrapDegrees(yaw - t.yaw);
+			float rate = net.minecraft.util.Mth.clamp(dyaw / dt, -150f, 150f);
+			t.steer += (rate - t.steer) * (1f - (float) Math.exp(-dt / 0.15f));
+		} else if (dt >= 1f) {
+			t.steer = 0;
+		}
+		t.init = true; t.x = x; t.z = z; t.yaw = yaw; t.ns = now;
+		s.dist = (float) (t.dist % 18.0);
+		s.steer = t.steer;
+	}
+
 	@Override
 	public State createRenderState() { return new State(); }
 
@@ -49,6 +86,7 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 	public void extractRenderState(VehicleEntity e, State s, float partial) {
 		super.extractRenderState(e, s, partial);
 		s.yaw = e.getYRot(partial);
+		track(e, s, partial);
 		net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
 		// Камера от первого лица внутри коробки: не рисуем её для самого водителя/пассажира
 		s.hide = mc.player != null && mc.player.getVehicle() == e && mc.options.getCameraType().isFirstPerson();
@@ -73,8 +111,8 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 			pose.scale(com.rzauto.RzConfig.renderScale, com.rzauto.RzConfig.renderScale, com.rzauto.RzConfig.renderScale);
 			final int lt = s.lightCoords;
 			final GeoModel gm = s.model;
-			collector.submitCustomGeometry(pose, RenderTypes.entityCutout(s.tex), (p, vc) -> gm.render(p, vc, lt));
-			if (s.texE != null) collector.submitCustomGeometry(pose, RenderTypes.eyes(s.texE), (p, vc) -> gm.render(p, vc, 0xF000F0));
+			collector.submitCustomGeometry(pose, RenderTypes.entityCutout(s.tex), (p, vc) -> gm.render(p, vc, lt, s.dist, s.steer));
+			if (s.texE != null) collector.submitCustomGeometry(pose, RenderTypes.eyes(s.texE), (p, vc) -> gm.render(p, vc, 0xF000F0, s.dist, s.steer));
 			pose.popPose();
 			super.submit(s, pose, collector, camera);
 			return;
