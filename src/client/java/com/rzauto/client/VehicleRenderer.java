@@ -28,11 +28,18 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 		public boolean moto;
 		public boolean hide;
 		public GeoModel model;
-		public Identifier tex;
+		public Identifier tex, texE;
 	}
 
 	public VehicleRenderer(EntityRendererProvider.Context ctx) {
 		super(ctx);
+	}
+
+	private static final java.util.Map<String, Boolean> EMISSIVE = new java.util.HashMap<>();
+	/** Есть ли маска свечения NAME_e.png (фары, стопы): рисуется вторым слоем без освещения. */
+	private static boolean hasEmissive(String tn) {
+		return EMISSIVE.computeIfAbsent(tn, k -> net.minecraft.client.Minecraft.getInstance().getResourceManager()
+			.getResource(Identifier.fromNamespaceAndPath("rz_auto", "textures/entity/" + k + "_e.png")).isPresent());
 	}
 
 	@Override
@@ -54,6 +61,7 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 			s.model = GeoModel.get(com.rzauto.logic.VehicleCatalog.geometry(spec.bedrockId()), com.rzauto.logic.VehicleCatalog.driveAnim(spec.bedrockId()));
 			String tn = com.rzauto.logic.VehicleCatalog.texture(spec.bedrockId());
 			s.tex = (s.model != null && tn != null) ? Identifier.fromNamespaceAndPath("rz_auto", "textures/entity/" + tn + ".png") : null;
+			s.texE = (s.tex != null && hasEmissive(tn)) ? Identifier.fromNamespaceAndPath("rz_auto", "textures/entity/" + tn + "_e.png") : null;
 		}
 	}
 
@@ -65,6 +73,7 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 			final int lt = s.lightCoords;
 			final GeoModel gm = s.model;
 			collector.submitCustomGeometry(pose, RenderTypes.entityCutout(s.tex), (p, vc) -> gm.render(p, vc, lt));
+			if (s.texE != null) collector.submitCustomGeometry(pose, RenderTypes.eyes(s.texE), (p, vc) -> gm.render(p, vc, 0xF000F0));
 			pose.popPose();
 			super.submit(s, pose, collector, camera);
 			return;

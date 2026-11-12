@@ -93,6 +93,8 @@ final class GeoModel {
 		JsonArray og = o.getAsJsonArray("origin"), sz = o.getAsJsonArray("size"), uvA = o.getAsJsonArray("uv");
 		float inf = o.has("inflate") ? o.get("inflate").getAsFloat() : 0f;
 		float ws = f(sz, 0), hs = f(sz, 1), ds = f(sz, 2);
+		// Bedrock раскладывает box-UV по ЦЕЛЫМ размерам (дробная часть отбрасывается), геометрия при этом дробная
+		float wu = (float) Math.floor(ws + 1e-4), hu = (float) Math.floor(hs + 1e-4), du = (float) Math.floor(ds + 1e-4);
 		float u = f(uvA, 0), v = f(uvA, 1);
 		boolean mirror = o.has("mirror") && o.get("mirror").getAsBoolean();
 		float X0 = f(og, 0) - inf, y0 = f(og, 1) - inf, z0 = f(og, 2) - inf;
@@ -107,13 +109,13 @@ final class GeoModel {
 			{x0, y1, z0, x0, y1, z1, x0, y0, z1, x0, y0, z0},
 			{x0, y1, z0, x1, y1, z0, x1, y1, z1, x0, y1, z1},
 			{x0, y0, z1, x1, y0, z1, x1, y0, z0, x0, y0, z0}};
-		float[][] rect = {   // u, v, w, h в пикселях текстуры
-			{u + ds, v + ds, ws, hs},
-			{u + ds + ws + ds, v + ds, ws, hs},
-			{u, v + ds, ds, hs},
-			{u + ds + ws, v + ds, ds, hs},
-			{u + ds, v, ws, ds},
-			{u + ds + ws, v, ws, ds}};
+		float[][] rect = {   // u, v, w, h в пикселях текстуры (по целым размерам)
+			{u + du, v + du, wu, hu},
+			{u + du + wu + du, v + du, wu, hu},
+			{u, v + du, du, hu},
+			{u + du + wu, v + du, du, hu},
+			{u + du, v, wu, du},
+			{u + du + wu, v, wu, du}};
 
 		Matrix4f cr = new Matrix4f();
 		float pvx = 0, pvy = 0, pvz = 0;

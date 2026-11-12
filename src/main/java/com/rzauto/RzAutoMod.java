@@ -20,6 +20,9 @@ public class RzAutoMod implements ModInitializer {
 		LOG.info("RZ Auto: загружено {} машин", VehicleCatalog.all().size());
 		VehicleRegistry.registerAll();
 		LOG.info("RZ Auto: зарегистрировано сущностей и предметов: {}", VehicleRegistry.entries().size());
+		// яйца призыва: ключи всех машин во вкладке творческого режима «Spawn Eggs»
+		net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents.modifyEntriesEvent(net.minecraft.world.item.CreativeModeTabs.SPAWN_EGGS)
+			.register(entries -> { for (VehicleRegistry.Entry e : VehicleRegistry.entries()) entries.accept(e.item()); });
 		if (System.getProperty("rz.smoke") != null) installSmokeTest();
 	}
 
