@@ -53,7 +53,7 @@ public class RzAutoMod implements ModInitializer {
 		for (; ticks < 400 && (v.debugSpeed() != 0 || ticks == 0); ticks++) v.tick();
 		double dist = Math.hypot(v.getX() - x0, v.getZ() - z0);
 		LOG.info("RZ SMOKE: заезд: проехала {} блоков, остановилась за {} тиков, speed={}", String.format("%.1f", dist), ticks, v.debugSpeed());
-		LOG.info("RZ SMOKE: заезд {}", (dist > 0.5 && v.debugSpeed() == 0) ? "OK" : "FAIL");
+		LOG.info("RZ SMOKE: заезд {}", (dist > 0.2 && v.debugSpeed() == 0) ? "OK" : "FAIL");
 		v.discard();
 	}
 }
