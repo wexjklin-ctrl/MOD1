@@ -32,6 +32,10 @@ java {
 // и ищет классы по шаблонам из api_find.txt. Запускается после compileJava, даже если он упал.
 tasks.register('apiDump') {
 	doLast {
+		// Если сборка упала, jar-файла нет, и шаг публикации CI не выложил бы логи. Кладём заглушку.
+		def libs = layout.buildDirectory.dir('libs').get().asFile
+		libs.mkdirs()
+		if (!(libs.listFiles() ?: []).any { it.name.endsWith('.jar') }) new File(libs, 'BUILD_FAILED_placeholder.jar').text = 'placeholder'
 		def files = [] as LinkedHashSet
 		files.addAll(sourceSets.main.compileClasspath.files)
 		try { files.addAll(sourceSets.client.compileClasspath.files) } catch (Throwable t) {}
