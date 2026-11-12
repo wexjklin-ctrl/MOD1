@@ -38,6 +38,8 @@ public class RzAutoClient implements ClientModInitializer {
 	private static void keys(Minecraft mc) {
 		if (mc.player == null || mc.level == null) return;
 		while (ENTER.consumeClick()) {
+			VehicleEntity rd = VehicleHud.riding(mc);
+			if (rd != null) { ClientPlayNetworking.send(new VehicleActionPayload(rd.getId(), VehicleEntity.ACT_EXIT)); continue; }
 			VehicleEntity ve = VehicleHud.looked(mc);
 			if (ve != null && mc.gui.screen() == null) ClientPlayNetworking.send(new VehicleActionPayload(ve.getId(), VehicleEntity.ACT_ENTER));
 		}

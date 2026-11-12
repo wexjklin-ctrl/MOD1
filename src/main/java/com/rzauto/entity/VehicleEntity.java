@@ -79,7 +79,7 @@ public class VehicleEntity extends Entity {
 	public static final EntityDataAccessor<Integer> DATA_SEATS = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.INT);
 
 	/** Действия из меню / клавиши F (пакет VehicleActionPayload). */
-	public static final int ACT_ENTER = 0, ACT_ENGINE = 1, ACT_LOCK = 2, ACT_REPAIR = 3, ACT_LIGHTS = 4, ACT_SIREN = 5, ACT_SEAT = 6, ACT_SENS_DOWN = 7, ACT_SENS_UP = 8, ACT_GEARS = 9;
+	public static final int ACT_ENTER = 0, ACT_ENGINE = 1, ACT_LOCK = 2, ACT_REPAIR = 3, ACT_LIGHTS = 4, ACT_SIREN = 5, ACT_SEAT = 6, ACT_SENS_DOWN = 7, ACT_SENS_UP = 8, ACT_GEARS = 9, ACT_EXIT = 10;
 	public static final float SENS_MIN = 0.6f, SENS_MAX = 3.0f, SENS_STEP = 0.2f, SENS_DEFAULT = 1.4f;
 
 	private boolean fuelInit, hadDriver, lastSprint, lastSneak;
@@ -446,6 +446,7 @@ public class VehicleEntity extends Entity {
 		if (p.getVehicle() != this && p.distanceToSqr(this) > 36) return;
 		if (action == ACT_ENTER) { if (p.getVehicle() == null) tryEnter(p); return; }
 		boolean rider = p.getVehicle() == this;
+		if (action == ACT_EXIT && rider) { p.stopRiding(); return; }
 		if (action == ACT_LIGHTS && rider) { lights = !lights; syncState(); return; }
 		if (action == ACT_SIREN && rider) { if (s.hasSiren()) siren = !siren; syncState(); return; }
 		if (action == ACT_SEAT && rider) { changeSeat(p); return; }
