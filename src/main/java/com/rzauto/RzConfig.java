@@ -16,6 +16,10 @@ public final class RzConfig {
 	public static float renderScale = 1.0f;
 	/** Смещение высоты сидений Java относительно значений Bedrock (блоки). */
 	public static float seatYOffset = 0.36f;
+	/** Новая машина с полным баком (в оригинале бак пуст, заправка ведром лавы). */
+	public static boolean startFullTank = true;
+	/** Двигатель заводится сам, когда водитель садится (иначе: меню → «Завести двигатель»). */
+	public static boolean autoStartEngine = true;
 
 	public static void load() {
 		try {
@@ -24,10 +28,14 @@ public final class RzConfig {
 				JsonObject o = JsonParser.parseString(Files.readString(p)).getAsJsonObject();
 				if (o.has("renderScale")) renderScale = o.get("renderScale").getAsFloat();
 				if (o.has("seatYOffset")) seatYOffset = o.get("seatYOffset").getAsFloat();
+				if (o.has("startFullTank")) startFullTank = o.get("startFullTank").getAsBoolean();
+				if (o.has("autoStartEngine")) autoStartEngine = o.get("autoStartEngine").getAsBoolean();
 			} else {
 				JsonObject o = new JsonObject();
 				o.addProperty("renderScale", renderScale);
 				o.addProperty("seatYOffset", seatYOffset);
+				o.addProperty("startFullTank", startFullTank);
+				o.addProperty("autoStartEngine", autoStartEngine);
 				Gson g = new GsonBuilder().setPrettyPrinting().create();
 				Files.writeString(p, g.toJson(o));
 			}
