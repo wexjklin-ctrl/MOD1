@@ -35,7 +35,7 @@ tasks.register('apiDump') {
 		// Если сборка упала, jar-файла нет, и шаг публикации CI не выложил бы логи. Кладём заглушку.
 		def libs = layout.buildDirectory.dir('libs').get().asFile
 		libs.mkdirs()
-		if (!(libs.listFiles() ?: []).any { it.name.endsWith('.jar') }) new File(libs, 'BUILD_FAILED_placeholder.jar').text = 'placeholder'
+		if (tasks.named('compileJava').get().state.failure != null) new File(libs, 'BUILD_FAILED_placeholder.jar').text = 'placeholder'
 		def files = [] as LinkedHashSet
 		files.addAll(sourceSets.main.compileClasspath.files)
 		try { files.addAll(sourceSets.client.compileClasspath.files) } catch (Throwable t) {}
