@@ -330,16 +330,17 @@ final class GeoModel {
 	/**
 	 * Отрисовка: неподвижные грани копируются из заготовки, считаются заново только колёса и руль.
 	 * @param dist  путь машины вперёд в блоках (назад = уменьшается), от него вращаются колёса
+	 * @param push сдвиг граней наружу по нормали (слой свечения, чтобы не мерцал на тех же координатах, что кузов)
 	 * @param steer скорость поворота в градусах за секунду (знак как у yaw в Minecraft), от неё поворачиваются передние колёса и руль
 	 */
-	void render(Baked bk, PoseStack.Pose pp, VertexConsumer vc, int light, float dist, float steer) {
+	void render(Baked bk, PoseStack.Pose pp, VertexConsumer vc, int light, float dist, float steer, float push) {
 		float[] sp = bk.sp;
 		for (int q = 0; q < bk.sn; q++) {
 			int o = q * 23;
 			float nx = sp[o + 20], ny = sp[o + 21], nz = sp[o + 22];
 			for (int k = 0; k < 4; k++) {
 				int a = o + k * 5;
-				vc.addVertex(pp, sp[a], sp[a + 1], sp[a + 2]).setColor(-1).setUv(sp[a + 3], sp[a + 4])
+				vc.addVertex(pp, sp[a] + nx * push, sp[a + 1] + ny * push, sp[a + 2] + nz * push).setColor(-1).setUv(sp[a + 3], sp[a + 4])
 					.setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pp, nx, ny, nz);
 			}
 		}
@@ -356,7 +357,7 @@ final class GeoModel {
 				int vi = face * 4 + k;
 				v.set(c.pos[vi * 3], c.pos[vi * 3 + 1], c.pos[vi * 3 + 2]);
 				m.transformPosition(v);
-				vc.addVertex(pp, v.x, v.y, v.z).setColor(-1).setUv(c.uv[vi * 2], c.uv[vi * 2 + 1])
+				vc.addVertex(pp, v.x + n.x * push, v.y + n.y * push, v.z + n.z * push).setColor(-1).setUv(c.uv[vi * 2], c.uv[vi * 2 + 1])
 					.setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pp, n.x, n.y, n.z);
 			}
 		}

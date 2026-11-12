@@ -115,8 +115,8 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 			pose.scale(com.rzauto.RzConfig.renderScale, com.rzauto.RzConfig.renderScale, com.rzauto.RzConfig.renderScale);
 			final int lt = s.lightCoords;
 			final GeoModel gm = s.model;
-			collector.submitCustomGeometry(pose, RenderTypes.entityCutout(s.tex), (p, vc) -> gm.render(s.bake, p, vc, lt, s.dist, s.steer));
-			if (s.texE != null) collector.submitCustomGeometry(pose, RenderTypes.eyes(s.texE), (p, vc) -> gm.render(s.bakeE, p, vc, 0xF000F0, s.dist, s.steer));
+			collector.submitCustomGeometry(pose, RenderTypes.entityCutout(s.tex), (p, vc) -> gm.render(s.bake, p, vc, lt, s.dist, s.steer, 0f));
+			if (s.texE != null) collector.submitCustomGeometry(pose, RenderTypes.eyes(s.texE), (p, vc) -> gm.render(s.bakeE, p, vc, 0xF000F0, s.dist, s.steer, 0.006f));
 			pose.popPose();
 			super.submit(s, pose, collector, camera);
 			return;

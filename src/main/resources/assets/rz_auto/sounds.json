@@ -1,0 +1,4286 @@
+{
+ "gls.maybach1": {
+  "sounds": [
+   {
+    "name": "rz_auto:entity/maybach1"
+   }
+  ]
+ },
+ "gls.maybach2": {
+  "sounds": [
+   {
+    "name": "rz_auto:entity/maybach2"
+   }
+  ]
+ },
+ "gls.maybach3": {
+  "sounds": [
+   {
+    "name": "rz_auto:entity/maybach3"
+   }
+  ]
+ },
+ "gls.maybach4": {
+  "sounds": [
+   {
+    "name": "rz_auto:entity/maybach4"
+   }
+  ]
+ },
+ "explorer.siren": {
+  "sounds": [
+   {
+    "name": "rz_auto:entity/siren"
+   }
+  ]
+ },
+ "rz.idle.e46s54.00": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/e46s54/00"
+   }
+  ]
+ },
+ "rz.idle.e46s54.01": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/e46s54/01"
+   }
+  ]
+ },
+ "rz.idle.e46s54.02": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/e46s54/02"
+   }
+  ]
+ },
+ "rz.idle.e46s54.03": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/e46s54/03"
+   }
+  ]
+ },
+ "rz.idle.e46s54.04": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/e46s54/04"
+   }
+  ]
+ },
+ "rz.idle.e46s54.05": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/e46s54/05"
+   }
+  ]
+ },
+ "rz.idle.e46s54.06": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/e46s54/06"
+   }
+  ]
+ },
+ "rz.idle.e46s54.07": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/e46s54/07"
+   }
+  ]
+ },
+ "rz.idle.e46s54.08": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/e46s54/08"
+   }
+  ]
+ },
+ "rz.idle.e46s54.09": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/e46s54/09"
+   }
+  ]
+ },
+ "rz.idle.e46s54.10": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/e46s54/10"
+   }
+  ]
+ },
+ "rz.idle.e46s54.11": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/e46s54/11"
+   }
+  ]
+ },
+ "rz.idle.e46s54.12": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/e46s54/12"
+   }
+  ]
+ },
+ "rz.idle.e46s54.13": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/e46s54/13"
+   }
+  ]
+ },
+ "rz.idle.e46s54.14": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/e46s54/14"
+   }
+  ]
+ },
+ "rz.idle.e46s54.15": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/e46s54/15"
+   }
+  ]
+ },
+ "rz.idle.e46s54.16": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/e46s54/16"
+   }
+  ]
+ },
+ "rz.idle.e46s54.17": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/e46s54/17"
+   }
+  ]
+ },
+ "rz.idle.e46s54.18": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/e46s54/18"
+   }
+  ]
+ },
+ "rz.idle.e46s54.19": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/e46s54/19"
+   }
+  ]
+ },
+ "rz.idle.e46s54.20": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/e46s54/20"
+   }
+  ]
+ },
+ "rz.idle.e46s54.21": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/e46s54/21"
+   }
+  ]
+ },
+ "rz.idle.e46s54.22": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/e46s54/22"
+   }
+  ]
+ },
+ "rz.idle.e46s54.23": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/e46s54/23"
+   }
+  ]
+ },
+ "rz.idle.g80s58.00": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/g80s58/00"
+   }
+  ]
+ },
+ "rz.idle.g80s58.01": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/g80s58/01"
+   }
+  ]
+ },
+ "rz.idle.g80s58.02": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/g80s58/02"
+   }
+  ]
+ },
+ "rz.idle.g80s58.03": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/g80s58/03"
+   }
+  ]
+ },
+ "rz.idle.g80s58.04": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/g80s58/04"
+   }
+  ]
+ },
+ "rz.idle.g80s58.05": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/g80s58/05"
+   }
+  ]
+ },
+ "rz.idle.g80s58.06": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/g80s58/06"
+   }
+  ]
+ },
+ "rz.idle.g80s58.07": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/g80s58/07"
+   }
+  ]
+ },
+ "rz.idle.g80s58.08": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/g80s58/08"
+   }
+  ]
+ },
+ "rz.idle.g80s58.09": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/g80s58/09"
+   }
+  ]
+ },
+ "rz.idle.g80s58.10": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/g80s58/10"
+   }
+  ]
+ },
+ "rz.idle.g80s58.11": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/g80s58/11"
+   }
+  ]
+ },
+ "rz.idle.g80s58.12": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/g80s58/12"
+   }
+  ]
+ },
+ "rz.idle.g80s58.13": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/g80s58/13"
+   }
+  ]
+ },
+ "rz.idle.g80s58.14": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/g80s58/14"
+   }
+  ]
+ },
+ "rz.idle.g80s58.15": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/g80s58/15"
+   }
+  ]
+ },
+ "rz.idle.g80s58.16": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/g80s58/16"
+   }
+  ]
+ },
+ "rz.idle.g80s58.17": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/g80s58/17"
+   }
+  ]
+ },
+ "rz.idle.g80s58.18": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/g80s58/18"
+   }
+  ]
+ },
+ "rz.idle.g80s58.19": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/g80s58/19"
+   }
+  ]
+ },
+ "rz.idle.g80s58.20": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/g80s58/20"
+   }
+  ]
+ },
+ "rz.idle.g80s58.21": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/g80s58/21"
+   }
+  ]
+ },
+ "rz.idle.g80s58.22": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/g80s58/22"
+   }
+  ]
+ },
+ "rz.idle.g80s58.23": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/g80s58/23"
+   }
+  ]
+ },
+ "rz.idle.c2.00": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/c2/00"
+   }
+  ]
+ },
+ "rz.idle.c2.01": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/c2/01"
+   }
+  ]
+ },
+ "rz.idle.c2.02": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/c2/02"
+   }
+  ]
+ },
+ "rz.idle.c2.03": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/c2/03"
+   }
+  ]
+ },
+ "rz.idle.c2.04": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/c2/04"
+   }
+  ]
+ },
+ "rz.idle.c2.05": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/c2/05"
+   }
+  ]
+ },
+ "rz.idle.c2.06": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/c2/06"
+   }
+  ]
+ },
+ "rz.idle.c2.07": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/c2/07"
+   }
+  ]
+ },
+ "rz.idle.c2.08": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/c2/08"
+   }
+  ]
+ },
+ "rz.idle.c2.09": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/c2/09"
+   }
+  ]
+ },
+ "rz.idle.c2.10": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/c2/10"
+   }
+  ]
+ },
+ "rz.idle.c2.11": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/c2/11"
+   }
+  ]
+ },
+ "rz.idle.c2.12": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/c2/12"
+   }
+  ]
+ },
+ "rz.idle.c2.13": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/c2/13"
+   }
+  ]
+ },
+ "rz.idle.c2.14": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/c2/14"
+   }
+  ]
+ },
+ "rz.idle.c2.15": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/c2/15"
+   }
+  ]
+ },
+ "rz.idle.c2.16": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/c2/16"
+   }
+  ]
+ },
+ "rz.idle.c2.17": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/c2/17"
+   }
+  ]
+ },
+ "rz.idle.c2.18": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/c2/18"
+   }
+  ]
+ },
+ "rz.idle.c2.19": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/c2/19"
+   }
+  ]
+ },
+ "rz.idle.c2.20": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/c2/20"
+   }
+  ]
+ },
+ "rz.idle.c2.21": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/c2/21"
+   }
+  ]
+ },
+ "rz.idle.c2.22": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/c2/22"
+   }
+  ]
+ },
+ "rz.idle.c2.23": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/c2/23"
+   }
+  ]
+ },
+ "rz.idle.v8classic.00": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8classic/00"
+   }
+  ]
+ },
+ "rz.idle.v8classic.01": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8classic/01"
+   }
+  ]
+ },
+ "rz.idle.v8classic.02": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8classic/02"
+   }
+  ]
+ },
+ "rz.idle.v8classic.03": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8classic/03"
+   }
+  ]
+ },
+ "rz.idle.v8classic.04": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8classic/04"
+   }
+  ]
+ },
+ "rz.idle.v8classic.05": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8classic/05"
+   }
+  ]
+ },
+ "rz.idle.v8classic.06": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8classic/06"
+   }
+  ]
+ },
+ "rz.idle.v8classic.07": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8classic/07"
+   }
+  ]
+ },
+ "rz.idle.v8classic.08": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8classic/08"
+   }
+  ]
+ },
+ "rz.idle.v8classic.09": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8classic/09"
+   }
+  ]
+ },
+ "rz.idle.v8classic.10": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8classic/10"
+   }
+  ]
+ },
+ "rz.idle.v8classic.11": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8classic/11"
+   }
+  ]
+ },
+ "rz.idle.v8classic.12": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8classic/12"
+   }
+  ]
+ },
+ "rz.idle.v8classic.13": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8classic/13"
+   }
+  ]
+ },
+ "rz.idle.v8classic.14": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8classic/14"
+   }
+  ]
+ },
+ "rz.idle.v8classic.15": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8classic/15"
+   }
+  ]
+ },
+ "rz.idle.v8classic.16": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8classic/16"
+   }
+  ]
+ },
+ "rz.idle.v8classic.17": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8classic/17"
+   }
+  ]
+ },
+ "rz.idle.v8classic.18": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8classic/18"
+   }
+  ]
+ },
+ "rz.idle.v8classic.19": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8classic/19"
+   }
+  ]
+ },
+ "rz.idle.v8classic.20": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8classic/20"
+   }
+  ]
+ },
+ "rz.idle.v8classic.21": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8classic/21"
+   }
+  ]
+ },
+ "rz.idle.v8classic.22": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8classic/22"
+   }
+  ]
+ },
+ "rz.idle.v8classic.23": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8classic/23"
+   }
+  ]
+ },
+ "rz.idle.f40.00": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/f40/00"
+   }
+  ]
+ },
+ "rz.idle.f40.01": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/f40/01"
+   }
+  ]
+ },
+ "rz.idle.f40.02": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/f40/02"
+   }
+  ]
+ },
+ "rz.idle.f40.03": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/f40/03"
+   }
+  ]
+ },
+ "rz.idle.f40.04": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/f40/04"
+   }
+  ]
+ },
+ "rz.idle.f40.05": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/f40/05"
+   }
+  ]
+ },
+ "rz.idle.f40.06": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/f40/06"
+   }
+  ]
+ },
+ "rz.idle.f40.07": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/f40/07"
+   }
+  ]
+ },
+ "rz.idle.f40.08": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/f40/08"
+   }
+  ]
+ },
+ "rz.idle.f40.09": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/f40/09"
+   }
+  ]
+ },
+ "rz.idle.f40.10": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/f40/10"
+   }
+  ]
+ },
+ "rz.idle.f40.11": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/f40/11"
+   }
+  ]
+ },
+ "rz.idle.f40.12": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/f40/12"
+   }
+  ]
+ },
+ "rz.idle.f40.13": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/f40/13"
+   }
+  ]
+ },
+ "rz.idle.f40.14": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/f40/14"
+   }
+  ]
+ },
+ "rz.idle.f40.15": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/f40/15"
+   }
+  ]
+ },
+ "rz.idle.f40.16": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/f40/16"
+   }
+  ]
+ },
+ "rz.idle.f40.17": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/f40/17"
+   }
+  ]
+ },
+ "rz.idle.f40.18": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/f40/18"
+   }
+  ]
+ },
+ "rz.idle.f40.19": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/f40/19"
+   }
+  ]
+ },
+ "rz.idle.f40.20": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/f40/20"
+   }
+  ]
+ },
+ "rz.idle.f40.21": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/f40/21"
+   }
+  ]
+ },
+ "rz.idle.f40.22": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/f40/22"
+   }
+  ]
+ },
+ "rz.idle.f40.23": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/f40/23"
+   }
+  ]
+ },
+ "rz.idle.laf.00": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/laf/00"
+   }
+  ]
+ },
+ "rz.idle.laf.01": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/laf/01"
+   }
+  ]
+ },
+ "rz.idle.laf.02": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/laf/02"
+   }
+  ]
+ },
+ "rz.idle.laf.03": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/laf/03"
+   }
+  ]
+ },
+ "rz.idle.laf.04": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/laf/04"
+   }
+  ]
+ },
+ "rz.idle.laf.05": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/laf/05"
+   }
+  ]
+ },
+ "rz.idle.laf.06": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/laf/06"
+   }
+  ]
+ },
+ "rz.idle.laf.07": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/laf/07"
+   }
+  ]
+ },
+ "rz.idle.laf.08": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/laf/08"
+   }
+  ]
+ },
+ "rz.idle.laf.09": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/laf/09"
+   }
+  ]
+ },
+ "rz.idle.laf.10": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/laf/10"
+   }
+  ]
+ },
+ "rz.idle.laf.11": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/laf/11"
+   }
+  ]
+ },
+ "rz.idle.laf.12": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/laf/12"
+   }
+  ]
+ },
+ "rz.idle.laf.13": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/laf/13"
+   }
+  ]
+ },
+ "rz.idle.laf.14": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/laf/14"
+   }
+  ]
+ },
+ "rz.idle.laf.15": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/laf/15"
+   }
+  ]
+ },
+ "rz.idle.laf.16": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/laf/16"
+   }
+  ]
+ },
+ "rz.idle.laf.17": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/laf/17"
+   }
+  ]
+ },
+ "rz.idle.laf.18": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/laf/18"
+   }
+  ]
+ },
+ "rz.idle.laf.19": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/laf/19"
+   }
+  ]
+ },
+ "rz.idle.laf.20": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/laf/20"
+   }
+  ]
+ },
+ "rz.idle.laf.21": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/laf/21"
+   }
+  ]
+ },
+ "rz.idle.laf.22": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/laf/22"
+   }
+  ]
+ },
+ "rz.idle.laf.23": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/laf/23"
+   }
+  ]
+ },
+ "rz.idle.flat6.00": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6/00"
+   }
+  ]
+ },
+ "rz.idle.flat6.01": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6/01"
+   }
+  ]
+ },
+ "rz.idle.flat6.02": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6/02"
+   }
+  ]
+ },
+ "rz.idle.flat6.03": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6/03"
+   }
+  ]
+ },
+ "rz.idle.flat6.04": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6/04"
+   }
+  ]
+ },
+ "rz.idle.flat6.05": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6/05"
+   }
+  ]
+ },
+ "rz.idle.flat6.06": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6/06"
+   }
+  ]
+ },
+ "rz.idle.flat6.07": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6/07"
+   }
+  ]
+ },
+ "rz.idle.flat6.08": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6/08"
+   }
+  ]
+ },
+ "rz.idle.flat6.09": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6/09"
+   }
+  ]
+ },
+ "rz.idle.flat6.10": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6/10"
+   }
+  ]
+ },
+ "rz.idle.flat6.11": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6/11"
+   }
+  ]
+ },
+ "rz.idle.flat6.12": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6/12"
+   }
+  ]
+ },
+ "rz.idle.flat6.13": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6/13"
+   }
+  ]
+ },
+ "rz.idle.flat6.14": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6/14"
+   }
+  ]
+ },
+ "rz.idle.flat6.15": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6/15"
+   }
+  ]
+ },
+ "rz.idle.flat6.16": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6/16"
+   }
+  ]
+ },
+ "rz.idle.flat6.17": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6/17"
+   }
+  ]
+ },
+ "rz.idle.flat6.18": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6/18"
+   }
+  ]
+ },
+ "rz.idle.flat6.19": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6/19"
+   }
+  ]
+ },
+ "rz.idle.flat6.20": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6/20"
+   }
+  ]
+ },
+ "rz.idle.flat6.21": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6/21"
+   }
+  ]
+ },
+ "rz.idle.flat6.22": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6/22"
+   }
+  ]
+ },
+ "rz.idle.flat6.23": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6/23"
+   }
+  ]
+ },
+ "rz.idle.xj.00": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/xj/00"
+   }
+  ]
+ },
+ "rz.idle.xj.01": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/xj/01"
+   }
+  ]
+ },
+ "rz.idle.xj.02": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/xj/02"
+   }
+  ]
+ },
+ "rz.idle.xj.03": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/xj/03"
+   }
+  ]
+ },
+ "rz.idle.xj.04": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/xj/04"
+   }
+  ]
+ },
+ "rz.idle.xj.05": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/xj/05"
+   }
+  ]
+ },
+ "rz.idle.xj.06": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/xj/06"
+   }
+  ]
+ },
+ "rz.idle.xj.07": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/xj/07"
+   }
+  ]
+ },
+ "rz.idle.xj.08": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/xj/08"
+   }
+  ]
+ },
+ "rz.idle.xj.09": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/xj/09"
+   }
+  ]
+ },
+ "rz.idle.xj.10": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/xj/10"
+   }
+  ]
+ },
+ "rz.idle.xj.11": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/xj/11"
+   }
+  ]
+ },
+ "rz.idle.xj.12": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/xj/12"
+   }
+  ]
+ },
+ "rz.idle.xj.13": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/xj/13"
+   }
+  ]
+ },
+ "rz.idle.xj.14": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/xj/14"
+   }
+  ]
+ },
+ "rz.idle.xj.15": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/xj/15"
+   }
+  ]
+ },
+ "rz.idle.xj.16": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/xj/16"
+   }
+  ]
+ },
+ "rz.idle.xj.17": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/xj/17"
+   }
+  ]
+ },
+ "rz.idle.xj.18": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/xj/18"
+   }
+  ]
+ },
+ "rz.idle.xj.19": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/xj/19"
+   }
+  ]
+ },
+ "rz.idle.xj.20": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/xj/20"
+   }
+  ]
+ },
+ "rz.idle.xj.21": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/xj/21"
+   }
+  ]
+ },
+ "rz.idle.xj.22": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/xj/22"
+   }
+  ]
+ },
+ "rz.idle.xj.23": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/xj/23"
+   }
+  ]
+ },
+ "rz.idle.yj.00": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/yj/00"
+   }
+  ]
+ },
+ "rz.idle.yj.01": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/yj/01"
+   }
+  ]
+ },
+ "rz.idle.yj.02": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/yj/02"
+   }
+  ]
+ },
+ "rz.idle.yj.03": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/yj/03"
+   }
+  ]
+ },
+ "rz.idle.yj.04": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/yj/04"
+   }
+  ]
+ },
+ "rz.idle.yj.05": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/yj/05"
+   }
+  ]
+ },
+ "rz.idle.yj.06": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/yj/06"
+   }
+  ]
+ },
+ "rz.idle.yj.07": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/yj/07"
+   }
+  ]
+ },
+ "rz.idle.yj.08": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/yj/08"
+   }
+  ]
+ },
+ "rz.idle.yj.09": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/yj/09"
+   }
+  ]
+ },
+ "rz.idle.yj.10": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/yj/10"
+   }
+  ]
+ },
+ "rz.idle.yj.11": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/yj/11"
+   }
+  ]
+ },
+ "rz.idle.yj.12": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/yj/12"
+   }
+  ]
+ },
+ "rz.idle.yj.13": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/yj/13"
+   }
+  ]
+ },
+ "rz.idle.yj.14": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/yj/14"
+   }
+  ]
+ },
+ "rz.idle.yj.15": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/yj/15"
+   }
+  ]
+ },
+ "rz.idle.yj.16": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/yj/16"
+   }
+  ]
+ },
+ "rz.idle.yj.17": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/yj/17"
+   }
+  ]
+ },
+ "rz.idle.yj.18": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/yj/18"
+   }
+  ]
+ },
+ "rz.idle.yj.19": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/yj/19"
+   }
+  ]
+ },
+ "rz.idle.yj.20": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/yj/20"
+   }
+  ]
+ },
+ "rz.idle.yj.21": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/yj/21"
+   }
+  ]
+ },
+ "rz.idle.yj.22": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/yj/22"
+   }
+  ]
+ },
+ "rz.idle.yj.23": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/yj/23"
+   }
+  ]
+ },
+ "rz.idle.p911t.00": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/p911t/00"
+   }
+  ]
+ },
+ "rz.idle.p911t.01": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/p911t/01"
+   }
+  ]
+ },
+ "rz.idle.p911t.02": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/p911t/02"
+   }
+  ]
+ },
+ "rz.idle.p911t.03": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/p911t/03"
+   }
+  ]
+ },
+ "rz.idle.p911t.04": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/p911t/04"
+   }
+  ]
+ },
+ "rz.idle.p911t.05": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/p911t/05"
+   }
+  ]
+ },
+ "rz.idle.p911t.06": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/p911t/06"
+   }
+  ]
+ },
+ "rz.idle.p911t.07": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/p911t/07"
+   }
+  ]
+ },
+ "rz.idle.p911t.08": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/p911t/08"
+   }
+  ]
+ },
+ "rz.idle.p911t.09": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/p911t/09"
+   }
+  ]
+ },
+ "rz.idle.p911t.10": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/p911t/10"
+   }
+  ]
+ },
+ "rz.idle.p911t.11": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/p911t/11"
+   }
+  ]
+ },
+ "rz.idle.p911t.12": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/p911t/12"
+   }
+  ]
+ },
+ "rz.idle.p911t.13": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/p911t/13"
+   }
+  ]
+ },
+ "rz.idle.p911t.14": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/p911t/14"
+   }
+  ]
+ },
+ "rz.idle.p911t.15": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/p911t/15"
+   }
+  ]
+ },
+ "rz.idle.p911t.16": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/p911t/16"
+   }
+  ]
+ },
+ "rz.idle.p911t.17": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/p911t/17"
+   }
+  ]
+ },
+ "rz.idle.p911t.18": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/p911t/18"
+   }
+  ]
+ },
+ "rz.idle.p911t.19": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/p911t/19"
+   }
+  ]
+ },
+ "rz.idle.p911t.20": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/p911t/20"
+   }
+  ]
+ },
+ "rz.idle.p911t.21": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/p911t/21"
+   }
+  ]
+ },
+ "rz.idle.p911t.22": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/p911t/22"
+   }
+  ]
+ },
+ "rz.idle.p911t.23": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/p911t/23"
+   }
+  ]
+ },
+ "rz.idle.v8sc.00": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8sc/00"
+   }
+  ]
+ },
+ "rz.idle.v8sc.01": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8sc/01"
+   }
+  ]
+ },
+ "rz.idle.v8sc.02": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8sc/02"
+   }
+  ]
+ },
+ "rz.idle.v8sc.03": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8sc/03"
+   }
+  ]
+ },
+ "rz.idle.v8sc.04": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8sc/04"
+   }
+  ]
+ },
+ "rz.idle.v8sc.05": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8sc/05"
+   }
+  ]
+ },
+ "rz.idle.v8sc.06": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8sc/06"
+   }
+  ]
+ },
+ "rz.idle.v8sc.07": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8sc/07"
+   }
+  ]
+ },
+ "rz.idle.v8sc.08": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8sc/08"
+   }
+  ]
+ },
+ "rz.idle.v8sc.09": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8sc/09"
+   }
+  ]
+ },
+ "rz.idle.v8sc.10": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8sc/10"
+   }
+  ]
+ },
+ "rz.idle.v8sc.11": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8sc/11"
+   }
+  ]
+ },
+ "rz.idle.v8sc.12": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8sc/12"
+   }
+  ]
+ },
+ "rz.idle.v8sc.13": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8sc/13"
+   }
+  ]
+ },
+ "rz.idle.v8sc.14": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8sc/14"
+   }
+  ]
+ },
+ "rz.idle.v8sc.15": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8sc/15"
+   }
+  ]
+ },
+ "rz.idle.v8sc.16": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8sc/16"
+   }
+  ]
+ },
+ "rz.idle.v8sc.17": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8sc/17"
+   }
+  ]
+ },
+ "rz.idle.v8sc.18": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8sc/18"
+   }
+  ]
+ },
+ "rz.idle.v8sc.19": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8sc/19"
+   }
+  ]
+ },
+ "rz.idle.v8sc.20": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8sc/20"
+   }
+  ]
+ },
+ "rz.idle.v8sc.21": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8sc/21"
+   }
+  ]
+ },
+ "rz.idle.v8sc.22": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8sc/22"
+   }
+  ]
+ },
+ "rz.idle.v8sc.23": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v8sc/23"
+   }
+  ]
+ },
+ "rz.idle.flat6t.00": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6t/00"
+   }
+  ]
+ },
+ "rz.idle.flat6t.01": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6t/01"
+   }
+  ]
+ },
+ "rz.idle.flat6t.02": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6t/02"
+   }
+  ]
+ },
+ "rz.idle.flat6t.03": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6t/03"
+   }
+  ]
+ },
+ "rz.idle.flat6t.04": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6t/04"
+   }
+  ]
+ },
+ "rz.idle.flat6t.05": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6t/05"
+   }
+  ]
+ },
+ "rz.idle.flat6t.06": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6t/06"
+   }
+  ]
+ },
+ "rz.idle.flat6t.07": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6t/07"
+   }
+  ]
+ },
+ "rz.idle.flat6t.08": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6t/08"
+   }
+  ]
+ },
+ "rz.idle.flat6t.09": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6t/09"
+   }
+  ]
+ },
+ "rz.idle.flat6t.10": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6t/10"
+   }
+  ]
+ },
+ "rz.idle.flat6t.11": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6t/11"
+   }
+  ]
+ },
+ "rz.idle.flat6t.12": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6t/12"
+   }
+  ]
+ },
+ "rz.idle.flat6t.13": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6t/13"
+   }
+  ]
+ },
+ "rz.idle.flat6t.14": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6t/14"
+   }
+  ]
+ },
+ "rz.idle.flat6t.15": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6t/15"
+   }
+  ]
+ },
+ "rz.idle.flat6t.16": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6t/16"
+   }
+  ]
+ },
+ "rz.idle.flat6t.17": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6t/17"
+   }
+  ]
+ },
+ "rz.idle.flat6t.18": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6t/18"
+   }
+  ]
+ },
+ "rz.idle.flat6t.19": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6t/19"
+   }
+  ]
+ },
+ "rz.idle.flat6t.20": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6t/20"
+   }
+  ]
+ },
+ "rz.idle.flat6t.21": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6t/21"
+   }
+  ]
+ },
+ "rz.idle.flat6t.22": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6t/22"
+   }
+  ]
+ },
+ "rz.idle.flat6t.23": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/flat6t/23"
+   }
+  ]
+ },
+ "rz.idle.v12.00": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v12/00"
+   }
+  ]
+ },
+ "rz.idle.v12.01": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v12/01"
+   }
+  ]
+ },
+ "rz.idle.v12.02": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v12/02"
+   }
+  ]
+ },
+ "rz.idle.v12.03": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v12/03"
+   }
+  ]
+ },
+ "rz.idle.v12.04": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v12/04"
+   }
+  ]
+ },
+ "rz.idle.v12.05": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v12/05"
+   }
+  ]
+ },
+ "rz.idle.v12.06": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v12/06"
+   }
+  ]
+ },
+ "rz.idle.v12.07": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v12/07"
+   }
+  ]
+ },
+ "rz.idle.v12.08": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v12/08"
+   }
+  ]
+ },
+ "rz.idle.v12.09": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v12/09"
+   }
+  ]
+ },
+ "rz.idle.v12.10": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v12/10"
+   }
+  ]
+ },
+ "rz.idle.v12.11": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v12/11"
+   }
+  ]
+ },
+ "rz.idle.v12.12": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v12/12"
+   }
+  ]
+ },
+ "rz.idle.v12.13": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v12/13"
+   }
+  ]
+ },
+ "rz.idle.v12.14": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v12/14"
+   }
+  ]
+ },
+ "rz.idle.v12.15": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v12/15"
+   }
+  ]
+ },
+ "rz.idle.v12.16": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v12/16"
+   }
+  ]
+ },
+ "rz.idle.v12.17": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v12/17"
+   }
+  ]
+ },
+ "rz.idle.v12.18": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v12/18"
+   }
+  ]
+ },
+ "rz.idle.v12.19": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v12/19"
+   }
+  ]
+ },
+ "rz.idle.v12.20": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v12/20"
+   }
+  ]
+ },
+ "rz.idle.v12.21": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v12/21"
+   }
+  ]
+ },
+ "rz.idle.v12.22": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v12/22"
+   }
+  ]
+ },
+ "rz.idle.v12.23": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/v12/23"
+   }
+  ]
+ },
+ "rz.idle.moto.00": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/moto/00"
+   }
+  ]
+ },
+ "rz.idle.moto.01": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/moto/01"
+   }
+  ]
+ },
+ "rz.idle.moto.02": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/moto/02"
+   }
+  ]
+ },
+ "rz.idle.moto.03": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/moto/03"
+   }
+  ]
+ },
+ "rz.idle.moto.04": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/moto/04"
+   }
+  ]
+ },
+ "rz.idle.moto.05": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/moto/05"
+   }
+  ]
+ },
+ "rz.idle.moto.06": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/moto/06"
+   }
+  ]
+ },
+ "rz.idle.moto.07": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/moto/07"
+   }
+  ]
+ },
+ "rz.idle.moto.08": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/moto/08"
+   }
+  ]
+ },
+ "rz.idle.moto.09": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/moto/09"
+   }
+  ]
+ },
+ "rz.idle.moto.10": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/moto/10"
+   }
+  ]
+ },
+ "rz.idle.moto.11": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/moto/11"
+   }
+  ]
+ },
+ "rz.idle.moto.12": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/moto/12"
+   }
+  ]
+ },
+ "rz.idle.moto.13": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/moto/13"
+   }
+  ]
+ },
+ "rz.idle.moto.14": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/idle/moto/14"
+   }
+  ]
+ },
+ "rz.move.jeep.00": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/jeep/00"
+   }
+  ]
+ },
+ "rz.move.jeep.01": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/jeep/01"
+   }
+  ]
+ },
+ "rz.move.jeep.02": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/jeep/02"
+   }
+  ]
+ },
+ "rz.move.jeep.03": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/jeep/03"
+   }
+  ]
+ },
+ "rz.move.jeep.04": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/jeep/04"
+   }
+  ]
+ },
+ "rz.move.jeep.05": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/jeep/05"
+   }
+  ]
+ },
+ "rz.move.jeep.06": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/jeep/06"
+   }
+  ]
+ },
+ "rz.move.jeep.07": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/jeep/07"
+   }
+  ]
+ },
+ "rz.move.jeep.08": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/jeep/08"
+   }
+  ]
+ },
+ "rz.move.jeep.09": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/jeep/09"
+   }
+  ]
+ },
+ "rz.move.jeep.10": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/jeep/10"
+   }
+  ]
+ },
+ "rz.move.jeep.11": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/jeep/11"
+   }
+  ]
+ },
+ "rz.move.jeep.12": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/jeep/12"
+   }
+  ]
+ },
+ "rz.move.jeep.13": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/jeep/13"
+   }
+  ]
+ },
+ "rz.move.jeep.14": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/jeep/14"
+   }
+  ]
+ },
+ "rz.move.jeep.15": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/jeep/15"
+   }
+  ]
+ },
+ "rz.move.jeep.16": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/jeep/16"
+   }
+  ]
+ },
+ "rz.move.jeep.17": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/jeep/17"
+   }
+  ]
+ },
+ "rz.move.jeep.18": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/jeep/18"
+   }
+  ]
+ },
+ "rz.move.jeep.19": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/jeep/19"
+   }
+  ]
+ },
+ "rz.move.jeep.20": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/jeep/20"
+   }
+  ]
+ },
+ "rz.move.jeep.21": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/jeep/21"
+   }
+  ]
+ },
+ "rz.move.jeep.22": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/jeep/22"
+   }
+  ]
+ },
+ "rz.move.jeep.23": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/jeep/23"
+   }
+  ]
+ },
+ "rz.move.jeep.24": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/jeep/24"
+   }
+  ]
+ },
+ "rz.move.moto.00": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/moto/00"
+   }
+  ]
+ },
+ "rz.move.moto.01": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/moto/01"
+   }
+  ]
+ },
+ "rz.move.moto.02": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/moto/02"
+   }
+  ]
+ },
+ "rz.move.moto.03": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/moto/03"
+   }
+  ]
+ },
+ "rz.move.moto.04": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/moto/04"
+   }
+  ]
+ },
+ "rz.move.moto.05": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/moto/05"
+   }
+  ]
+ },
+ "rz.move.moto.06": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/moto/06"
+   }
+  ]
+ },
+ "rz.move.moto.07": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/moto/07"
+   }
+  ]
+ },
+ "rz.move.moto.08": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/moto/08"
+   }
+  ]
+ },
+ "rz.move.moto.09": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/moto/09"
+   }
+  ]
+ },
+ "rz.move.moto.10": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/moto/10"
+   }
+  ]
+ },
+ "rz.move.moto.11": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/moto/11"
+   }
+  ]
+ },
+ "rz.move.moto.12": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/moto/12"
+   }
+  ]
+ },
+ "rz.move.moto.13": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/moto/13"
+   }
+  ]
+ },
+ "rz.move.moto.14": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/moto/14"
+   }
+  ]
+ },
+ "rz.move.moto.15": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/moto/15"
+   }
+  ]
+ },
+ "rz.move.moto.16": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/moto/16"
+   }
+  ]
+ },
+ "rz.move.moto.17": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/moto/17"
+   }
+  ]
+ },
+ "rz.move.moto.18": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/moto/18"
+   }
+  ]
+ },
+ "rz.move.moto.19": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/moto/19"
+   }
+  ]
+ },
+ "rz.move.moto.20": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/moto/20"
+   }
+  ]
+ },
+ "rz.move.moto.21": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/moto/21"
+   }
+  ]
+ },
+ "rz.move.moto.22": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/moto/22"
+   }
+  ]
+ },
+ "rz.move.moto.23": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/moto/23"
+   }
+  ]
+ },
+ "rz.move.moto.24": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/moto/24"
+   }
+  ]
+ },
+ "rz.move.normal.00": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/normal/00"
+   }
+  ]
+ },
+ "rz.move.normal.01": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/normal/01"
+   }
+  ]
+ },
+ "rz.move.normal.02": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/normal/02"
+   }
+  ]
+ },
+ "rz.move.normal.03": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/normal/03"
+   }
+  ]
+ },
+ "rz.move.normal.04": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/normal/04"
+   }
+  ]
+ },
+ "rz.move.normal.05": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/normal/05"
+   }
+  ]
+ },
+ "rz.move.normal.06": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/normal/06"
+   }
+  ]
+ },
+ "rz.move.normal.07": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/normal/07"
+   }
+  ]
+ },
+ "rz.move.normal.08": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/normal/08"
+   }
+  ]
+ },
+ "rz.move.normal.09": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/normal/09"
+   }
+  ]
+ },
+ "rz.move.normal.10": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/normal/10"
+   }
+  ]
+ },
+ "rz.move.normal.11": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/normal/11"
+   }
+  ]
+ },
+ "rz.move.normal.12": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/normal/12"
+   }
+  ]
+ },
+ "rz.move.normal.13": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/normal/13"
+   }
+  ]
+ },
+ "rz.move.normal.14": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/normal/14"
+   }
+  ]
+ },
+ "rz.move.normal.15": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/normal/15"
+   }
+  ]
+ },
+ "rz.move.normal.16": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/normal/16"
+   }
+  ]
+ },
+ "rz.move.normal.17": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/normal/17"
+   }
+  ]
+ },
+ "rz.move.normal.18": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/normal/18"
+   }
+  ]
+ },
+ "rz.move.normal.19": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/normal/19"
+   }
+  ]
+ },
+ "rz.move.normal.20": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/normal/20"
+   }
+  ]
+ },
+ "rz.move.normal.21": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/normal/21"
+   }
+  ]
+ },
+ "rz.move.normal.22": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/normal/22"
+   }
+  ]
+ },
+ "rz.move.normal.23": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/normal/23"
+   }
+  ]
+ },
+ "rz.move.normal.24": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/normal/24"
+   }
+  ]
+ },
+ "rz.move.sport.00": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/sport/00"
+   }
+  ]
+ },
+ "rz.move.sport.01": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/sport/01"
+   }
+  ]
+ },
+ "rz.move.sport.02": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/sport/02"
+   }
+  ]
+ },
+ "rz.move.sport.03": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/sport/03"
+   }
+  ]
+ },
+ "rz.move.sport.04": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/sport/04"
+   }
+  ]
+ },
+ "rz.move.sport.05": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/sport/05"
+   }
+  ]
+ },
+ "rz.move.sport.06": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/sport/06"
+   }
+  ]
+ },
+ "rz.move.sport.07": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/sport/07"
+   }
+  ]
+ },
+ "rz.move.sport.08": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/sport/08"
+   }
+  ]
+ },
+ "rz.move.sport.09": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/sport/09"
+   }
+  ]
+ },
+ "rz.move.sport.10": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/sport/10"
+   }
+  ]
+ },
+ "rz.move.sport.11": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/sport/11"
+   }
+  ]
+ },
+ "rz.move.sport.12": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/sport/12"
+   }
+  ]
+ },
+ "rz.move.sport.13": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/sport/13"
+   }
+  ]
+ },
+ "rz.move.sport.14": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/sport/14"
+   }
+  ]
+ },
+ "rz.move.sport.15": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/sport/15"
+   }
+  ]
+ },
+ "rz.move.sport.16": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/sport/16"
+   }
+  ]
+ },
+ "rz.move.sport.17": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/sport/17"
+   }
+  ]
+ },
+ "rz.move.sport.18": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/sport/18"
+   }
+  ]
+ },
+ "rz.move.sport.19": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/sport/19"
+   }
+  ]
+ },
+ "rz.move.sport.20": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/sport/20"
+   }
+  ]
+ },
+ "rz.move.sport.21": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/sport/21"
+   }
+  ]
+ },
+ "rz.move.sport.22": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/sport/22"
+   }
+  ]
+ },
+ "rz.move.sport.23": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/sport/23"
+   }
+  ]
+ },
+ "rz.move.sport.24": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/sport/24"
+   }
+  ]
+ },
+ "rz.move.super.00": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/super/00"
+   }
+  ]
+ },
+ "rz.move.super.01": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/super/01"
+   }
+  ]
+ },
+ "rz.move.super.02": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/super/02"
+   }
+  ]
+ },
+ "rz.move.super.03": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/super/03"
+   }
+  ]
+ },
+ "rz.move.super.04": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/super/04"
+   }
+  ]
+ },
+ "rz.move.super.05": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/super/05"
+   }
+  ]
+ },
+ "rz.move.super.06": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/super/06"
+   }
+  ]
+ },
+ "rz.move.super.07": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/super/07"
+   }
+  ]
+ },
+ "rz.move.super.08": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/super/08"
+   }
+  ]
+ },
+ "rz.move.super.09": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/super/09"
+   }
+  ]
+ },
+ "rz.move.super.10": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/super/10"
+   }
+  ]
+ },
+ "rz.move.super.11": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/super/11"
+   }
+  ]
+ },
+ "rz.move.super.12": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/super/12"
+   }
+  ]
+ },
+ "rz.move.super.13": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/super/13"
+   }
+  ]
+ },
+ "rz.move.super.14": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/super/14"
+   }
+  ]
+ },
+ "rz.move.super.15": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/super/15"
+   }
+  ]
+ },
+ "rz.move.super.16": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/super/16"
+   }
+  ]
+ },
+ "rz.move.super.17": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/super/17"
+   }
+  ]
+ },
+ "rz.move.super.18": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/super/18"
+   }
+  ]
+ },
+ "rz.move.super.19": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/super/19"
+   }
+  ]
+ },
+ "rz.move.super.20": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/super/20"
+   }
+  ]
+ },
+ "rz.move.super.21": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/super/21"
+   }
+  ]
+ },
+ "rz.move.super.22": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/super/22"
+   }
+  ]
+ },
+ "rz.move.super.23": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/super/23"
+   }
+  ]
+ },
+ "rz.move.super.24": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/super/24"
+   }
+  ]
+ },
+ "rz.move.ev.00": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/ev/00"
+   }
+  ]
+ },
+ "rz.move.ev.01": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/ev/01"
+   }
+  ]
+ },
+ "rz.move.ev.02": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/ev/02"
+   }
+  ]
+ },
+ "rz.move.ev.03": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/ev/03"
+   }
+  ]
+ },
+ "rz.move.ev.04": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/ev/04"
+   }
+  ]
+ },
+ "rz.move.ev.05": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/ev/05"
+   }
+  ]
+ },
+ "rz.move.ev.06": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/ev/06"
+   }
+  ]
+ },
+ "rz.move.ev.07": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/ev/07"
+   }
+  ]
+ },
+ "rz.move.ev.08": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/ev/08"
+   }
+  ]
+ },
+ "rz.move.ev.09": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/ev/09"
+   }
+  ]
+ },
+ "rz.move.ev.10": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/ev/10"
+   }
+  ]
+ },
+ "rz.move.ev.11": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/ev/11"
+   }
+  ]
+ },
+ "rz.move.ev.12": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/ev/12"
+   }
+  ]
+ },
+ "rz.move.ev.13": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/ev/13"
+   }
+  ]
+ },
+ "rz.move.ev.14": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/ev/14"
+   }
+  ]
+ },
+ "rz.move.ev.15": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/ev/15"
+   }
+  ]
+ },
+ "rz.move.ev.16": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/ev/16"
+   }
+  ]
+ },
+ "rz.move.ev.17": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/ev/17"
+   }
+  ]
+ },
+ "rz.move.ev.18": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/ev/18"
+   }
+  ]
+ },
+ "rz.move.ev.19": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/ev/19"
+   }
+  ]
+ },
+ "rz.move.ev.20": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/ev/20"
+   }
+  ]
+ },
+ "rz.move.ev.21": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/ev/21"
+   }
+  ]
+ },
+ "rz.move.ev.22": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/ev/22"
+   }
+  ]
+ },
+ "rz.move.ev.23": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/ev/23"
+   }
+  ]
+ },
+ "rz.move.ev.24": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/move/ev/24"
+   }
+  ]
+ },
+ "rz.road.asphalt.00": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/asphalt/00"
+   }
+  ]
+ },
+ "rz.road.asphalt.01": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/asphalt/01"
+   }
+  ]
+ },
+ "rz.road.asphalt.02": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/asphalt/02"
+   }
+  ]
+ },
+ "rz.road.asphalt.03": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/asphalt/03"
+   }
+  ]
+ },
+ "rz.road.asphalt.04": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/asphalt/04"
+   }
+  ]
+ },
+ "rz.road.asphalt.05": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/asphalt/05"
+   }
+  ]
+ },
+ "rz.road.asphalt.06": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/asphalt/06"
+   }
+  ]
+ },
+ "rz.road.asphalt.07": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/asphalt/07"
+   }
+  ]
+ },
+ "rz.road.asphalt.08": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/asphalt/08"
+   }
+  ]
+ },
+ "rz.road.asphalt.09": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/asphalt/09"
+   }
+  ]
+ },
+ "rz.road.asphalt.10": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/asphalt/10"
+   }
+  ]
+ },
+ "rz.road.asphalt.11": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/asphalt/11"
+   }
+  ]
+ },
+ "rz.road.asphalt.12": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/asphalt/12"
+   }
+  ]
+ },
+ "rz.road.asphalt.13": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/asphalt/13"
+   }
+  ]
+ },
+ "rz.road.asphalt.14": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/asphalt/14"
+   }
+  ]
+ },
+ "rz.road.asphalt.15": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/asphalt/15"
+   }
+  ]
+ },
+ "rz.road.asphalt.16": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/asphalt/16"
+   }
+  ]
+ },
+ "rz.road.asphalt.17": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/asphalt/17"
+   }
+  ]
+ },
+ "rz.road.asphalt.18": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/asphalt/18"
+   }
+  ]
+ },
+ "rz.road.asphalt.19": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/asphalt/19"
+   }
+  ]
+ },
+ "rz.road.asphalt.20": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/asphalt/20"
+   }
+  ]
+ },
+ "rz.road.asphalt.21": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/asphalt/21"
+   }
+  ]
+ },
+ "rz.road.asphalt.22": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/asphalt/22"
+   }
+  ]
+ },
+ "rz.road.asphalt.23": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/asphalt/23"
+   }
+  ]
+ },
+ "rz.road.asphalt.24": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/asphalt/24"
+   }
+  ]
+ },
+ "rz.road.gravel.00": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/gravel/00"
+   }
+  ]
+ },
+ "rz.road.gravel.01": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/gravel/01"
+   }
+  ]
+ },
+ "rz.road.gravel.02": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/gravel/02"
+   }
+  ]
+ },
+ "rz.road.gravel.03": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/gravel/03"
+   }
+  ]
+ },
+ "rz.road.gravel.04": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/gravel/04"
+   }
+  ]
+ },
+ "rz.road.gravel.05": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/gravel/05"
+   }
+  ]
+ },
+ "rz.road.gravel.06": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/gravel/06"
+   }
+  ]
+ },
+ "rz.road.gravel.07": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/gravel/07"
+   }
+  ]
+ },
+ "rz.road.gravel.08": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/gravel/08"
+   }
+  ]
+ },
+ "rz.road.gravel.09": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/gravel/09"
+   }
+  ]
+ },
+ "rz.road.gravel.10": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/gravel/10"
+   }
+  ]
+ },
+ "rz.road.gravel.11": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/gravel/11"
+   }
+  ]
+ },
+ "rz.road.gravel.12": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/gravel/12"
+   }
+  ]
+ },
+ "rz.road.gravel.13": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/gravel/13"
+   }
+  ]
+ },
+ "rz.road.gravel.14": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/gravel/14"
+   }
+  ]
+ },
+ "rz.road.gravel.15": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/gravel/15"
+   }
+  ]
+ },
+ "rz.road.gravel.16": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/gravel/16"
+   }
+  ]
+ },
+ "rz.road.gravel.17": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/gravel/17"
+   }
+  ]
+ },
+ "rz.road.gravel.18": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/gravel/18"
+   }
+  ]
+ },
+ "rz.road.gravel.19": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/gravel/19"
+   }
+  ]
+ },
+ "rz.road.gravel.20": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/gravel/20"
+   }
+  ]
+ },
+ "rz.road.gravel.21": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/gravel/21"
+   }
+  ]
+ },
+ "rz.road.gravel.22": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/gravel/22"
+   }
+  ]
+ },
+ "rz.road.gravel.23": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/gravel/23"
+   }
+  ]
+ },
+ "rz.road.gravel.24": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/gravel/24"
+   }
+  ]
+ },
+ "rz.road.dirt.00": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/dirt/00"
+   }
+  ]
+ },
+ "rz.road.dirt.01": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/dirt/01"
+   }
+  ]
+ },
+ "rz.road.dirt.02": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/dirt/02"
+   }
+  ]
+ },
+ "rz.road.dirt.03": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/dirt/03"
+   }
+  ]
+ },
+ "rz.road.dirt.04": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/dirt/04"
+   }
+  ]
+ },
+ "rz.road.dirt.05": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/dirt/05"
+   }
+  ]
+ },
+ "rz.road.dirt.06": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/dirt/06"
+   }
+  ]
+ },
+ "rz.road.dirt.07": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/dirt/07"
+   }
+  ]
+ },
+ "rz.road.dirt.08": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/dirt/08"
+   }
+  ]
+ },
+ "rz.road.dirt.09": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/dirt/09"
+   }
+  ]
+ },
+ "rz.road.dirt.10": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/dirt/10"
+   }
+  ]
+ },
+ "rz.road.dirt.11": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/dirt/11"
+   }
+  ]
+ },
+ "rz.road.dirt.12": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/dirt/12"
+   }
+  ]
+ },
+ "rz.road.dirt.13": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/dirt/13"
+   }
+  ]
+ },
+ "rz.road.dirt.14": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/dirt/14"
+   }
+  ]
+ },
+ "rz.road.dirt.15": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/dirt/15"
+   }
+  ]
+ },
+ "rz.road.dirt.16": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/dirt/16"
+   }
+  ]
+ },
+ "rz.road.dirt.17": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/dirt/17"
+   }
+  ]
+ },
+ "rz.road.dirt.18": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/dirt/18"
+   }
+  ]
+ },
+ "rz.road.dirt.19": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/dirt/19"
+   }
+  ]
+ },
+ "rz.road.dirt.20": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/dirt/20"
+   }
+  ]
+ },
+ "rz.road.dirt.21": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/dirt/21"
+   }
+  ]
+ },
+ "rz.road.dirt.22": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/dirt/22"
+   }
+  ]
+ },
+ "rz.road.dirt.23": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/dirt/23"
+   }
+  ]
+ },
+ "rz.road.dirt.24": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/dirt/24"
+   }
+  ]
+ },
+ "rz.road.sand.00": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/sand/00"
+   }
+  ]
+ },
+ "rz.road.sand.01": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/sand/01"
+   }
+  ]
+ },
+ "rz.road.sand.02": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/sand/02"
+   }
+  ]
+ },
+ "rz.road.sand.03": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/sand/03"
+   }
+  ]
+ },
+ "rz.road.sand.04": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/sand/04"
+   }
+  ]
+ },
+ "rz.road.sand.05": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/sand/05"
+   }
+  ]
+ },
+ "rz.road.sand.06": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/sand/06"
+   }
+  ]
+ },
+ "rz.road.sand.07": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/sand/07"
+   }
+  ]
+ },
+ "rz.road.sand.08": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/sand/08"
+   }
+  ]
+ },
+ "rz.road.sand.09": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/sand/09"
+   }
+  ]
+ },
+ "rz.road.sand.10": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/sand/10"
+   }
+  ]
+ },
+ "rz.road.sand.11": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/sand/11"
+   }
+  ]
+ },
+ "rz.road.sand.12": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/sand/12"
+   }
+  ]
+ },
+ "rz.road.sand.13": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/sand/13"
+   }
+  ]
+ },
+ "rz.road.sand.14": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/sand/14"
+   }
+  ]
+ },
+ "rz.road.sand.15": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/sand/15"
+   }
+  ]
+ },
+ "rz.road.sand.16": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/sand/16"
+   }
+  ]
+ },
+ "rz.road.sand.17": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/sand/17"
+   }
+  ]
+ },
+ "rz.road.sand.18": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/sand/18"
+   }
+  ]
+ },
+ "rz.road.sand.19": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/sand/19"
+   }
+  ]
+ },
+ "rz.road.sand.20": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/sand/20"
+   }
+  ]
+ },
+ "rz.road.sand.21": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/sand/21"
+   }
+  ]
+ },
+ "rz.road.sand.22": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/sand/22"
+   }
+  ]
+ },
+ "rz.road.sand.23": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/sand/23"
+   }
+  ]
+ },
+ "rz.road.sand.24": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/sand/24"
+   }
+  ]
+ },
+ "rz.road.grass.00": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/grass/00"
+   }
+  ]
+ },
+ "rz.road.grass.01": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/grass/01"
+   }
+  ]
+ },
+ "rz.road.grass.02": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/grass/02"
+   }
+  ]
+ },
+ "rz.road.grass.03": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/grass/03"
+   }
+  ]
+ },
+ "rz.road.grass.04": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/grass/04"
+   }
+  ]
+ },
+ "rz.road.grass.05": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/grass/05"
+   }
+  ]
+ },
+ "rz.road.grass.06": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/grass/06"
+   }
+  ]
+ },
+ "rz.road.grass.07": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/grass/07"
+   }
+  ]
+ },
+ "rz.road.grass.08": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/grass/08"
+   }
+  ]
+ },
+ "rz.road.grass.09": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/grass/09"
+   }
+  ]
+ },
+ "rz.road.grass.10": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/grass/10"
+   }
+  ]
+ },
+ "rz.road.grass.11": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/grass/11"
+   }
+  ]
+ },
+ "rz.road.grass.12": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/grass/12"
+   }
+  ]
+ },
+ "rz.road.grass.13": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/grass/13"
+   }
+  ]
+ },
+ "rz.road.grass.14": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/grass/14"
+   }
+  ]
+ },
+ "rz.road.grass.15": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/grass/15"
+   }
+  ]
+ },
+ "rz.road.grass.16": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/grass/16"
+   }
+  ]
+ },
+ "rz.road.grass.17": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/grass/17"
+   }
+  ]
+ },
+ "rz.road.grass.18": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/grass/18"
+   }
+  ]
+ },
+ "rz.road.grass.19": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/grass/19"
+   }
+  ]
+ },
+ "rz.road.grass.20": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/grass/20"
+   }
+  ]
+ },
+ "rz.road.grass.21": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/grass/21"
+   }
+  ]
+ },
+ "rz.road.grass.22": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/grass/22"
+   }
+  ]
+ },
+ "rz.road.grass.23": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/grass/23"
+   }
+  ]
+ },
+ "rz.road.grass.24": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/road/grass/24"
+   }
+  ]
+ },
+ "rz.gear.up1": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/gear/up1"
+   }
+  ]
+ },
+ "rz.gear.up2": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/gear/up2"
+   }
+  ]
+ },
+ "rz.gear.up3": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/gear/up3"
+   }
+  ]
+ },
+ "rz.gear.up4": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/gear/up4"
+   }
+  ]
+ },
+ "rz.gear.down": {
+  "sounds": [
+   {
+    "name": "rz_auto:rz_car/gear/down"
+   }
+  ]
+ }
+}
