@@ -1,0 +1,753 @@
+{
+ "constants": {
+  "breakdown_thresholds_blocks": [
+   1000,
+   10000,
+   20000,
+   50000,
+   100000
+  ],
+  "speed_percent_levels": [
+   10,
+   30,
+   50,
+   70,
+   100
+  ],
+  "turn_strength": {
+   "min": 1,
+   "max": 10,
+   "step": 0.5,
+   "default": 1
+  },
+  "units": "1 unit = 1 block/tick = 72 km/h",
+  "profiles": {
+   "car": {
+    "rotationSpeed": 40,
+    "brakeSpeed": 0.5,
+    "brakeForce": 3,
+    "reverseModifier": 0.5,
+    "default_accel": 2
+   },
+   "motorcycle": {
+    "rotationSpeed": 65,
+    "brakeSpeed": 0.8,
+    "brakeForce": 4,
+    "reverseModifier": 0.15,
+    "default_accel": 1.4
+   }
+  },
+  "items": {
+   "license": "carworkshop:driver_license",
+   "gear": "carworkshop:gear",
+   "bench": "carworkshop:bench"
+  }
+ },
+ "tables": {
+  "fuel": [
+   {
+    "prefix": "maybach:",
+    "fuelMult": 1.0,
+    "maxFuel": 500000,
+    "fuelPerBucket": 10000
+   },
+   {
+    "prefix": "bmw:e46",
+    "fuelMult": 3,
+    "maxFuel": 350000,
+    "fuelPerBucket": 10000
+   },
+   {
+    "prefix": "bmw:m3",
+    "fuelMult": 3.2,
+    "maxFuel": 370000,
+    "fuelPerBucket": 8000
+   },
+   {
+    "prefix": "bmw:f30",
+    "fuelMult": 1.5,
+    "maxFuel": 500000,
+    "fuelPerBucket": 10000
+   },
+   {
+    "prefix": "bmw:f31",
+    "fuelMult": 1.9,
+    "maxFuel": 800000,
+    "fuelPerBucket": 20000
+   },
+   {
+    "prefix": "ford:",
+    "fuelMult": 1.0,
+    "maxFuel": 900000,
+    "fuelPerBucket": 30000
+   },
+   {
+    "prefix": "jeep:yj",
+    "fuelMult": 7.5,
+    "maxFuel": 600000,
+    "fuelPerBucket": 10000
+   },
+   {
+    "prefix": "jeep:xj",
+    "fuelMult": 5.3,
+    "maxFuel": 400000,
+    "fuelPerBucket": 20000
+   },
+   {
+    "prefix": "toyota:",
+    "fuelMult": 2.0,
+    "maxFuel": 350000,
+    "fuelPerBucket": 15000
+   },
+   {
+    "prefix": "lamborghini:",
+    "fuelMult": 4.5,
+    "maxFuel": 500000,
+    "fuelPerBucket": 20000
+   },
+   {
+    "prefix": "f458:",
+    "fuelMult": 2.0,
+    "maxFuel": 500000,
+    "fuelPerBucket": 10000
+   },
+   {
+    "prefix": "laf:",
+    "fuelMult": 9.8,
+    "maxFuel": 400000,
+    "fuelPerBucket": 10000
+   },
+   {
+    "prefix": "chevrolet:",
+    "fuelMult": 4.5,
+    "maxFuel": 300000,
+    "fuelPerBucket": 10000
+   },
+   {
+    "prefix": "porsche:",
+    "fuelMult": 0.9,
+    "maxFuel": 120000,
+    "fuelPerBucket": 10000
+   },
+   {
+    "prefix": "ducati:",
+    "fuelMult": 2.0,
+    "maxFuel": 50000,
+    "fuelPerBucket": 5000
+   },
+   {
+    "prefix": "ktm:",
+    "fuelMult": 2.0,
+    "maxFuel": 50000,
+    "fuelPerBucket": 5000
+   },
+   {
+    "prefix": "yamaha:",
+    "fuelMult": 2.0,
+    "maxFuel": 50000,
+    "fuelPerBucket": 5000
+   },
+   {
+    "prefix": "koenigsegg:",
+    "fuelMult": 0.8,
+    "maxFuel": 90000,
+    "fuelPerBucket": 10000
+   },
+   {
+    "prefix": "mcl:",
+    "fuelMult": 1.0,
+    "maxFuel": 95000,
+    "fuelPerBucket": 10000
+   },
+   {
+    "prefix": "p911t:",
+    "fuelMult": 1.3,
+    "maxFuel": 200000,
+    "fuelPerBucket": 10000
+   },
+   {
+    "prefix": "ferrari:",
+    "fuelMult": 6.8,
+    "maxFuel": 400000,
+    "fuelPerBucket": 10000
+   }
+  ],
+  "breakdown": [
+   {
+    "prefix": "maybach:",
+    "chances": [
+     0,
+     5,
+     30,
+     40,
+     100
+    ]
+   },
+   {
+    "prefix": "bmw:e46",
+    "chances": [
+     20,
+     30,
+     80,
+     90,
+     100
+    ]
+   },
+   {
+    "prefix": "bmw:m3",
+    "chances": [
+     0,
+     10,
+     25,
+     50,
+     100
+    ]
+   },
+   {
+    "prefix": "bmw:f30",
+    "chances": [
+     0,
+     15,
+     35,
+     79,
+     100
+    ]
+   },
+   {
+    "prefix": "bmw:f31",
+    "chances": [
+     0,
+     15,
+     35,
+     79,
+     100
+    ]
+   },
+   {
+    "prefix": "ford:",
+    "chances": [
+     0,
+     0,
+     0,
+     0,
+     100
+    ]
+   },
+   {
+    "prefix": "jeep:yj",
+    "chances": [
+     10,
+     29,
+     30,
+     95,
+     100
+    ]
+   },
+   {
+    "prefix": "jeep:xj",
+    "chances": [
+     0,
+     10,
+     30,
+     90,
+     100
+    ]
+   },
+   {
+    "prefix": "toyota:",
+    "chances": [
+     10,
+     10,
+     50,
+     90,
+     100
+    ]
+   },
+   {
+    "prefix": "lamborghini:",
+    "chances": [
+     0,
+     10,
+     30,
+     90,
+     100
+    ]
+   },
+   {
+    "prefix": "f458:",
+    "chances": [
+     0,
+     0,
+     0,
+     90,
+     100
+    ]
+   },
+   {
+    "prefix": "laf:",
+    "chances": [
+     70,
+     75,
+     80,
+     95,
+     100
+    ]
+   },
+   {
+    "prefix": "chevrolet:",
+    "chances": [
+     10,
+     30,
+     50,
+     70,
+     100
+    ]
+   },
+   {
+    "prefix": "porsche:",
+    "chances": [
+     0,
+     10,
+     30,
+     90,
+     100
+    ]
+   },
+   {
+    "prefix": "ducati:",
+    "chances": [
+     0,
+     10,
+     30,
+     90,
+     100
+    ]
+   },
+   {
+    "prefix": "ktm:",
+    "chances": [
+     0,
+     10,
+     30,
+     90,
+     100
+    ]
+   },
+   {
+    "prefix": "yamaha:",
+    "chances": [
+     0,
+     10,
+     30,
+     90,
+     100
+    ]
+   },
+   {
+    "prefix": "koenigsegg:",
+    "chances": [
+     0,
+     10,
+     30,
+     90,
+     100
+    ]
+   },
+   {
+    "prefix": "mcl:",
+    "chances": [
+     0,
+     10,
+     30,
+     90,
+     100
+    ]
+   },
+   {
+    "prefix": "p911t:",
+    "chances": [
+     0,
+     10,
+     30,
+     90,
+     100
+    ]
+   },
+   {
+    "prefix": "ferrari:",
+    "chances": [
+     0,
+     10,
+     30,
+     90,
+     100
+    ]
+   }
+  ],
+  "regen": [
+   {
+    "prefix": "maybach:",
+    "power": 2
+   },
+   {
+    "prefix": "bmw:e46",
+    "power": 1
+   },
+   {
+    "prefix": "bmw:m3",
+    "power": 1
+   },
+   {
+    "prefix": "bmw:f30",
+    "power": 1
+   },
+   {
+    "prefix": "bmw:f31",
+    "power": 1
+   },
+   {
+    "prefix": "ford:",
+    "power": 4
+   },
+   {
+    "prefix": "jeep:yj",
+    "power": 1
+   },
+   {
+    "prefix": "jeep:xj",
+    "power": 1
+   },
+   {
+    "prefix": "toyota:",
+    "power": 1
+   },
+   {
+    "prefix": "lamborghini:",
+    "power": 1
+   },
+   {
+    "prefix": "f458:",
+    "power": 1
+   },
+   {
+    "prefix": "laf:",
+    "power": 1
+   },
+   {
+    "prefix": "chevrolet:",
+    "power": 1
+   },
+   {
+    "prefix": "porsche:",
+    "power": 1
+   },
+   {
+    "prefix": "ducati:",
+    "power": 1
+   },
+   {
+    "prefix": "ktm:",
+    "power": 1
+   },
+   {
+    "prefix": "yamaha:",
+    "power": 1
+   },
+   {
+    "prefix": "koenigsegg:",
+    "power": 1
+   },
+   {
+    "prefix": "mcl:",
+    "power": 1
+   },
+   {
+    "prefix": "p911t:",
+    "power": 1
+   },
+   {
+    "prefix": "ferrari:",
+    "power": 1
+   }
+  ],
+  "accel": [
+   {
+    "prefix": "maybach:",
+    "acceleration": 4.7
+   },
+   {
+    "prefix": "bmw:e46",
+    "acceleration": 8.4
+   },
+   {
+    "prefix": "bmw:m3",
+    "acceleration": 2.5
+   },
+   {
+    "prefix": "bmw:f30",
+    "acceleration": 3.1
+   },
+   {
+    "prefix": "bmw:f31",
+    "acceleration": 5.4
+   },
+   {
+    "prefix": "ford:",
+    "acceleration": 4
+   },
+   {
+    "prefix": "jeep:yj",
+    "acceleration": 4.8
+   },
+   {
+    "prefix": "jeep:xj",
+    "acceleration": 3
+   },
+   {
+    "prefix": "toyota:",
+    "acceleration": 2.5
+   },
+   {
+    "prefix": "lamborghini:",
+    "acceleration": 0.3
+   },
+   {
+    "prefix": "f458:",
+    "acceleration": 0.5
+   },
+   {
+    "prefix": "laf:",
+    "acceleration": 0.5
+   },
+   {
+    "prefix": "chevrolet:",
+    "acceleration": 3
+   },
+   {
+    "prefix": "porsche:",
+    "acceleration": 2
+   },
+   {
+    "prefix": "ducati:",
+    "acceleration": 0.5
+   },
+   {
+    "prefix": "ktm:",
+    "acceleration": 0.5
+   },
+   {
+    "prefix": "yamaha:",
+    "acceleration": 0.5
+   },
+   {
+    "prefix": "koenigsegg:",
+    "acceleration": 3
+   },
+   {
+    "prefix": "mcl:",
+    "acceleration": 1
+   },
+   {
+    "prefix": "p911t:",
+    "acceleration": 4
+   },
+   {
+    "prefix": "ferrari:",
+    "acceleration": 1
+   }
+  ],
+  "top_speed": [
+   {
+    "prefix": "maybach:",
+    "topSpeed": 1.7
+   },
+   {
+    "prefix": "bmw:e46",
+    "topSpeed": 1.4
+   },
+   {
+    "prefix": "bmw:m3",
+    "topSpeed": 1.8
+   },
+   {
+    "prefix": "bmw:f30",
+    "topSpeed": 1.67
+   },
+   {
+    "prefix": "bmw:f31",
+    "topSpeed": 1.65
+   },
+   {
+    "prefix": "ford:",
+    "topSpeed": 1.9
+   },
+   {
+    "prefix": "jeep:yj",
+    "topSpeed": 1.25
+   },
+   {
+    "prefix": "jeep:xj",
+    "topSpeed": 1.37
+   },
+   {
+    "prefix": "toyota:",
+    "topSpeed": 1.7
+   },
+   {
+    "prefix": "lamborghini:",
+    "topSpeed": 2
+   },
+   {
+    "prefix": "f458:",
+    "topSpeed": 2.1
+   },
+   {
+    "prefix": "laf:",
+    "topSpeed": 2.8
+   },
+   {
+    "prefix": "chevrolet:",
+    "topSpeed": 1.79
+   },
+   {
+    "prefix": "porsche:",
+    "topSpeed": 1.85
+   },
+   {
+    "prefix": "ducati:",
+    "topSpeed": 1.8
+   },
+   {
+    "prefix": "ktm:",
+    "topSpeed": 1.8
+   },
+   {
+    "prefix": "yamaha:",
+    "topSpeed": 1.8
+   },
+   {
+    "prefix": "koenigsegg:",
+    "topSpeed": 2.3
+   },
+   {
+    "prefix": "mcl:",
+    "topSpeed": 2.1
+   },
+   {
+    "prefix": "p911t:",
+    "topSpeed": 1.995
+   },
+   {
+    "prefix": "ferrari:",
+    "topSpeed": 2.5
+   }
+  ],
+  "gear7": [
+   {
+    "prefix": "maybach:",
+    "speed": 2.1,
+    "seconds": 25,
+    "fuelMult": 4.5,
+    "wearMult": 3
+   },
+   {
+    "prefix": "bmw:m3",
+    "speed": 1.95,
+    "seconds": 41,
+    "fuelMult": 2,
+    "wearMult": 3
+   },
+   {
+    "prefix": "ford:",
+    "speed": 2.5,
+    "seconds": 90,
+    "fuelMult": 1.5,
+    "wearMult": 2
+   },
+   {
+    "prefix": "lamborghini:",
+    "speed": 2.7,
+    "seconds": 6,
+    "fuelMult": 2,
+    "wearMult": 5
+   },
+   {
+    "prefix": "f458:",
+    "speed": 3,
+    "seconds": 2,
+    "fuelMult": 2,
+    "wearMult": 2
+   },
+   {
+    "prefix": "laf:",
+    "speed": 4,
+    "seconds": 10,
+    "fuelMult": 9.5,
+    "wearMult": 5
+   },
+   {
+    "prefix": "chevrolet:",
+    "speed": 2.153,
+    "seconds": 18,
+    "fuelMult": 2,
+    "wearMult": 3
+   },
+   {
+    "prefix": "porsche:",
+    "speed": 1.96,
+    "seconds": 95,
+    "fuelMult": 1.5,
+    "wearMult": 3
+   },
+   {
+    "prefix": "ducati:",
+    "speed": 2.167,
+    "seconds": 34,
+    "fuelMult": 2,
+    "wearMult": 3
+   },
+   {
+    "prefix": "ktm:",
+    "speed": 2.167,
+    "seconds": 34,
+    "fuelMult": 2,
+    "wearMult": 3
+   },
+   {
+    "prefix": "yamaha:",
+    "speed": 2.167,
+    "seconds": 34,
+    "fuelMult": 2,
+    "wearMult": 3
+   },
+   {
+    "prefix": "koenigsegg:",
+    "speed": 2.764,
+    "seconds": 34,
+    "fuelMult": 1.5,
+    "wearMult": 3
+   },
+   {
+    "prefix": "mcl:",
+    "speed": 2.514,
+    "seconds": 34,
+    "fuelMult": 1.5,
+    "wearMult": 3
+   },
+   {
+    "prefix": "p911t:",
+    "speed": 2.5,
+    "seconds": 40,
+    "fuelMult": 1.5,
+    "wearMult": 5
+   },
+   {
+    "prefix": "ferrari:",
+    "speed": 3,
+    "seconds": 34,
+    "fuelMult": 2.5,
+    "wearMult": 3
+   }
+  ]
+ }
+}

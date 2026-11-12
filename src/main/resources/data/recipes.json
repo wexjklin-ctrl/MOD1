@@ -1,0 +1,6479 @@
+[
+ {
+  "id": "carworkshop:craft_bmw_e46mblackblack",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:e46mblackblack_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_e46mblackblack"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:black_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_e46mblackred",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:e46mblackred_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_e46mblackred"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:black_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_e46mbluetan",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:e46mbluetan_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_e46mbluetan"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:blue_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_e46mgrayblack",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:e46mgrayblack_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_e46mgrayblack"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:light_gray_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_e46mmorawhite",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:e46mmorawhite_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_e46mmorawhite"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:purple_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_e46mredblack",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:e46mredblack_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_e46mredblack"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_e46msilverblack",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:e46msilverblack_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_e46msilverblack"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:light_gray_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_e46mwhiteblack",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:e46mwhiteblack_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_e46mwhiteblack"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_e46mwhitered",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:e46mwhitered_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_e46mwhitered"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_e46myellowblack",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:e46myellowblack_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_e46myellowblack"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:yellow_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_e46sblackblack",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:e46sblackblack_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_e46sblackblack"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:black_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_e46sblacktan",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:e46sblacktan_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_e46sblacktan"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:black_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_e46sdbluetan",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:e46sdbluetan_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_e46sdbluetan"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:blue_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_e46sdredblack",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:e46sdredblack_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_e46sdredblack"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_e46sgrayblack",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:e46sgrayblack_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_e46sgrayblack"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:light_gray_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_e46sgreenblack",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:e46sgreenblack_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_e46sgreenblack"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:light_gray_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_e46slbluetan",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:e46slbluetan_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_e46slbluetan"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:blue_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_e46soxfordtan",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:e46soxfordtan_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_e46soxfordtan"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:green_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_e46sredtan",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:e46sredtan_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_e46sredtan"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_e46ssilverblack",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:e46ssilverblack_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_e46ssilverblack"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:light_gray_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_e46ssilvergray",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:e46ssilvergray_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_e46ssilvergray"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:light_gray_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_e46stantan",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:e46stantan_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_e46stantan"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:light_gray_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_e46swhitetan",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:e46swhitetan_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_e46swhitetan"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_e46syellowblack",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:e46syellowblack_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_e46syellowblack"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:yellow_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_f30blackgray",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:f30blackgray_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_f30blackgray"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:black_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_f30bluetan",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:f30bluetan_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_f30bluetan"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:blue_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_f30bluewhite",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:f30bluewhite_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_f30bluewhite"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:blue_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_f30grayblack",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:f30grayblack_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_f30grayblack"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:light_gray_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_f30graybrown",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:f30graybrown_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_f30graybrown"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:light_gray_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_f30whiteblack",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:f30whiteblack_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_f30whiteblack"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_f31blacktan",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:f31blacktan_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_f31blacktan"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:black_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_f31bluetan",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:f31bluetan_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_f31bluetan"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:blue_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_f31dredtan",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:f31dredtan_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_f31dredtan"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_f31redtan",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:f31redtan_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_f31redtan"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_f31whitegray",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:f31whitegray_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_f31whitegray"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_m3blackwhite",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:m3blackwhite_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_m3blackwhite"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:black_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_m3blueblue",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:m3blueblue_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_m3blueblue"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:blue_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_m3bluetan",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:m3bluetan_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_m3bluetan"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:blue_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_m3greengrey",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:m3greengrey_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_m3greengrey"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:green_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_m3greentan",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:m3greentan_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_m3greentan"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:green_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_m3greygrey",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:m3greygrey_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_m3greygrey"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:light_gray_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_m3orangeblack",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:m3orangeblack_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_m3orangeblack"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:orange_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_m3pinkwhite",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:m3pinkwhite_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_m3pinkwhite"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:pink_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_m3purplewhite",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:m3purplewhite_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_m3purplewhite"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:purple_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_m3redblack",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:m3redblack_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_m3redblack"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_m3redred",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:m3redred_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_m3redred"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_m3whitered",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:m3whitered_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_m3whitered"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_m3whitewhite",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:m3whitewhite_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_m3whitewhite"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_m3yellowblue",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:m3yellowblue_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_m3yellowblue"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:yellow_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_bmw_m3yellowwhite",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "bmw:m3yellowwhite_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:bmw_m3yellowwhite"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:yellow_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_chevrolet_corvettec2black",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "chevrolet:corvettec2black_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:chevrolet_corvettec2black"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:black_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_chevrolet_corvettec2blue",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "chevrolet:corvettec2blue_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:chevrolet_corvettec2blue"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:blue_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_chevrolet_corvettec2red",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "chevrolet:corvettec2red_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:chevrolet_corvettec2red"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_chevrolet_corvettec2silver",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "chevrolet:corvettec2silver_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:chevrolet_corvettec2silver"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:light_gray_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_chevrolet_corvettec2yellow",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "chevrolet:corvettec2yellow_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:chevrolet_corvettec2yellow"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:yellow_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_ducati_d1199",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "ducati:d1199_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:ducati_d1199"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_f458_blue",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "f458:blue_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:f458_blue"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:blue_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_f458_red",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "f458:red_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:f458_red"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:red_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_f458_redgte",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "f458:redgte_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:f458_redgte"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:red_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_f458_white",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "f458:white_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:f458_white"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:white_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_f458_whitegte",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "f458:whitegte_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:f458_whitegte"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:white_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_f458_yellow",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "f458:yellow_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:f458_yellow"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:yellow_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_ferrari_f40azzurro",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "ferrari:f40azzurro_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:ferrari_f40azzurro"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:light_blue_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_ferrari_f40black",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "ferrari:f40black_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:ferrari_f40black"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:black_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_ferrari_f40blue",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "ferrari:f40blue_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:ferrari_f40blue"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:blue_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_ferrari_f40green",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "ferrari:f40green_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:ferrari_f40green"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:green_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_ferrari_f40maroon",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "ferrari:f40maroon_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:ferrari_f40maroon"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:red_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_ferrari_f40red",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "ferrari:f40red_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:ferrari_f40red"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:red_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_ferrari_f40white",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "ferrari:f40white_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:ferrari_f40white"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:white_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_ferrari_f40yellow",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "ferrari:f40yellow_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:ferrari_f40yellow"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:yellow_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_ford_base",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "ford:base_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:ford_base"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:light_gray_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_ford_fhp",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "ford:fhp_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:ford_fhp"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:light_gray_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_ford_fmpd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "ford:fmpd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:ford_fmpd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:light_gray_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_ford_lcso",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "ford:lcso_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:ford_lcso"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:light_gray_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_ford_unmarked",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "ford:unmarked_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:ford_unmarked"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:light_gray_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_xjblack",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:xjblack_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_xjblack"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:black_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_xjblue",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:xjblue_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_xjblue"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:blue_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_xjbluelif",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:xjbluelif_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_xjbluelif"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:blue_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_xjgreen",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:xjgreen_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_xjgreen"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:green_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_xjred",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:xjred_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_xjred"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_xjredlif",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:xjredlif_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_xjredlif"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_xjwhite",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:xjwhite_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_xjwhite"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_xjyellowlif",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:xjyellowlif_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_xjyellowlif"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:yellow_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjbaseblackgraygrayfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjbaseblackgraygrayfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjbaseblackgraygrayfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:black_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjbaseblackgraygrayhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjbaseblackgraygrayhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjbaseblackgraygrayhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:black_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjbaseblacktantanfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjbaseblacktantanfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjbaseblacktantanfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:black_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjbaseblacktantanhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjbaseblacktantanhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjbaseblacktantanhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:black_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjbasebluegrayblackfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjbasebluegrayblackfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjbasebluegrayblackfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:blue_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjbasebluegrayblackhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjbasebluegrayblackhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjbasebluegrayblackhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:blue_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjbasebluegraygrayfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjbasebluegraygrayfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjbasebluegraygrayfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:blue_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjbasebluegraygrayhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjbasebluegraygrayhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjbasebluegraygrayhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:blue_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjbasebluetantanfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjbasebluetantanfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjbasebluetantanfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:blue_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjbasebluetantanhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjbasebluetantanhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjbasebluetantanhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:blue_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjbasebrowngraygrayfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjbasebrowngraygrayfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjbasebrowngraygrayfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:brown_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjbasebrowngraygrayhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjbasebrowngraygrayhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjbasebrowngraygrayhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:brown_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjbasegraygraygrayfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjbasegraygraygrayfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjbasegraygraygrayfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:light_gray_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjbasegraygraygrayhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjbasegraygraygrayhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjbasegraygraygrayhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:light_gray_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjbaseredgrayblackfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjbaseredgrayblackfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjbaseredgrayblackfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjbaseredgrayblackhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjbaseredgrayblackhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjbaseredgrayblackhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjbaseredgraygrayfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjbaseredgraygrayfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjbaseredgraygrayfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjbaseredgraygrayhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjbaseredgraygrayhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjbaseredgraygrayhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjbasewhitegrayblackfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjbasewhitegrayblackfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjbasewhitegrayblackfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjbasewhitegrayblackhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjbasewhitegrayblackhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjbasewhitegrayblackhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjbasewhitegraytanfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjbasewhitegraytanfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjbasewhitegraytanfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjbasewhitegraytanhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjbasewhitegraytanhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjbasewhitegraytanhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjbasewhitegraywhitefd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjbasewhitegraywhitefd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjbasewhitegraywhitefd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjbaseyellowgrayblackfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjbaseyellowgrayblackfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjbaseyellowgrayblackfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:yellow_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjbaseyellowgrayblackhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjbaseyellowgrayblackhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjbaseyellowgrayblackhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:yellow_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjislandbluegrayblackfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjislandbluegrayblackfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjislandbluegrayblackfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:blue_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjislandbluegrayblackhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjislandbluegrayblackhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjislandbluegrayblackhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:blue_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjislandbluegraygrayfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjislandbluegraygrayfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjislandbluegraygrayfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:blue_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjislandbluegraygrayhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjislandbluegraygrayhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjislandbluegraygrayhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:blue_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjislandpacificgrayblackfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjislandpacificgrayblackfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjislandpacificgrayblackfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:cyan_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjislandpacificgrayblackhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjislandpacificgrayblackhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjislandpacificgrayblackhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:cyan_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjislandpacificgraygrayfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjislandpacificgraygrayfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjislandpacificgraygrayfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:cyan_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjislandpacificgraygrayhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjislandpacificgraygrayhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjislandpacificgraygrayhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:cyan_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjislandredgrayblackfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjislandredgrayblackfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjislandredgrayblackfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjislandredgrayblackhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjislandredgrayblackhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjislandredgrayblackhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjislandredgraygrayfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjislandredgraygrayfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjislandredgraygrayfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjislandredgraygrayhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjislandredgraygrayhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjislandredgraygrayhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjislandwhitegrayblackfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjislandwhitegrayblackfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjislandwhitegrayblackfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjislandwhitegrayblackhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjislandwhitegrayblackhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjislandwhitegrayblackhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjislandwhitegraygrayfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjislandwhitegraygrayfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjislandwhitegraygrayfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjislandwhitegraygrayhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjislandwhitegraygrayhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjislandwhitegraygrayhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjislandyellowgraygrayfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjislandyellowgraygrayfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjislandyellowgraygrayfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:yellow_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjislandyellowgraygrayhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjislandyellowgraygrayhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjislandyellowgraygrayhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:yellow_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjjnsojeep",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjjnsojeep_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjjnsojeep"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:green_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjlaredoblackgraygrayfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjlaredoblackgraygrayfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjlaredoblackgraygrayfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:black_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjlaredoblackgraygrayhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjlaredoblackgraygrayhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjlaredoblackgraygrayhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:black_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjlaredobluetantanfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjlaredobluetantanfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjlaredobluetantanfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:blue_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjlaredobluetantanhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjlaredobluetantanhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjlaredobluetantanhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:blue_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjlaredobrowntantanfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjlaredobrowntantanfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjlaredobrowntantanfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:brown_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjlaredobrowntantanhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjlaredobrowntantanhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjlaredobrowntantanhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:brown_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjlaredoredgraygrayfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjlaredoredgraygrayfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjlaredoredgraygrayfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjlaredoredgraygrayhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjlaredoredgraygrayhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjlaredoredgraygrayhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjlaredowhitegraygrayfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjlaredowhitegraygrayfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjlaredowhitegraygrayfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjlaredowhitegraygrayhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjlaredowhitegraygrayhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjlaredowhitegraygrayhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjlimitedblacktanblackfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjlimitedblacktanblackfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjlimitedblacktanblackfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:black_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjlimitedblacktanblackhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjlimitedblacktanblackhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjlimitedblacktanblackhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:black_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjlimitedbluetantanfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjlimitedbluetantanfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjlimitedbluetantanfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:blue_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjlimitedbluetantanhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjlimitedbluetantanhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjlimitedbluetantanhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:blue_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjlimitedgreentantanfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjlimitedgreentantanfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjlimitedgreentantanfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:green_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjlimitedgreentantanhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjlimitedgreentantanhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjlimitedgreentantanhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:green_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjmtnwhitegrayblackfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjmtnwhitegrayblackfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjmtnwhitegrayblackfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjmtnwhitegrayblackhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjmtnwhitegrayblackhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjmtnwhitegrayblackhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjrenegadeblackblackblackfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjrenegadeblackblackblackfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjrenegadeblackblackblackfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:black_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjrenegadeblackblackblackhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjrenegadeblackblackblackhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjrenegadeblackblackblackhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:black_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjrenegadeblackredblackfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjrenegadeblackredblackfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjrenegadeblackredblackfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:black_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjrenegadeblackredblackhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjrenegadeblackredblackhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjrenegadeblackredblackhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:black_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjrenegadeblacktanblackfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjrenegadeblacktanblackfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjrenegadeblacktanblackfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:black_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjrenegadeblacktanblackhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjrenegadeblacktanblackhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjrenegadeblacktanblackhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:black_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjrenegadeblueblackblackfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjrenegadeblueblackblackfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjrenegadeblueblackblackfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:blue_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjrenegadeblueblackblackhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjrenegadeblueblackblackhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjrenegadeblueblackblackhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:blue_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjrenegadebluetanblackfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjrenegadebluetanblackfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjrenegadebluetanblackfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:blue_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjrenegadebluetanblackhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjrenegadebluetanblackhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjrenegadebluetanblackhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:blue_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjrenegaderedblackblackfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjrenegaderedblackblackfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjrenegaderedblackblackfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjrenegaderedblackblackhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjrenegaderedblackblackhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjrenegaderedblackblackhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjrenegaderedblackredfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjrenegaderedblackredfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjrenegaderedblackredfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjrenegaderedblackwhitefd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjrenegaderedblackwhitefd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjrenegaderedblackwhitefd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjrenegaderedblackwhitehd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjrenegaderedblackwhitehd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjrenegaderedblackwhitehd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjrenegaderedredblackfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjrenegaderedredblackfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjrenegaderedredblackfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjrenegaderedredblackhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjrenegaderedredblackhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjrenegaderedredblackhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjrenegadewhiteblackblackfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjrenegadewhiteblackblackfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjrenegadewhiteblackblackfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjrenegadewhiteblackblackhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjrenegadewhiteblackblackhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjrenegadewhiteblackblackhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjrenegadewhiteblackwhitefd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjrenegadewhiteblackwhitefd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjrenegadewhiteblackwhitefd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjrenegadewhiteblackwhitehd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjrenegadewhiteblackwhitehd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjrenegadewhiteblackwhitehd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjrenegadewhiteredblackfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjrenegadewhiteredblackfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjrenegadewhiteredblackfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjrenegadewhiteredblackhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjrenegadewhiteredblackhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjrenegadewhiteredblackhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjrenegadewhiteredwhitefd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjrenegadewhiteredwhitefd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjrenegadewhiteredwhitefd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjrenegadewhiteredwhitehd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjrenegadewhiteredwhitehd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjrenegadewhiteredwhitehd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjrenegadewhitetanblackfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjrenegadewhitetanblackfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjrenegadewhitetanblackfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjrenegadewhitetanblackhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjrenegadewhitetanblackhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjrenegadewhitetanblackhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjrenegadewhitetanwhitefd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjrenegadewhitetanwhitefd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjrenegadewhitetanwhitefd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjrenegadewhitetanwhitehd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjrenegadewhitetanwhitehd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjrenegadewhitetanwhitehd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjriogreentanblackfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjriogreentanblackfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjriogreentanblackfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:green_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjriogreentanblackhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjriogreentanblackhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjriogreentanblackhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:green_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjriogreentantanfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjriogreentantanfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjriogreentantanfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:green_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjriogreentantanhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjriogreentantanhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjriogreentantanhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:green_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjriosandtanblackfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjriosandtanblackfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjriosandtanblackfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:orange_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjriosandtanblackhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjriosandtanblackhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjriosandtanblackhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:orange_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjriosandtantanfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjriosandtantanfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjriosandtantanfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:orange_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjriosandtantanhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjriosandtantanhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjriosandtantanhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:orange_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjsaharagreengreentanfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjsaharagreengreentanfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjsaharagreengreentanfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:green_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjsaharagreengreentanhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjsaharagreengreentanhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjsaharagreengreentanhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:green_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjsaharagreentantanfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjsaharagreentantanfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjsaharagreentantanfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:green_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjsaharagreentantanhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjsaharagreentantanhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjsaharagreentantanhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:green_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjsaharakhakikhakisandfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjsaharakhakikhakisandfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjsaharakhakikhakisandfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:light_gray_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjsaharakhakikhakisandhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjsaharakhakikhakisandhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjsaharakhakikhakisandhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:light_gray_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjsaharakhakikhakitanfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjsaharakhakikhakitanfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjsaharakhakikhakitanfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:light_gray_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjsaharakhakikhakitanhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjsaharakhakikhakitanhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjsaharakhakikhakitanhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:light_gray_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjsaharasandgreentanfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjsaharasandgreentanfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjsaharasandgreentanfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:orange_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjsaharasandgreentanhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjsaharasandgreentanhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjsaharasandgreentanhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:orange_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjsaharasandtantanfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjsaharasandtantanfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjsaharasandtantanfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:orange_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjsaharasandtantanhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjsaharasandtantanhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjsaharasandtantanhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:orange_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjsaharasilvergreentanfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjsaharasilvergreentanfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjsaharasilvergreentanfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:light_gray_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjsaharasilvergreentanhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjsaharasilvergreentanhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjsaharasilvergreentanhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:light_gray_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjsaharatankhakitanfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjsaharatankhakitanfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjsaharatankhakitanfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:light_gray_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjsaharatankhakitanhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjsaharatankhakitanhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjsaharatankhakitanhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:light_gray_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjsplashblackgrayblackfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjsplashblackgrayblackfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjsplashblackgrayblackfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:black_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjsplashblackgrayblackhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjsplashblackgrayblackhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjsplashblackgrayblackhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:black_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjsplashblackgraygrayfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjsplashblackgraygrayfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjsplashblackgraygrayfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:black_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjsplashblackgraygrayhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjsplashblackgraygrayhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjsplashblackgraygrayhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:black_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjsplashbluegrayblackfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjsplashbluegrayblackfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjsplashbluegrayblackfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:blue_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjsplashbluegrayblackhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjsplashbluegrayblackhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjsplashbluegrayblackhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:blue_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjsplashbluegraygrayfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjsplashbluegraygrayfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjsplashbluegraygrayfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:blue_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjsplashbluegraygrayhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjsplashbluegraygrayhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjsplashbluegraygrayhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:blue_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjsplashredgrayblackfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjsplashredgrayblackfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjsplashredgrayblackfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjsplashredgrayblackhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjsplashredgrayblackhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjsplashredgrayblackhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjsplashredgraytanfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjsplashredgraytanfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjsplashredgraytanfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjsplashredgraytanhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjsplashredgraytanhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjsplashredgraytanhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjsplashwhitegreenblackfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjsplashwhitegreenblackfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjsplashwhitegreenblackfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjsplashwhitegreenblackhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjsplashwhitegreenblackhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjsplashwhitegreenblackhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjsplashwhitegreengrayfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjsplashwhitegreengrayfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjsplashwhitegreengrayfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:green_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjsplashwhitegreengrayhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjsplashwhitegreengrayhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjsplashwhitegreengrayhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjsplashwhitewhiteblackfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjsplashwhitewhiteblackfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjsplashwhitewhiteblackfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjsplashwhitewhiteblackhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjsplashwhitewhiteblackhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjsplashwhitewhiteblackhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjsplashwhitewhitegrayfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjsplashwhitewhitegrayfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjsplashwhitewhitegrayfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjsplashwhitewhitegrayhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjsplashwhitewhitegrayhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjsplashwhitewhitegrayhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjzredgrayblackfd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjzredgrayblackfd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjzredgrayblackfd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_jeep_yjzredgrayblackhd",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "jeep:yjzredgrayblackhd_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:jeep_yjzredgrayblackhd"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_koenigsegg_agerablue",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "koenigsegg:agerablue_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:koenigsegg_agerablue"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:blue_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_koenigsegg_ageranfsred",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "koenigsegg:ageranfsred_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:koenigsegg_ageranfsred"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:red_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_koenigsegg_ageranfssilver",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "koenigsegg:ageranfssilver_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:koenigsegg_ageranfssilver"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:light_gray_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_koenigsegg_ageranfswhite",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "koenigsegg:ageranfswhite_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:koenigsegg_ageranfswhite"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:white_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_koenigsegg_agerapurple",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "koenigsegg:agerapurple_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:koenigsegg_agerapurple"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:purple_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_koenigsegg_agerared",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "koenigsegg:agerared_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:koenigsegg_agerared"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:red_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_koenigsegg_agerawhite",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "koenigsegg:agerawhite_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:koenigsegg_agerawhite"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:white_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_ktm_k450",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "ktm:k450_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:ktm_k450"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:orange_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_laf_red",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "laf:red_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:laf_red"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:red_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_laf_yellow",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "laf:yellow_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:laf_yellow"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:yellow_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_lamborghini_centblackbluecoupe",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "lamborghini:centblackbluecoupe_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:lamborghini_centblackbluecoupe"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:black_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_lamborghini_centblackorangecoupe",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "lamborghini:centblackorangecoupe_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:lamborghini_centblackorangecoupe"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:black_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_lamborghini_centblackredcoupe",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "lamborghini:centblackredcoupe_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:lamborghini_centblackredcoupe"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:black_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_lamborghini_centblackredroadster",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "lamborghini:centblackredroadster_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:lamborghini_centblackredroadster"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:black_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_lamborghini_centblackyellowcoupe",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "lamborghini:centblackyellowcoupe_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:lamborghini_centblackyellowcoupe"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:black_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_lamborghini_centblackyellowroadster",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "lamborghini:centblackyellowroadster_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:lamborghini_centblackyellowroadster"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:black_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_lamborghini_centblueroadster",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "lamborghini:centblueroadster_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:lamborghini_centblueroadster"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:blue_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_lamborghini_centgrayorangeroadster",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "lamborghini:centgrayorangeroadster_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:lamborghini_centgrayorangeroadster"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:light_gray_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_lamborghini_centgrayroadster",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "lamborghini:centgrayroadster_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:lamborghini_centgrayroadster"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:light_gray_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_lamborghini_centgreencoupe",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "lamborghini:centgreencoupe_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:lamborghini_centgreencoupe"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:green_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_lamborghini_centredblackroadster",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "lamborghini:centredblackroadster_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:lamborghini_centredblackroadster"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:red_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_lamborghini_centwhiteblueroadster",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "lamborghini:centwhiteblueroadster_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:lamborghini_centwhiteblueroadster"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:white_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_lamborghini_centwhiteredroadster",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "lamborghini:centwhiteredroadster_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:lamborghini_centwhiteredroadster"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:white_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_lamborghini_centyellowcoupe",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "lamborghini:centyellowcoupe_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:lamborghini_centyellowcoupe"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:yellow_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_maybach_glsblackblack",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "maybach:glsblackblack_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:maybach_glsblackblack"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:black_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_maybach_glsblacksilver",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "maybach:glsblacksilver_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:maybach_glsblacksilver"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:black_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_maybach_glsbluesilver",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "maybach:glsbluesilver_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:maybach_glsbluesilver"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:blue_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_maybach_glsbluetan",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "maybach:glsbluetan_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:maybach_glsbluetan"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:blue_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_maybach_glsgoldwhite",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "maybach:glsgoldwhite_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:maybach_glsgoldwhite"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:yellow_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_maybach_glsgreentan",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "maybach:glsgreentan_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:maybach_glsgreentan"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:green_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_maybach_glsredwhite",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "maybach:glsredwhite_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:maybach_glsredwhite"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_maybach_glssilverblack",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "maybach:glssilverblack_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:maybach_glssilverblack"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:light_gray_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_maybach_glswhitered",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "maybach:glswhitered_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:maybach_glswhitered"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_mcl_p1black",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "mcl:p1black_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:mcl_p1black"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:black_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_mcl_p1bluedark",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "mcl:p1bluedark_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:mcl_p1bluedark"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:blue_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_mcl_p1bluelight",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "mcl:p1bluelight_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:mcl_p1bluelight"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:light_blue_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_mcl_p1green",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "mcl:p1green_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:mcl_p1green"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:green_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_mcl_p1orangedark",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "mcl:p1orangedark_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:mcl_p1orangedark"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:orange_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_mcl_p1orangelight",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "mcl:p1orangelight_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:mcl_p1orangelight"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:orange_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_mcl_p1orangelightbald",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "mcl:p1orangelightbald_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:mcl_p1orangelightbald"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:orange_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_mcl_p1purple",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "mcl:p1purple_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:mcl_p1purple"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:purple_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_mcl_p1reddark",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "mcl:p1reddark_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:mcl_p1reddark"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:red_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_mcl_p1redlight",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "mcl:p1redlight_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:mcl_p1redlight"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:red_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_mcl_p1silver",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "mcl:p1silver_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:mcl_p1silver"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:light_gray_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_mcl_p1white",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "mcl:p1white_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:mcl_p1white"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:white_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_mcl_p1yellow",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "mcl:p1yellow_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:mcl_p1yellow"
+  },
+  "pattern": [
+   "NWN",
+   "IGI",
+   "WNW"
+  ],
+  "key": {
+   "N": "minecraft:netherite_ingot",
+   "W": "minecraft:yellow_wool",
+   "I": "minecraft:iron_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_p911t_black",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "p911t:black_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:p911t_black"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:black_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_p911t_blue",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "p911t:blue_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:p911t_blue"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:blue_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_p911t_green",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "p911t:green_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:p911t_green"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:green_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_p911t_orange",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "p911t:orange_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:p911t_orange"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:orange_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_p911t_red",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "p911t:red_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:p911t_red"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_p911t_white",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "p911t:white_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:p911t_white"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_p911t_yellow",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "p911t:yellow_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:p911t_yellow"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:yellow_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_porsche_c987black",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "porsche:c987black_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:porsche_c987black"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:black_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_porsche_c987blackb",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "porsche:c987blackb_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:porsche_c987blackb"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:black_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_porsche_c987lime",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "porsche:c987lime_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:porsche_c987lime"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:lime_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_porsche_c987orange",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "porsche:c987orange_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:porsche_c987orange"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:orange_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_porsche_c987red",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "porsche:c987red_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:porsche_c987red"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_porsche_c987redb",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "porsche:c987redb_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:porsche_c987redb"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_porsche_c987silver",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "porsche:c987silver_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:porsche_c987silver"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:light_gray_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_porsche_c987silverb",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "porsche:c987silverb_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:porsche_c987silverb"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:light_gray_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_porsche_c987white",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "porsche:c987white_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:porsche_c987white"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_porsche_c987yellow",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "porsche:c987yellow_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:porsche_c987yellow"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:yellow_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_porsche_c987yellowb",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "porsche:c987yellowb_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:porsche_c987yellowb"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:yellow_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_toyota_mr2black",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "toyota:mr2black_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:toyota_mr2black"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:black_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_toyota_mr2blacktan",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "toyota:mr2blacktan_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:toyota_mr2blacktan"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:black_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_toyota_mr2blue",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "toyota:mr2blue_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:toyota_mr2blue"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:light_blue_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_toyota_mr2dblue",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "toyota:mr2dblue_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:toyota_mr2dblue"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:blue_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_toyota_mr2dred",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "toyota:mr2dred_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:toyota_mr2dred"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_toyota_mr2gray",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "toyota:mr2gray_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:toyota_mr2gray"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:light_gray_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_toyota_mr2graysilver",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "toyota:mr2graysilver_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:toyota_mr2graysilver"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:light_gray_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_toyota_mr2greentan",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "toyota:mr2greentan_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:toyota_mr2greentan"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:green_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_toyota_mr2pink",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "toyota:mr2pink_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:toyota_mr2pink"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:pink_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_toyota_mr2pinkwhite",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "toyota:mr2pinkwhite_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:toyota_mr2pinkwhite"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:pink_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_toyota_mr2red",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "toyota:mr2red_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:toyota_mr2red"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_toyota_mr2redblack",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "toyota:mr2redblack_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:toyota_mr2redblack"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_toyota_mr2silvergray",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "toyota:mr2silvergray_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:toyota_mr2silvergray"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:light_gray_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_toyota_mr2white",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "toyota:mr2white_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:toyota_mr2white"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:white_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_toyota_mr2yellow",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "toyota:mr2yellow_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:toyota_mr2yellow"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:yellow_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_toyota_mr2yellowblack",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "toyota:mr2yellowblack_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:toyota_mr2yellowblack"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:yellow_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_toyota_smr2dred",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "toyota:smr2dred_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:toyota_smr2dred"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_toyota_smr2graysilver",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "toyota:smr2graysilver_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:toyota_smr2graysilver"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:light_gray_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_toyota_smr2greentan",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "toyota:smr2greentan_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:toyota_smr2greentan"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:green_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_toyota_smr2pink",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "toyota:smr2pink_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:toyota_smr2pink"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:pink_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_toyota_smr2pinkwhite",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "toyota:smr2pinkwhite_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:toyota_smr2pinkwhite"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:pink_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_toyota_smr2redblack",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "toyota:smr2redblack_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:toyota_smr2redblack"
+  },
+  "pattern": [
+   "IWI",
+   "NGN",
+   "IWI"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:red_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_yamaha_r6",
+  "type": "shaped",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "yamaha:r6_spawn_egg",
+   "count": 1,
+   "java_item": "rz_auto:yamaha_r6"
+  },
+  "pattern": [
+   "IWI",
+   " N ",
+   "IWG"
+  ],
+  "key": {
+   "I": "minecraft:iron_ingot",
+   "W": "minecraft:blue_wool",
+   "N": "minecraft:netherite_ingot",
+   "G": "minecraft:gold_ingot"
+  }
+ },
+ {
+  "id": "carworkshop:craft_driver_license",
+  "type": "shapeless",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "carworkshop:driver_license",
+   "count": 1
+  },
+  "ingredients": [
+   {
+    "item": "minecraft:diamond",
+    "count": 1
+   }
+  ]
+ },
+ {
+  "id": "carworkshop:craft_gear",
+  "type": "shapeless",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "carworkshop:gear",
+   "count": 1
+  },
+  "ingredients": [
+   {
+    "item": "minecraft:iron_ingot",
+    "count": 4
+   }
+  ]
+ }
+]

@@ -1,0 +1,6 @@
+net.minecraft.world.entity.Entity
+net.minecraft.world.entity.EntityType
+net.minecraft.world.entity.EntityType$Builder
+net.minecraft.world.item.Item
+net.minecraft.core.registries.BuiltInRegistries
+net.minecraft.resources.Identifier

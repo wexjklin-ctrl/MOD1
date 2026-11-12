@@ -1,0 +1,1548 @@
+{
+ "vehicles": {
+  "f458:blue": {
+   "entity": "rz_auto:f458_blue",
+   "item": "rz_auto:f458_blue",
+   "bedrock_spawn_egg": "f458:blue_spawn_egg"
+  },
+  "f458:red": {
+   "entity": "rz_auto:f458_red",
+   "item": "rz_auto:f458_red",
+   "bedrock_spawn_egg": "f458:red_spawn_egg"
+  },
+  "f458:redgte": {
+   "entity": "rz_auto:f458_redgte",
+   "item": "rz_auto:f458_redgte",
+   "bedrock_spawn_egg": "f458:redgte_spawn_egg"
+  },
+  "f458:white": {
+   "entity": "rz_auto:f458_white",
+   "item": "rz_auto:f458_white",
+   "bedrock_spawn_egg": "f458:white_spawn_egg"
+  },
+  "f458:whitegte": {
+   "entity": "rz_auto:f458_whitegte",
+   "item": "rz_auto:f458_whitegte",
+   "bedrock_spawn_egg": "f458:whitegte_spawn_egg"
+  },
+  "f458:yellow": {
+   "entity": "rz_auto:f458_yellow",
+   "item": "rz_auto:f458_yellow",
+   "bedrock_spawn_egg": "f458:yellow_spawn_egg"
+  },
+  "bmw:e46mblackblack": {
+   "entity": "rz_auto:bmw_e46mblackblack",
+   "item": "rz_auto:bmw_e46mblackblack",
+   "bedrock_spawn_egg": "bmw:e46mblackblack_spawn_egg"
+  },
+  "bmw:e46mblackred": {
+   "entity": "rz_auto:bmw_e46mblackred",
+   "item": "rz_auto:bmw_e46mblackred",
+   "bedrock_spawn_egg": "bmw:e46mblackred_spawn_egg"
+  },
+  "bmw:e46mbluetan": {
+   "entity": "rz_auto:bmw_e46mbluetan",
+   "item": "rz_auto:bmw_e46mbluetan",
+   "bedrock_spawn_egg": "bmw:e46mbluetan_spawn_egg"
+  },
+  "bmw:e46mgrayblack": {
+   "entity": "rz_auto:bmw_e46mgrayblack",
+   "item": "rz_auto:bmw_e46mgrayblack",
+   "bedrock_spawn_egg": "bmw:e46mgrayblack_spawn_egg"
+  },
+  "bmw:e46mmorawhite": {
+   "entity": "rz_auto:bmw_e46mmorawhite",
+   "item": "rz_auto:bmw_e46mmorawhite",
+   "bedrock_spawn_egg": "bmw:e46mmorawhite_spawn_egg"
+  },
+  "bmw:e46mredblack": {
+   "entity": "rz_auto:bmw_e46mredblack",
+   "item": "rz_auto:bmw_e46mredblack",
+   "bedrock_spawn_egg": "bmw:e46mredblack_spawn_egg"
+  },
+  "bmw:e46msilverblack": {
+   "entity": "rz_auto:bmw_e46msilverblack",
+   "item": "rz_auto:bmw_e46msilverblack",
+   "bedrock_spawn_egg": "bmw:e46msilverblack_spawn_egg"
+  },
+  "bmw:e46mwhiteblack": {
+   "entity": "rz_auto:bmw_e46mwhiteblack",
+   "item": "rz_auto:bmw_e46mwhiteblack",
+   "bedrock_spawn_egg": "bmw:e46mwhiteblack_spawn_egg"
+  },
+  "bmw:e46mwhitered": {
+   "entity": "rz_auto:bmw_e46mwhitered",
+   "item": "rz_auto:bmw_e46mwhitered",
+   "bedrock_spawn_egg": "bmw:e46mwhitered_spawn_egg"
+  },
+  "bmw:e46myellowblack": {
+   "entity": "rz_auto:bmw_e46myellowblack",
+   "item": "rz_auto:bmw_e46myellowblack",
+   "bedrock_spawn_egg": "bmw:e46myellowblack_spawn_egg"
+  },
+  "bmw:e46sblackblack": {
+   "entity": "rz_auto:bmw_e46sblackblack",
+   "item": "rz_auto:bmw_e46sblackblack",
+   "bedrock_spawn_egg": "bmw:e46sblackblack_spawn_egg"
+  },
+  "bmw:e46sblacktan": {
+   "entity": "rz_auto:bmw_e46sblacktan",
+   "item": "rz_auto:bmw_e46sblacktan",
+   "bedrock_spawn_egg": "bmw:e46sblacktan_spawn_egg"
+  },
+  "bmw:e46sdbluetan": {
+   "entity": "rz_auto:bmw_e46sdbluetan",
+   "item": "rz_auto:bmw_e46sdbluetan",
+   "bedrock_spawn_egg": "bmw:e46sdbluetan_spawn_egg"
+  },
+  "bmw:e46sdredblack": {
+   "entity": "rz_auto:bmw_e46sdredblack",
+   "item": "rz_auto:bmw_e46sdredblack",
+   "bedrock_spawn_egg": "bmw:e46sdredblack_spawn_egg"
+  },
+  "bmw:e46sgrayblack": {
+   "entity": "rz_auto:bmw_e46sgrayblack",
+   "item": "rz_auto:bmw_e46sgrayblack",
+   "bedrock_spawn_egg": "bmw:e46sgrayblack_spawn_egg"
+  },
+  "bmw:e46sgreenblack": {
+   "entity": "rz_auto:bmw_e46sgreenblack",
+   "item": "rz_auto:bmw_e46sgreenblack",
+   "bedrock_spawn_egg": "bmw:e46sgreenblack_spawn_egg"
+  },
+  "bmw:e46slbluetan": {
+   "entity": "rz_auto:bmw_e46slbluetan",
+   "item": "rz_auto:bmw_e46slbluetan",
+   "bedrock_spawn_egg": "bmw:e46slbluetan_spawn_egg"
+  },
+  "bmw:e46soxfordtan": {
+   "entity": "rz_auto:bmw_e46soxfordtan",
+   "item": "rz_auto:bmw_e46soxfordtan",
+   "bedrock_spawn_egg": "bmw:e46soxfordtan_spawn_egg"
+  },
+  "bmw:e46sredtan": {
+   "entity": "rz_auto:bmw_e46sredtan",
+   "item": "rz_auto:bmw_e46sredtan",
+   "bedrock_spawn_egg": "bmw:e46sredtan_spawn_egg"
+  },
+  "bmw:e46ssilverblack": {
+   "entity": "rz_auto:bmw_e46ssilverblack",
+   "item": "rz_auto:bmw_e46ssilverblack",
+   "bedrock_spawn_egg": "bmw:e46ssilverblack_spawn_egg"
+  },
+  "bmw:e46ssilvergray": {
+   "entity": "rz_auto:bmw_e46ssilvergray",
+   "item": "rz_auto:bmw_e46ssilvergray",
+   "bedrock_spawn_egg": "bmw:e46ssilvergray_spawn_egg"
+  },
+  "bmw:e46stantan": {
+   "entity": "rz_auto:bmw_e46stantan",
+   "item": "rz_auto:bmw_e46stantan",
+   "bedrock_spawn_egg": "bmw:e46stantan_spawn_egg"
+  },
+  "bmw:e46swhitetan": {
+   "entity": "rz_auto:bmw_e46swhitetan",
+   "item": "rz_auto:bmw_e46swhitetan",
+   "bedrock_spawn_egg": "bmw:e46swhitetan_spawn_egg"
+  },
+  "bmw:e46syellowblack": {
+   "entity": "rz_auto:bmw_e46syellowblack",
+   "item": "rz_auto:bmw_e46syellowblack",
+   "bedrock_spawn_egg": "bmw:e46syellowblack_spawn_egg"
+  },
+  "koenigsegg:agerablue": {
+   "entity": "rz_auto:koenigsegg_agerablue",
+   "item": "rz_auto:koenigsegg_agerablue",
+   "bedrock_spawn_egg": "koenigsegg:agerablue_spawn_egg"
+  },
+  "koenigsegg:ageranfsred": {
+   "entity": "rz_auto:koenigsegg_ageranfsred",
+   "item": "rz_auto:koenigsegg_ageranfsred",
+   "bedrock_spawn_egg": "koenigsegg:ageranfsred_spawn_egg"
+  },
+  "koenigsegg:ageranfssilver": {
+   "entity": "rz_auto:koenigsegg_ageranfssilver",
+   "item": "rz_auto:koenigsegg_ageranfssilver",
+   "bedrock_spawn_egg": "koenigsegg:ageranfssilver_spawn_egg"
+  },
+  "koenigsegg:ageranfswhite": {
+   "entity": "rz_auto:koenigsegg_ageranfswhite",
+   "item": "rz_auto:koenigsegg_ageranfswhite",
+   "bedrock_spawn_egg": "koenigsegg:ageranfswhite_spawn_egg"
+  },
+  "koenigsegg:agerapurple": {
+   "entity": "rz_auto:koenigsegg_agerapurple",
+   "item": "rz_auto:koenigsegg_agerapurple",
+   "bedrock_spawn_egg": "koenigsegg:agerapurple_spawn_egg"
+  },
+  "koenigsegg:agerared": {
+   "entity": "rz_auto:koenigsegg_agerared",
+   "item": "rz_auto:koenigsegg_agerared",
+   "bedrock_spawn_egg": "koenigsegg:agerared_spawn_egg"
+  },
+  "koenigsegg:agerawhite": {
+   "entity": "rz_auto:koenigsegg_agerawhite",
+   "item": "rz_auto:koenigsegg_agerawhite",
+   "bedrock_spawn_egg": "koenigsegg:agerawhite_spawn_egg"
+  },
+  "ford:base": {
+   "entity": "rz_auto:ford_base",
+   "item": "rz_auto:ford_base",
+   "bedrock_spawn_egg": "ford:base_spawn_egg"
+  },
+  "porsche:c987black": {
+   "entity": "rz_auto:porsche_c987black",
+   "item": "rz_auto:porsche_c987black",
+   "bedrock_spawn_egg": "porsche:c987black_spawn_egg"
+  },
+  "porsche:c987blackb": {
+   "entity": "rz_auto:porsche_c987blackb",
+   "item": "rz_auto:porsche_c987blackb",
+   "bedrock_spawn_egg": "porsche:c987blackb_spawn_egg"
+  },
+  "porsche:c987lime": {
+   "entity": "rz_auto:porsche_c987lime",
+   "item": "rz_auto:porsche_c987lime",
+   "bedrock_spawn_egg": "porsche:c987lime_spawn_egg"
+  },
+  "porsche:c987orange": {
+   "entity": "rz_auto:porsche_c987orange",
+   "item": "rz_auto:porsche_c987orange",
+   "bedrock_spawn_egg": "porsche:c987orange_spawn_egg"
+  },
+  "porsche:c987red": {
+   "entity": "rz_auto:porsche_c987red",
+   "item": "rz_auto:porsche_c987red",
+   "bedrock_spawn_egg": "porsche:c987red_spawn_egg"
+  },
+  "porsche:c987redb": {
+   "entity": "rz_auto:porsche_c987redb",
+   "item": "rz_auto:porsche_c987redb",
+   "bedrock_spawn_egg": "porsche:c987redb_spawn_egg"
+  },
+  "porsche:c987silver": {
+   "entity": "rz_auto:porsche_c987silver",
+   "item": "rz_auto:porsche_c987silver",
+   "bedrock_spawn_egg": "porsche:c987silver_spawn_egg"
+  },
+  "porsche:c987silverb": {
+   "entity": "rz_auto:porsche_c987silverb",
+   "item": "rz_auto:porsche_c987silverb",
+   "bedrock_spawn_egg": "porsche:c987silverb_spawn_egg"
+  },
+  "porsche:c987white": {
+   "entity": "rz_auto:porsche_c987white",
+   "item": "rz_auto:porsche_c987white",
+   "bedrock_spawn_egg": "porsche:c987white_spawn_egg"
+  },
+  "porsche:c987yellow": {
+   "entity": "rz_auto:porsche_c987yellow",
+   "item": "rz_auto:porsche_c987yellow",
+   "bedrock_spawn_egg": "porsche:c987yellow_spawn_egg"
+  },
+  "porsche:c987yellowb": {
+   "entity": "rz_auto:porsche_c987yellowb",
+   "item": "rz_auto:porsche_c987yellowb",
+   "bedrock_spawn_egg": "porsche:c987yellowb_spawn_egg"
+  },
+  "lamborghini:centblackbluecoupe": {
+   "entity": "rz_auto:lamborghini_centblackbluecoupe",
+   "item": "rz_auto:lamborghini_centblackbluecoupe",
+   "bedrock_spawn_egg": "lamborghini:centblackbluecoupe_spawn_egg"
+  },
+  "lamborghini:centblackorangecoupe": {
+   "entity": "rz_auto:lamborghini_centblackorangecoupe",
+   "item": "rz_auto:lamborghini_centblackorangecoupe",
+   "bedrock_spawn_egg": "lamborghini:centblackorangecoupe_spawn_egg"
+  },
+  "lamborghini:centblackredcoupe": {
+   "entity": "rz_auto:lamborghini_centblackredcoupe",
+   "item": "rz_auto:lamborghini_centblackredcoupe",
+   "bedrock_spawn_egg": "lamborghini:centblackredcoupe_spawn_egg"
+  },
+  "lamborghini:centblackredroadster": {
+   "entity": "rz_auto:lamborghini_centblackredroadster",
+   "item": "rz_auto:lamborghini_centblackredroadster",
+   "bedrock_spawn_egg": "lamborghini:centblackredroadster_spawn_egg"
+  },
+  "lamborghini:centblackyellowcoupe": {
+   "entity": "rz_auto:lamborghini_centblackyellowcoupe",
+   "item": "rz_auto:lamborghini_centblackyellowcoupe",
+   "bedrock_spawn_egg": "lamborghini:centblackyellowcoupe_spawn_egg"
+  },
+  "lamborghini:centblackyellowroadster": {
+   "entity": "rz_auto:lamborghini_centblackyellowroadster",
+   "item": "rz_auto:lamborghini_centblackyellowroadster",
+   "bedrock_spawn_egg": "lamborghini:centblackyellowroadster_spawn_egg"
+  },
+  "lamborghini:centblueroadster": {
+   "entity": "rz_auto:lamborghini_centblueroadster",
+   "item": "rz_auto:lamborghini_centblueroadster",
+   "bedrock_spawn_egg": "lamborghini:centblueroadster_spawn_egg"
+  },
+  "lamborghini:centgrayorangeroadster": {
+   "entity": "rz_auto:lamborghini_centgrayorangeroadster",
+   "item": "rz_auto:lamborghini_centgrayorangeroadster",
+   "bedrock_spawn_egg": "lamborghini:centgrayorangeroadster_spawn_egg"
+  },
+  "lamborghini:centgrayroadster": {
+   "entity": "rz_auto:lamborghini_centgrayroadster",
+   "item": "rz_auto:lamborghini_centgrayroadster",
+   "bedrock_spawn_egg": "lamborghini:centgrayroadster_spawn_egg"
+  },
+  "lamborghini:centgreencoupe": {
+   "entity": "rz_auto:lamborghini_centgreencoupe",
+   "item": "rz_auto:lamborghini_centgreencoupe",
+   "bedrock_spawn_egg": "lamborghini:centgreencoupe_spawn_egg"
+  },
+  "lamborghini:centredblackroadster": {
+   "entity": "rz_auto:lamborghini_centredblackroadster",
+   "item": "rz_auto:lamborghini_centredblackroadster",
+   "bedrock_spawn_egg": "lamborghini:centredblackroadster_spawn_egg"
+  },
+  "lamborghini:centwhiteblueroadster": {
+   "entity": "rz_auto:lamborghini_centwhiteblueroadster",
+   "item": "rz_auto:lamborghini_centwhiteblueroadster",
+   "bedrock_spawn_egg": "lamborghini:centwhiteblueroadster_spawn_egg"
+  },
+  "lamborghini:centwhiteredroadster": {
+   "entity": "rz_auto:lamborghini_centwhiteredroadster",
+   "item": "rz_auto:lamborghini_centwhiteredroadster",
+   "bedrock_spawn_egg": "lamborghini:centwhiteredroadster_spawn_egg"
+  },
+  "lamborghini:centyellowcoupe": {
+   "entity": "rz_auto:lamborghini_centyellowcoupe",
+   "item": "rz_auto:lamborghini_centyellowcoupe",
+   "bedrock_spawn_egg": "lamborghini:centyellowcoupe_spawn_egg"
+  },
+  "chevrolet:corvettec2black": {
+   "entity": "rz_auto:chevrolet_corvettec2black",
+   "item": "rz_auto:chevrolet_corvettec2black",
+   "bedrock_spawn_egg": "chevrolet:corvettec2black_spawn_egg"
+  },
+  "chevrolet:corvettec2blue": {
+   "entity": "rz_auto:chevrolet_corvettec2blue",
+   "item": "rz_auto:chevrolet_corvettec2blue",
+   "bedrock_spawn_egg": "chevrolet:corvettec2blue_spawn_egg"
+  },
+  "chevrolet:corvettec2red": {
+   "entity": "rz_auto:chevrolet_corvettec2red",
+   "item": "rz_auto:chevrolet_corvettec2red",
+   "bedrock_spawn_egg": "chevrolet:corvettec2red_spawn_egg"
+  },
+  "chevrolet:corvettec2silver": {
+   "entity": "rz_auto:chevrolet_corvettec2silver",
+   "item": "rz_auto:chevrolet_corvettec2silver",
+   "bedrock_spawn_egg": "chevrolet:corvettec2silver_spawn_egg"
+  },
+  "chevrolet:corvettec2yellow": {
+   "entity": "rz_auto:chevrolet_corvettec2yellow",
+   "item": "rz_auto:chevrolet_corvettec2yellow",
+   "bedrock_spawn_egg": "chevrolet:corvettec2yellow_spawn_egg"
+  },
+  "ducati:d1199": {
+   "entity": "rz_auto:ducati_d1199",
+   "item": "rz_auto:ducati_d1199",
+   "bedrock_spawn_egg": "ducati:d1199_spawn_egg"
+  },
+  "bmw:f30blackgray": {
+   "entity": "rz_auto:bmw_f30blackgray",
+   "item": "rz_auto:bmw_f30blackgray",
+   "bedrock_spawn_egg": "bmw:f30blackgray_spawn_egg"
+  },
+  "bmw:f30bluetan": {
+   "entity": "rz_auto:bmw_f30bluetan",
+   "item": "rz_auto:bmw_f30bluetan",
+   "bedrock_spawn_egg": "bmw:f30bluetan_spawn_egg"
+  },
+  "bmw:f30bluewhite": {
+   "entity": "rz_auto:bmw_f30bluewhite",
+   "item": "rz_auto:bmw_f30bluewhite",
+   "bedrock_spawn_egg": "bmw:f30bluewhite_spawn_egg"
+  },
+  "bmw:f30grayblack": {
+   "entity": "rz_auto:bmw_f30grayblack",
+   "item": "rz_auto:bmw_f30grayblack",
+   "bedrock_spawn_egg": "bmw:f30grayblack_spawn_egg"
+  },
+  "bmw:f30graybrown": {
+   "entity": "rz_auto:bmw_f30graybrown",
+   "item": "rz_auto:bmw_f30graybrown",
+   "bedrock_spawn_egg": "bmw:f30graybrown_spawn_egg"
+  },
+  "bmw:f30whiteblack": {
+   "entity": "rz_auto:bmw_f30whiteblack",
+   "item": "rz_auto:bmw_f30whiteblack",
+   "bedrock_spawn_egg": "bmw:f30whiteblack_spawn_egg"
+  },
+  "bmw:f31blacktan": {
+   "entity": "rz_auto:bmw_f31blacktan",
+   "item": "rz_auto:bmw_f31blacktan",
+   "bedrock_spawn_egg": "bmw:f31blacktan_spawn_egg"
+  },
+  "bmw:f31bluetan": {
+   "entity": "rz_auto:bmw_f31bluetan",
+   "item": "rz_auto:bmw_f31bluetan",
+   "bedrock_spawn_egg": "bmw:f31bluetan_spawn_egg"
+  },
+  "bmw:f31dredtan": {
+   "entity": "rz_auto:bmw_f31dredtan",
+   "item": "rz_auto:bmw_f31dredtan",
+   "bedrock_spawn_egg": "bmw:f31dredtan_spawn_egg"
+  },
+  "bmw:f31redtan": {
+   "entity": "rz_auto:bmw_f31redtan",
+   "item": "rz_auto:bmw_f31redtan",
+   "bedrock_spawn_egg": "bmw:f31redtan_spawn_egg"
+  },
+  "bmw:f31whitegray": {
+   "entity": "rz_auto:bmw_f31whitegray",
+   "item": "rz_auto:bmw_f31whitegray",
+   "bedrock_spawn_egg": "bmw:f31whitegray_spawn_egg"
+  },
+  "ferrari:f40azzurro": {
+   "entity": "rz_auto:ferrari_f40azzurro",
+   "item": "rz_auto:ferrari_f40azzurro",
+   "bedrock_spawn_egg": "ferrari:f40azzurro_spawn_egg"
+  },
+  "ferrari:f40black": {
+   "entity": "rz_auto:ferrari_f40black",
+   "item": "rz_auto:ferrari_f40black",
+   "bedrock_spawn_egg": "ferrari:f40black_spawn_egg"
+  },
+  "ferrari:f40blue": {
+   "entity": "rz_auto:ferrari_f40blue",
+   "item": "rz_auto:ferrari_f40blue",
+   "bedrock_spawn_egg": "ferrari:f40blue_spawn_egg"
+  },
+  "ferrari:f40green": {
+   "entity": "rz_auto:ferrari_f40green",
+   "item": "rz_auto:ferrari_f40green",
+   "bedrock_spawn_egg": "ferrari:f40green_spawn_egg"
+  },
+  "ferrari:f40maroon": {
+   "entity": "rz_auto:ferrari_f40maroon",
+   "item": "rz_auto:ferrari_f40maroon",
+   "bedrock_spawn_egg": "ferrari:f40maroon_spawn_egg"
+  },
+  "ferrari:f40red": {
+   "entity": "rz_auto:ferrari_f40red",
+   "item": "rz_auto:ferrari_f40red",
+   "bedrock_spawn_egg": "ferrari:f40red_spawn_egg"
+  },
+  "ferrari:f40white": {
+   "entity": "rz_auto:ferrari_f40white",
+   "item": "rz_auto:ferrari_f40white",
+   "bedrock_spawn_egg": "ferrari:f40white_spawn_egg"
+  },
+  "ferrari:f40yellow": {
+   "entity": "rz_auto:ferrari_f40yellow",
+   "item": "rz_auto:ferrari_f40yellow",
+   "bedrock_spawn_egg": "ferrari:f40yellow_spawn_egg"
+  },
+  "ford:fhp": {
+   "entity": "rz_auto:ford_fhp",
+   "item": "rz_auto:ford_fhp",
+   "bedrock_spawn_egg": "ford:fhp_spawn_egg"
+  },
+  "ford:fmpd": {
+   "entity": "rz_auto:ford_fmpd",
+   "item": "rz_auto:ford_fmpd",
+   "bedrock_spawn_egg": "ford:fmpd_spawn_egg"
+  },
+  "maybach:glsblackblack": {
+   "entity": "rz_auto:maybach_glsblackblack",
+   "item": "rz_auto:maybach_glsblackblack",
+   "bedrock_spawn_egg": "maybach:glsblackblack_spawn_egg"
+  },
+  "maybach:glsblacksilver": {
+   "entity": "rz_auto:maybach_glsblacksilver",
+   "item": "rz_auto:maybach_glsblacksilver",
+   "bedrock_spawn_egg": "maybach:glsblacksilver_spawn_egg"
+  },
+  "maybach:glsbluesilver": {
+   "entity": "rz_auto:maybach_glsbluesilver",
+   "item": "rz_auto:maybach_glsbluesilver",
+   "bedrock_spawn_egg": "maybach:glsbluesilver_spawn_egg"
+  },
+  "maybach:glsbluetan": {
+   "entity": "rz_auto:maybach_glsbluetan",
+   "item": "rz_auto:maybach_glsbluetan",
+   "bedrock_spawn_egg": "maybach:glsbluetan_spawn_egg"
+  },
+  "maybach:glsgoldwhite": {
+   "entity": "rz_auto:maybach_glsgoldwhite",
+   "item": "rz_auto:maybach_glsgoldwhite",
+   "bedrock_spawn_egg": "maybach:glsgoldwhite_spawn_egg"
+  },
+  "maybach:glsgreentan": {
+   "entity": "rz_auto:maybach_glsgreentan",
+   "item": "rz_auto:maybach_glsgreentan",
+   "bedrock_spawn_egg": "maybach:glsgreentan_spawn_egg"
+  },
+  "maybach:glsredwhite": {
+   "entity": "rz_auto:maybach_glsredwhite",
+   "item": "rz_auto:maybach_glsredwhite",
+   "bedrock_spawn_egg": "maybach:glsredwhite_spawn_egg"
+  },
+  "maybach:glssilverblack": {
+   "entity": "rz_auto:maybach_glssilverblack",
+   "item": "rz_auto:maybach_glssilverblack",
+   "bedrock_spawn_egg": "maybach:glssilverblack_spawn_egg"
+  },
+  "maybach:glswhitered": {
+   "entity": "rz_auto:maybach_glswhitered",
+   "item": "rz_auto:maybach_glswhitered",
+   "bedrock_spawn_egg": "maybach:glswhitered_spawn_egg"
+  },
+  "ktm:k450": {
+   "entity": "rz_auto:ktm_k450",
+   "item": "rz_auto:ktm_k450",
+   "bedrock_spawn_egg": "ktm:k450_spawn_egg"
+  },
+  "ford:lcso": {
+   "entity": "rz_auto:ford_lcso",
+   "item": "rz_auto:ford_lcso",
+   "bedrock_spawn_egg": "ford:lcso_spawn_egg"
+  },
+  "bmw:m3blackwhite": {
+   "entity": "rz_auto:bmw_m3blackwhite",
+   "item": "rz_auto:bmw_m3blackwhite",
+   "bedrock_spawn_egg": "bmw:m3blackwhite_spawn_egg"
+  },
+  "bmw:m3blueblue": {
+   "entity": "rz_auto:bmw_m3blueblue",
+   "item": "rz_auto:bmw_m3blueblue",
+   "bedrock_spawn_egg": "bmw:m3blueblue_spawn_egg"
+  },
+  "bmw:m3bluetan": {
+   "entity": "rz_auto:bmw_m3bluetan",
+   "item": "rz_auto:bmw_m3bluetan",
+   "bedrock_spawn_egg": "bmw:m3bluetan_spawn_egg"
+  },
+  "bmw:m3greengrey": {
+   "entity": "rz_auto:bmw_m3greengrey",
+   "item": "rz_auto:bmw_m3greengrey",
+   "bedrock_spawn_egg": "bmw:m3greengrey_spawn_egg"
+  },
+  "bmw:m3greentan": {
+   "entity": "rz_auto:bmw_m3greentan",
+   "item": "rz_auto:bmw_m3greentan",
+   "bedrock_spawn_egg": "bmw:m3greentan_spawn_egg"
+  },
+  "bmw:m3greygrey": {
+   "entity": "rz_auto:bmw_m3greygrey",
+   "item": "rz_auto:bmw_m3greygrey",
+   "bedrock_spawn_egg": "bmw:m3greygrey_spawn_egg"
+  },
+  "bmw:m3orangeblack": {
+   "entity": "rz_auto:bmw_m3orangeblack",
+   "item": "rz_auto:bmw_m3orangeblack",
+   "bedrock_spawn_egg": "bmw:m3orangeblack_spawn_egg"
+  },
+  "bmw:m3pinkwhite": {
+   "entity": "rz_auto:bmw_m3pinkwhite",
+   "item": "rz_auto:bmw_m3pinkwhite",
+   "bedrock_spawn_egg": "bmw:m3pinkwhite_spawn_egg"
+  },
+  "bmw:m3purplewhite": {
+   "entity": "rz_auto:bmw_m3purplewhite",
+   "item": "rz_auto:bmw_m3purplewhite",
+   "bedrock_spawn_egg": "bmw:m3purplewhite_spawn_egg"
+  },
+  "bmw:m3redblack": {
+   "entity": "rz_auto:bmw_m3redblack",
+   "item": "rz_auto:bmw_m3redblack",
+   "bedrock_spawn_egg": "bmw:m3redblack_spawn_egg"
+  },
+  "bmw:m3redred": {
+   "entity": "rz_auto:bmw_m3redred",
+   "item": "rz_auto:bmw_m3redred",
+   "bedrock_spawn_egg": "bmw:m3redred_spawn_egg"
+  },
+  "bmw:m3whitered": {
+   "entity": "rz_auto:bmw_m3whitered",
+   "item": "rz_auto:bmw_m3whitered",
+   "bedrock_spawn_egg": "bmw:m3whitered_spawn_egg"
+  },
+  "bmw:m3whitewhite": {
+   "entity": "rz_auto:bmw_m3whitewhite",
+   "item": "rz_auto:bmw_m3whitewhite",
+   "bedrock_spawn_egg": "bmw:m3whitewhite_spawn_egg"
+  },
+  "bmw:m3yellowblue": {
+   "entity": "rz_auto:bmw_m3yellowblue",
+   "item": "rz_auto:bmw_m3yellowblue",
+   "bedrock_spawn_egg": "bmw:m3yellowblue_spawn_egg"
+  },
+  "bmw:m3yellowwhite": {
+   "entity": "rz_auto:bmw_m3yellowwhite",
+   "item": "rz_auto:bmw_m3yellowwhite",
+   "bedrock_spawn_egg": "bmw:m3yellowwhite_spawn_egg"
+  },
+  "toyota:mr2black": {
+   "entity": "rz_auto:toyota_mr2black",
+   "item": "rz_auto:toyota_mr2black",
+   "bedrock_spawn_egg": "toyota:mr2black_spawn_egg"
+  },
+  "toyota:mr2blacktan": {
+   "entity": "rz_auto:toyota_mr2blacktan",
+   "item": "rz_auto:toyota_mr2blacktan",
+   "bedrock_spawn_egg": "toyota:mr2blacktan_spawn_egg"
+  },
+  "toyota:mr2blue": {
+   "entity": "rz_auto:toyota_mr2blue",
+   "item": "rz_auto:toyota_mr2blue",
+   "bedrock_spawn_egg": "toyota:mr2blue_spawn_egg"
+  },
+  "toyota:mr2dblue": {
+   "entity": "rz_auto:toyota_mr2dblue",
+   "item": "rz_auto:toyota_mr2dblue",
+   "bedrock_spawn_egg": "toyota:mr2dblue_spawn_egg"
+  },
+  "toyota:mr2dred": {
+   "entity": "rz_auto:toyota_mr2dred",
+   "item": "rz_auto:toyota_mr2dred",
+   "bedrock_spawn_egg": "toyota:mr2dred_spawn_egg"
+  },
+  "toyota:mr2gray": {
+   "entity": "rz_auto:toyota_mr2gray",
+   "item": "rz_auto:toyota_mr2gray",
+   "bedrock_spawn_egg": "toyota:mr2gray_spawn_egg"
+  },
+  "toyota:mr2graysilver": {
+   "entity": "rz_auto:toyota_mr2graysilver",
+   "item": "rz_auto:toyota_mr2graysilver",
+   "bedrock_spawn_egg": "toyota:mr2graysilver_spawn_egg"
+  },
+  "toyota:mr2greentan": {
+   "entity": "rz_auto:toyota_mr2greentan",
+   "item": "rz_auto:toyota_mr2greentan",
+   "bedrock_spawn_egg": "toyota:mr2greentan_spawn_egg"
+  },
+  "toyota:mr2pink": {
+   "entity": "rz_auto:toyota_mr2pink",
+   "item": "rz_auto:toyota_mr2pink",
+   "bedrock_spawn_egg": "toyota:mr2pink_spawn_egg"
+  },
+  "toyota:mr2pinkwhite": {
+   "entity": "rz_auto:toyota_mr2pinkwhite",
+   "item": "rz_auto:toyota_mr2pinkwhite",
+   "bedrock_spawn_egg": "toyota:mr2pinkwhite_spawn_egg"
+  },
+  "toyota:mr2red": {
+   "entity": "rz_auto:toyota_mr2red",
+   "item": "rz_auto:toyota_mr2red",
+   "bedrock_spawn_egg": "toyota:mr2red_spawn_egg"
+  },
+  "toyota:mr2redblack": {
+   "entity": "rz_auto:toyota_mr2redblack",
+   "item": "rz_auto:toyota_mr2redblack",
+   "bedrock_spawn_egg": "toyota:mr2redblack_spawn_egg"
+  },
+  "toyota:mr2silvergray": {
+   "entity": "rz_auto:toyota_mr2silvergray",
+   "item": "rz_auto:toyota_mr2silvergray",
+   "bedrock_spawn_egg": "toyota:mr2silvergray_spawn_egg"
+  },
+  "toyota:mr2white": {
+   "entity": "rz_auto:toyota_mr2white",
+   "item": "rz_auto:toyota_mr2white",
+   "bedrock_spawn_egg": "toyota:mr2white_spawn_egg"
+  },
+  "toyota:mr2yellow": {
+   "entity": "rz_auto:toyota_mr2yellow",
+   "item": "rz_auto:toyota_mr2yellow",
+   "bedrock_spawn_egg": "toyota:mr2yellow_spawn_egg"
+  },
+  "toyota:mr2yellowblack": {
+   "entity": "rz_auto:toyota_mr2yellowblack",
+   "item": "rz_auto:toyota_mr2yellowblack",
+   "bedrock_spawn_egg": "toyota:mr2yellowblack_spawn_egg"
+  },
+  "mcl:p1black": {
+   "entity": "rz_auto:mcl_p1black",
+   "item": "rz_auto:mcl_p1black",
+   "bedrock_spawn_egg": "mcl:p1black_spawn_egg"
+  },
+  "mcl:p1bluedark": {
+   "entity": "rz_auto:mcl_p1bluedark",
+   "item": "rz_auto:mcl_p1bluedark",
+   "bedrock_spawn_egg": "mcl:p1bluedark_spawn_egg"
+  },
+  "mcl:p1bluelight": {
+   "entity": "rz_auto:mcl_p1bluelight",
+   "item": "rz_auto:mcl_p1bluelight",
+   "bedrock_spawn_egg": "mcl:p1bluelight_spawn_egg"
+  },
+  "mcl:p1green": {
+   "entity": "rz_auto:mcl_p1green",
+   "item": "rz_auto:mcl_p1green",
+   "bedrock_spawn_egg": "mcl:p1green_spawn_egg"
+  },
+  "mcl:p1orangedark": {
+   "entity": "rz_auto:mcl_p1orangedark",
+   "item": "rz_auto:mcl_p1orangedark",
+   "bedrock_spawn_egg": "mcl:p1orangedark_spawn_egg"
+  },
+  "mcl:p1orangelight": {
+   "entity": "rz_auto:mcl_p1orangelight",
+   "item": "rz_auto:mcl_p1orangelight",
+   "bedrock_spawn_egg": "mcl:p1orangelight_spawn_egg"
+  },
+  "mcl:p1orangelightbald": {
+   "entity": "rz_auto:mcl_p1orangelightbald",
+   "item": "rz_auto:mcl_p1orangelightbald",
+   "bedrock_spawn_egg": "mcl:p1orangelightbald_spawn_egg"
+  },
+  "mcl:p1purple": {
+   "entity": "rz_auto:mcl_p1purple",
+   "item": "rz_auto:mcl_p1purple",
+   "bedrock_spawn_egg": "mcl:p1purple_spawn_egg"
+  },
+  "mcl:p1reddark": {
+   "entity": "rz_auto:mcl_p1reddark",
+   "item": "rz_auto:mcl_p1reddark",
+   "bedrock_spawn_egg": "mcl:p1reddark_spawn_egg"
+  },
+  "mcl:p1redlight": {
+   "entity": "rz_auto:mcl_p1redlight",
+   "item": "rz_auto:mcl_p1redlight",
+   "bedrock_spawn_egg": "mcl:p1redlight_spawn_egg"
+  },
+  "mcl:p1silver": {
+   "entity": "rz_auto:mcl_p1silver",
+   "item": "rz_auto:mcl_p1silver",
+   "bedrock_spawn_egg": "mcl:p1silver_spawn_egg"
+  },
+  "mcl:p1white": {
+   "entity": "rz_auto:mcl_p1white",
+   "item": "rz_auto:mcl_p1white",
+   "bedrock_spawn_egg": "mcl:p1white_spawn_egg"
+  },
+  "mcl:p1yellow": {
+   "entity": "rz_auto:mcl_p1yellow",
+   "item": "rz_auto:mcl_p1yellow",
+   "bedrock_spawn_egg": "mcl:p1yellow_spawn_egg"
+  },
+  "p911t:black": {
+   "entity": "rz_auto:p911t_black",
+   "item": "rz_auto:p911t_black",
+   "bedrock_spawn_egg": "p911t:black_spawn_egg"
+  },
+  "p911t:blue": {
+   "entity": "rz_auto:p911t_blue",
+   "item": "rz_auto:p911t_blue",
+   "bedrock_spawn_egg": "p911t:blue_spawn_egg"
+  },
+  "p911t:green": {
+   "entity": "rz_auto:p911t_green",
+   "item": "rz_auto:p911t_green",
+   "bedrock_spawn_egg": "p911t:green_spawn_egg"
+  },
+  "p911t:orange": {
+   "entity": "rz_auto:p911t_orange",
+   "item": "rz_auto:p911t_orange",
+   "bedrock_spawn_egg": "p911t:orange_spawn_egg"
+  },
+  "p911t:red": {
+   "entity": "rz_auto:p911t_red",
+   "item": "rz_auto:p911t_red",
+   "bedrock_spawn_egg": "p911t:red_spawn_egg"
+  },
+  "p911t:white": {
+   "entity": "rz_auto:p911t_white",
+   "item": "rz_auto:p911t_white",
+   "bedrock_spawn_egg": "p911t:white_spawn_egg"
+  },
+  "p911t:yellow": {
+   "entity": "rz_auto:p911t_yellow",
+   "item": "rz_auto:p911t_yellow",
+   "bedrock_spawn_egg": "p911t:yellow_spawn_egg"
+  },
+  "yamaha:r6": {
+   "entity": "rz_auto:yamaha_r6",
+   "item": "rz_auto:yamaha_r6",
+   "bedrock_spawn_egg": "yamaha:r6_spawn_egg"
+  },
+  "laf:red": {
+   "entity": "rz_auto:laf_red",
+   "item": "rz_auto:laf_red",
+   "bedrock_spawn_egg": "laf:red_spawn_egg"
+  },
+  "toyota:smr2dred": {
+   "entity": "rz_auto:toyota_smr2dred",
+   "item": "rz_auto:toyota_smr2dred",
+   "bedrock_spawn_egg": "toyota:smr2dred_spawn_egg"
+  },
+  "toyota:smr2graysilver": {
+   "entity": "rz_auto:toyota_smr2graysilver",
+   "item": "rz_auto:toyota_smr2graysilver",
+   "bedrock_spawn_egg": "toyota:smr2graysilver_spawn_egg"
+  },
+  "toyota:smr2greentan": {
+   "entity": "rz_auto:toyota_smr2greentan",
+   "item": "rz_auto:toyota_smr2greentan",
+   "bedrock_spawn_egg": "toyota:smr2greentan_spawn_egg"
+  },
+  "toyota:smr2pink": {
+   "entity": "rz_auto:toyota_smr2pink",
+   "item": "rz_auto:toyota_smr2pink",
+   "bedrock_spawn_egg": "toyota:smr2pink_spawn_egg"
+  },
+  "toyota:smr2pinkwhite": {
+   "entity": "rz_auto:toyota_smr2pinkwhite",
+   "item": "rz_auto:toyota_smr2pinkwhite",
+   "bedrock_spawn_egg": "toyota:smr2pinkwhite_spawn_egg"
+  },
+  "toyota:smr2redblack": {
+   "entity": "rz_auto:toyota_smr2redblack",
+   "item": "rz_auto:toyota_smr2redblack",
+   "bedrock_spawn_egg": "toyota:smr2redblack_spawn_egg"
+  },
+  "ford:unmarked": {
+   "entity": "rz_auto:ford_unmarked",
+   "item": "rz_auto:ford_unmarked",
+   "bedrock_spawn_egg": "ford:unmarked_spawn_egg"
+  },
+  "jeep:xjblack": {
+   "entity": "rz_auto:jeep_xjblack",
+   "item": "rz_auto:jeep_xjblack",
+   "bedrock_spawn_egg": "jeep:xjblack_spawn_egg"
+  },
+  "jeep:xjblue": {
+   "entity": "rz_auto:jeep_xjblue",
+   "item": "rz_auto:jeep_xjblue",
+   "bedrock_spawn_egg": "jeep:xjblue_spawn_egg"
+  },
+  "jeep:xjbluelif": {
+   "entity": "rz_auto:jeep_xjbluelif",
+   "item": "rz_auto:jeep_xjbluelif",
+   "bedrock_spawn_egg": "jeep:xjbluelif_spawn_egg"
+  },
+  "jeep:xjgreen": {
+   "entity": "rz_auto:jeep_xjgreen",
+   "item": "rz_auto:jeep_xjgreen",
+   "bedrock_spawn_egg": "jeep:xjgreen_spawn_egg"
+  },
+  "jeep:xjred": {
+   "entity": "rz_auto:jeep_xjred",
+   "item": "rz_auto:jeep_xjred",
+   "bedrock_spawn_egg": "jeep:xjred_spawn_egg"
+  },
+  "jeep:xjredlif": {
+   "entity": "rz_auto:jeep_xjredlif",
+   "item": "rz_auto:jeep_xjredlif",
+   "bedrock_spawn_egg": "jeep:xjredlif_spawn_egg"
+  },
+  "jeep:xjwhite": {
+   "entity": "rz_auto:jeep_xjwhite",
+   "item": "rz_auto:jeep_xjwhite",
+   "bedrock_spawn_egg": "jeep:xjwhite_spawn_egg"
+  },
+  "jeep:xjyellowlif": {
+   "entity": "rz_auto:jeep_xjyellowlif",
+   "item": "rz_auto:jeep_xjyellowlif",
+   "bedrock_spawn_egg": "jeep:xjyellowlif_spawn_egg"
+  },
+  "laf:yellow": {
+   "entity": "rz_auto:laf_yellow",
+   "item": "rz_auto:laf_yellow",
+   "bedrock_spawn_egg": "laf:yellow_spawn_egg"
+  },
+  "jeep:yjbasewhitegrayblackhd": {
+   "entity": "rz_auto:jeep_yjbasewhitegrayblackhd",
+   "item": "rz_auto:jeep_yjbasewhitegrayblackhd",
+   "bedrock_spawn_egg": "jeep:yjbasewhitegrayblackhd_spawn_egg"
+  },
+  "jeep:yjbaseblackgraygrayfd": {
+   "entity": "rz_auto:jeep_yjbaseblackgraygrayfd",
+   "item": "rz_auto:jeep_yjbaseblackgraygrayfd",
+   "bedrock_spawn_egg": "jeep:yjbaseblackgraygrayfd_spawn_egg"
+  },
+  "jeep:yjbaseblackgraygrayhd": {
+   "entity": "rz_auto:jeep_yjbaseblackgraygrayhd",
+   "item": "rz_auto:jeep_yjbaseblackgraygrayhd",
+   "bedrock_spawn_egg": "jeep:yjbaseblackgraygrayhd_spawn_egg"
+  },
+  "jeep:yjbaseblacktantanfd": {
+   "entity": "rz_auto:jeep_yjbaseblacktantanfd",
+   "item": "rz_auto:jeep_yjbaseblacktantanfd",
+   "bedrock_spawn_egg": "jeep:yjbaseblacktantanfd_spawn_egg"
+  },
+  "jeep:yjbaseblacktantanhd": {
+   "entity": "rz_auto:jeep_yjbaseblacktantanhd",
+   "item": "rz_auto:jeep_yjbaseblacktantanhd",
+   "bedrock_spawn_egg": "jeep:yjbaseblacktantanhd_spawn_egg"
+  },
+  "jeep:yjbasebluegrayblackfd": {
+   "entity": "rz_auto:jeep_yjbasebluegrayblackfd",
+   "item": "rz_auto:jeep_yjbasebluegrayblackfd",
+   "bedrock_spawn_egg": "jeep:yjbasebluegrayblackfd_spawn_egg"
+  },
+  "jeep:yjbasebluegrayblackhd": {
+   "entity": "rz_auto:jeep_yjbasebluegrayblackhd",
+   "item": "rz_auto:jeep_yjbasebluegrayblackhd",
+   "bedrock_spawn_egg": "jeep:yjbasebluegrayblackhd_spawn_egg"
+  },
+  "jeep:yjbasebluegraygrayfd": {
+   "entity": "rz_auto:jeep_yjbasebluegraygrayfd",
+   "item": "rz_auto:jeep_yjbasebluegraygrayfd",
+   "bedrock_spawn_egg": "jeep:yjbasebluegraygrayfd_spawn_egg"
+  },
+  "jeep:yjbasebluegraygrayhd": {
+   "entity": "rz_auto:jeep_yjbasebluegraygrayhd",
+   "item": "rz_auto:jeep_yjbasebluegraygrayhd",
+   "bedrock_spawn_egg": "jeep:yjbasebluegraygrayhd_spawn_egg"
+  },
+  "jeep:yjbasebluetantanfd": {
+   "entity": "rz_auto:jeep_yjbasebluetantanfd",
+   "item": "rz_auto:jeep_yjbasebluetantanfd",
+   "bedrock_spawn_egg": "jeep:yjbasebluetantanfd_spawn_egg"
+  },
+  "jeep:yjbasebluetantanhd": {
+   "entity": "rz_auto:jeep_yjbasebluetantanhd",
+   "item": "rz_auto:jeep_yjbasebluetantanhd",
+   "bedrock_spawn_egg": "jeep:yjbasebluetantanhd_spawn_egg"
+  },
+  "jeep:yjbasebrowngraygrayfd": {
+   "entity": "rz_auto:jeep_yjbasebrowngraygrayfd",
+   "item": "rz_auto:jeep_yjbasebrowngraygrayfd",
+   "bedrock_spawn_egg": "jeep:yjbasebrowngraygrayfd_spawn_egg"
+  },
+  "jeep:yjbasebrowngraygrayhd": {
+   "entity": "rz_auto:jeep_yjbasebrowngraygrayhd",
+   "item": "rz_auto:jeep_yjbasebrowngraygrayhd",
+   "bedrock_spawn_egg": "jeep:yjbasebrowngraygrayhd_spawn_egg"
+  },
+  "jeep:yjbasegraygraygrayfd": {
+   "entity": "rz_auto:jeep_yjbasegraygraygrayfd",
+   "item": "rz_auto:jeep_yjbasegraygraygrayfd",
+   "bedrock_spawn_egg": "jeep:yjbasegraygraygrayfd_spawn_egg"
+  },
+  "jeep:yjbasegraygraygrayhd": {
+   "entity": "rz_auto:jeep_yjbasegraygraygrayhd",
+   "item": "rz_auto:jeep_yjbasegraygraygrayhd",
+   "bedrock_spawn_egg": "jeep:yjbasegraygraygrayhd_spawn_egg"
+  },
+  "jeep:yjbaseredgrayblackfd": {
+   "entity": "rz_auto:jeep_yjbaseredgrayblackfd",
+   "item": "rz_auto:jeep_yjbaseredgrayblackfd",
+   "bedrock_spawn_egg": "jeep:yjbaseredgrayblackfd_spawn_egg"
+  },
+  "jeep:yjbaseredgrayblackhd": {
+   "entity": "rz_auto:jeep_yjbaseredgrayblackhd",
+   "item": "rz_auto:jeep_yjbaseredgrayblackhd",
+   "bedrock_spawn_egg": "jeep:yjbaseredgrayblackhd_spawn_egg"
+  },
+  "jeep:yjbaseredgraygrayfd": {
+   "entity": "rz_auto:jeep_yjbaseredgraygrayfd",
+   "item": "rz_auto:jeep_yjbaseredgraygrayfd",
+   "bedrock_spawn_egg": "jeep:yjbaseredgraygrayfd_spawn_egg"
+  },
+  "jeep:yjbaseredgraygrayhd": {
+   "entity": "rz_auto:jeep_yjbaseredgraygrayhd",
+   "item": "rz_auto:jeep_yjbaseredgraygrayhd",
+   "bedrock_spawn_egg": "jeep:yjbaseredgraygrayhd_spawn_egg"
+  },
+  "jeep:yjbasewhitegrayblackfd": {
+   "entity": "rz_auto:jeep_yjbasewhitegrayblackfd",
+   "item": "rz_auto:jeep_yjbasewhitegrayblackfd",
+   "bedrock_spawn_egg": "jeep:yjbasewhitegrayblackfd_spawn_egg"
+  },
+  "jeep:yjbasewhitegraytanfd": {
+   "entity": "rz_auto:jeep_yjbasewhitegraytanfd",
+   "item": "rz_auto:jeep_yjbasewhitegraytanfd",
+   "bedrock_spawn_egg": "jeep:yjbasewhitegraytanfd_spawn_egg"
+  },
+  "jeep:yjbasewhitegraytanhd": {
+   "entity": "rz_auto:jeep_yjbasewhitegraytanhd",
+   "item": "rz_auto:jeep_yjbasewhitegraytanhd",
+   "bedrock_spawn_egg": "jeep:yjbasewhitegraytanhd_spawn_egg"
+  },
+  "jeep:yjbasewhitegraywhitefd": {
+   "entity": "rz_auto:jeep_yjbasewhitegraywhitefd",
+   "item": "rz_auto:jeep_yjbasewhitegraywhitefd",
+   "bedrock_spawn_egg": "jeep:yjbasewhitegraywhitefd_spawn_egg"
+  },
+  "jeep:yjbaseyellowgrayblackfd": {
+   "entity": "rz_auto:jeep_yjbaseyellowgrayblackfd",
+   "item": "rz_auto:jeep_yjbaseyellowgrayblackfd",
+   "bedrock_spawn_egg": "jeep:yjbaseyellowgrayblackfd_spawn_egg"
+  },
+  "jeep:yjbaseyellowgrayblackhd": {
+   "entity": "rz_auto:jeep_yjbaseyellowgrayblackhd",
+   "item": "rz_auto:jeep_yjbaseyellowgrayblackhd",
+   "bedrock_spawn_egg": "jeep:yjbaseyellowgrayblackhd_spawn_egg"
+  },
+  "jeep:yjislandbluegrayblackfd": {
+   "entity": "rz_auto:jeep_yjislandbluegrayblackfd",
+   "item": "rz_auto:jeep_yjislandbluegrayblackfd",
+   "bedrock_spawn_egg": "jeep:yjislandbluegrayblackfd_spawn_egg"
+  },
+  "jeep:yjislandbluegrayblackhd": {
+   "entity": "rz_auto:jeep_yjislandbluegrayblackhd",
+   "item": "rz_auto:jeep_yjislandbluegrayblackhd",
+   "bedrock_spawn_egg": "jeep:yjislandbluegrayblackhd_spawn_egg"
+  },
+  "jeep:yjislandbluegraygrayfd": {
+   "entity": "rz_auto:jeep_yjislandbluegraygrayfd",
+   "item": "rz_auto:jeep_yjislandbluegraygrayfd",
+   "bedrock_spawn_egg": "jeep:yjislandbluegraygrayfd_spawn_egg"
+  },
+  "jeep:yjislandbluegraygrayhd": {
+   "entity": "rz_auto:jeep_yjislandbluegraygrayhd",
+   "item": "rz_auto:jeep_yjislandbluegraygrayhd",
+   "bedrock_spawn_egg": "jeep:yjislandbluegraygrayhd_spawn_egg"
+  },
+  "jeep:yjislandpacificgrayblackfd": {
+   "entity": "rz_auto:jeep_yjislandpacificgrayblackfd",
+   "item": "rz_auto:jeep_yjislandpacificgrayblackfd",
+   "bedrock_spawn_egg": "jeep:yjislandpacificgrayblackfd_spawn_egg"
+  },
+  "jeep:yjislandpacificgrayblackhd": {
+   "entity": "rz_auto:jeep_yjislandpacificgrayblackhd",
+   "item": "rz_auto:jeep_yjislandpacificgrayblackhd",
+   "bedrock_spawn_egg": "jeep:yjislandpacificgrayblackhd_spawn_egg"
+  },
+  "jeep:yjislandpacificgraygrayfd": {
+   "entity": "rz_auto:jeep_yjislandpacificgraygrayfd",
+   "item": "rz_auto:jeep_yjislandpacificgraygrayfd",
+   "bedrock_spawn_egg": "jeep:yjislandpacificgraygrayfd_spawn_egg"
+  },
+  "jeep:yjislandpacificgraygrayhd": {
+   "entity": "rz_auto:jeep_yjislandpacificgraygrayhd",
+   "item": "rz_auto:jeep_yjislandpacificgraygrayhd",
+   "bedrock_spawn_egg": "jeep:yjislandpacificgraygrayhd_spawn_egg"
+  },
+  "jeep:yjislandredgrayblackfd": {
+   "entity": "rz_auto:jeep_yjislandredgrayblackfd",
+   "item": "rz_auto:jeep_yjislandredgrayblackfd",
+   "bedrock_spawn_egg": "jeep:yjislandredgrayblackfd_spawn_egg"
+  },
+  "jeep:yjislandredgrayblackhd": {
+   "entity": "rz_auto:jeep_yjislandredgrayblackhd",
+   "item": "rz_auto:jeep_yjislandredgrayblackhd",
+   "bedrock_spawn_egg": "jeep:yjislandredgrayblackhd_spawn_egg"
+  },
+  "jeep:yjislandredgraygrayfd": {
+   "entity": "rz_auto:jeep_yjislandredgraygrayfd",
+   "item": "rz_auto:jeep_yjislandredgraygrayfd",
+   "bedrock_spawn_egg": "jeep:yjislandredgraygrayfd_spawn_egg"
+  },
+  "jeep:yjislandredgraygrayhd": {
+   "entity": "rz_auto:jeep_yjislandredgraygrayhd",
+   "item": "rz_auto:jeep_yjislandredgraygrayhd",
+   "bedrock_spawn_egg": "jeep:yjislandredgraygrayhd_spawn_egg"
+  },
+  "jeep:yjislandwhitegrayblackfd": {
+   "entity": "rz_auto:jeep_yjislandwhitegrayblackfd",
+   "item": "rz_auto:jeep_yjislandwhitegrayblackfd",
+   "bedrock_spawn_egg": "jeep:yjislandwhitegrayblackfd_spawn_egg"
+  },
+  "jeep:yjislandwhitegrayblackhd": {
+   "entity": "rz_auto:jeep_yjislandwhitegrayblackhd",
+   "item": "rz_auto:jeep_yjislandwhitegrayblackhd",
+   "bedrock_spawn_egg": "jeep:yjislandwhitegrayblackhd_spawn_egg"
+  },
+  "jeep:yjislandwhitegraygrayfd": {
+   "entity": "rz_auto:jeep_yjislandwhitegraygrayfd",
+   "item": "rz_auto:jeep_yjislandwhitegraygrayfd",
+   "bedrock_spawn_egg": "jeep:yjislandwhitegraygrayfd_spawn_egg"
+  },
+  "jeep:yjislandwhitegraygrayhd": {
+   "entity": "rz_auto:jeep_yjislandwhitegraygrayhd",
+   "item": "rz_auto:jeep_yjislandwhitegraygrayhd",
+   "bedrock_spawn_egg": "jeep:yjislandwhitegraygrayhd_spawn_egg"
+  },
+  "jeep:yjislandyellowgraygrayfd": {
+   "entity": "rz_auto:jeep_yjislandyellowgraygrayfd",
+   "item": "rz_auto:jeep_yjislandyellowgraygrayfd",
+   "bedrock_spawn_egg": "jeep:yjislandyellowgraygrayfd_spawn_egg"
+  },
+  "jeep:yjislandyellowgraygrayhd": {
+   "entity": "rz_auto:jeep_yjislandyellowgraygrayhd",
+   "item": "rz_auto:jeep_yjislandyellowgraygrayhd",
+   "bedrock_spawn_egg": "jeep:yjislandyellowgraygrayhd_spawn_egg"
+  },
+  "jeep:yjjnsojeep": {
+   "entity": "rz_auto:jeep_yjjnsojeep",
+   "item": "rz_auto:jeep_yjjnsojeep",
+   "bedrock_spawn_egg": "jeep:yjjnsojeep_spawn_egg"
+  },
+  "jeep:yjlaredoblackgraygrayfd": {
+   "entity": "rz_auto:jeep_yjlaredoblackgraygrayfd",
+   "item": "rz_auto:jeep_yjlaredoblackgraygrayfd",
+   "bedrock_spawn_egg": "jeep:yjlaredoblackgraygrayfd_spawn_egg"
+  },
+  "jeep:yjlaredoblackgraygrayhd": {
+   "entity": "rz_auto:jeep_yjlaredoblackgraygrayhd",
+   "item": "rz_auto:jeep_yjlaredoblackgraygrayhd",
+   "bedrock_spawn_egg": "jeep:yjlaredoblackgraygrayhd_spawn_egg"
+  },
+  "jeep:yjlaredobluetantanfd": {
+   "entity": "rz_auto:jeep_yjlaredobluetantanfd",
+   "item": "rz_auto:jeep_yjlaredobluetantanfd",
+   "bedrock_spawn_egg": "jeep:yjlaredobluetantanfd_spawn_egg"
+  },
+  "jeep:yjlaredobluetantanhd": {
+   "entity": "rz_auto:jeep_yjlaredobluetantanhd",
+   "item": "rz_auto:jeep_yjlaredobluetantanhd",
+   "bedrock_spawn_egg": "jeep:yjlaredobluetantanhd_spawn_egg"
+  },
+  "jeep:yjlaredobrowntantanfd": {
+   "entity": "rz_auto:jeep_yjlaredobrowntantanfd",
+   "item": "rz_auto:jeep_yjlaredobrowntantanfd",
+   "bedrock_spawn_egg": "jeep:yjlaredobrowntantanfd_spawn_egg"
+  },
+  "jeep:yjlaredobrowntantanhd": {
+   "entity": "rz_auto:jeep_yjlaredobrowntantanhd",
+   "item": "rz_auto:jeep_yjlaredobrowntantanhd",
+   "bedrock_spawn_egg": "jeep:yjlaredobrowntantanhd_spawn_egg"
+  },
+  "jeep:yjlaredoredgraygrayfd": {
+   "entity": "rz_auto:jeep_yjlaredoredgraygrayfd",
+   "item": "rz_auto:jeep_yjlaredoredgraygrayfd",
+   "bedrock_spawn_egg": "jeep:yjlaredoredgraygrayfd_spawn_egg"
+  },
+  "jeep:yjlaredoredgraygrayhd": {
+   "entity": "rz_auto:jeep_yjlaredoredgraygrayhd",
+   "item": "rz_auto:jeep_yjlaredoredgraygrayhd",
+   "bedrock_spawn_egg": "jeep:yjlaredoredgraygrayhd_spawn_egg"
+  },
+  "jeep:yjlaredowhitegraygrayfd": {
+   "entity": "rz_auto:jeep_yjlaredowhitegraygrayfd",
+   "item": "rz_auto:jeep_yjlaredowhitegraygrayfd",
+   "bedrock_spawn_egg": "jeep:yjlaredowhitegraygrayfd_spawn_egg"
+  },
+  "jeep:yjlaredowhitegraygrayhd": {
+   "entity": "rz_auto:jeep_yjlaredowhitegraygrayhd",
+   "item": "rz_auto:jeep_yjlaredowhitegraygrayhd",
+   "bedrock_spawn_egg": "jeep:yjlaredowhitegraygrayhd_spawn_egg"
+  },
+  "jeep:yjlimitedblacktanblackfd": {
+   "entity": "rz_auto:jeep_yjlimitedblacktanblackfd",
+   "item": "rz_auto:jeep_yjlimitedblacktanblackfd",
+   "bedrock_spawn_egg": "jeep:yjlimitedblacktanblackfd_spawn_egg"
+  },
+  "jeep:yjlimitedblacktanblackhd": {
+   "entity": "rz_auto:jeep_yjlimitedblacktanblackhd",
+   "item": "rz_auto:jeep_yjlimitedblacktanblackhd",
+   "bedrock_spawn_egg": "jeep:yjlimitedblacktanblackhd_spawn_egg"
+  },
+  "jeep:yjlimitedbluetantanfd": {
+   "entity": "rz_auto:jeep_yjlimitedbluetantanfd",
+   "item": "rz_auto:jeep_yjlimitedbluetantanfd",
+   "bedrock_spawn_egg": "jeep:yjlimitedbluetantanfd_spawn_egg"
+  },
+  "jeep:yjlimitedbluetantanhd": {
+   "entity": "rz_auto:jeep_yjlimitedbluetantanhd",
+   "item": "rz_auto:jeep_yjlimitedbluetantanhd",
+   "bedrock_spawn_egg": "jeep:yjlimitedbluetantanhd_spawn_egg"
+  },
+  "jeep:yjlimitedgreentantanfd": {
+   "entity": "rz_auto:jeep_yjlimitedgreentantanfd",
+   "item": "rz_auto:jeep_yjlimitedgreentantanfd",
+   "bedrock_spawn_egg": "jeep:yjlimitedgreentantanfd_spawn_egg"
+  },
+  "jeep:yjlimitedgreentantanhd": {
+   "entity": "rz_auto:jeep_yjlimitedgreentantanhd",
+   "item": "rz_auto:jeep_yjlimitedgreentantanhd",
+   "bedrock_spawn_egg": "jeep:yjlimitedgreentantanhd_spawn_egg"
+  },
+  "jeep:yjmtnwhitegrayblackfd": {
+   "entity": "rz_auto:jeep_yjmtnwhitegrayblackfd",
+   "item": "rz_auto:jeep_yjmtnwhitegrayblackfd",
+   "bedrock_spawn_egg": "jeep:yjmtnwhitegrayblackfd_spawn_egg"
+  },
+  "jeep:yjmtnwhitegrayblackhd": {
+   "entity": "rz_auto:jeep_yjmtnwhitegrayblackhd",
+   "item": "rz_auto:jeep_yjmtnwhitegrayblackhd",
+   "bedrock_spawn_egg": "jeep:yjmtnwhitegrayblackhd_spawn_egg"
+  },
+  "jeep:yjrenegadeblackblackblackfd": {
+   "entity": "rz_auto:jeep_yjrenegadeblackblackblackfd",
+   "item": "rz_auto:jeep_yjrenegadeblackblackblackfd",
+   "bedrock_spawn_egg": "jeep:yjrenegadeblackblackblackfd_spawn_egg"
+  },
+  "jeep:yjrenegadeblackblackblackhd": {
+   "entity": "rz_auto:jeep_yjrenegadeblackblackblackhd",
+   "item": "rz_auto:jeep_yjrenegadeblackblackblackhd",
+   "bedrock_spawn_egg": "jeep:yjrenegadeblackblackblackhd_spawn_egg"
+  },
+  "jeep:yjrenegadeblackredblackfd": {
+   "entity": "rz_auto:jeep_yjrenegadeblackredblackfd",
+   "item": "rz_auto:jeep_yjrenegadeblackredblackfd",
+   "bedrock_spawn_egg": "jeep:yjrenegadeblackredblackfd_spawn_egg"
+  },
+  "jeep:yjrenegadeblackredblackhd": {
+   "entity": "rz_auto:jeep_yjrenegadeblackredblackhd",
+   "item": "rz_auto:jeep_yjrenegadeblackredblackhd",
+   "bedrock_spawn_egg": "jeep:yjrenegadeblackredblackhd_spawn_egg"
+  },
+  "jeep:yjrenegadeblacktanblackfd": {
+   "entity": "rz_auto:jeep_yjrenegadeblacktanblackfd",
+   "item": "rz_auto:jeep_yjrenegadeblacktanblackfd",
+   "bedrock_spawn_egg": "jeep:yjrenegadeblacktanblackfd_spawn_egg"
+  },
+  "jeep:yjrenegadeblacktanblackhd": {
+   "entity": "rz_auto:jeep_yjrenegadeblacktanblackhd",
+   "item": "rz_auto:jeep_yjrenegadeblacktanblackhd",
+   "bedrock_spawn_egg": "jeep:yjrenegadeblacktanblackhd_spawn_egg"
+  },
+  "jeep:yjrenegadeblueblackblackfd": {
+   "entity": "rz_auto:jeep_yjrenegadeblueblackblackfd",
+   "item": "rz_auto:jeep_yjrenegadeblueblackblackfd",
+   "bedrock_spawn_egg": "jeep:yjrenegadeblueblackblackfd_spawn_egg"
+  },
+  "jeep:yjrenegadeblueblackblackhd": {
+   "entity": "rz_auto:jeep_yjrenegadeblueblackblackhd",
+   "item": "rz_auto:jeep_yjrenegadeblueblackblackhd",
+   "bedrock_spawn_egg": "jeep:yjrenegadeblueblackblackhd_spawn_egg"
+  },
+  "jeep:yjrenegadebluetanblackfd": {
+   "entity": "rz_auto:jeep_yjrenegadebluetanblackfd",
+   "item": "rz_auto:jeep_yjrenegadebluetanblackfd",
+   "bedrock_spawn_egg": "jeep:yjrenegadebluetanblackfd_spawn_egg"
+  },
+  "jeep:yjrenegadebluetanblackhd": {
+   "entity": "rz_auto:jeep_yjrenegadebluetanblackhd",
+   "item": "rz_auto:jeep_yjrenegadebluetanblackhd",
+   "bedrock_spawn_egg": "jeep:yjrenegadebluetanblackhd_spawn_egg"
+  },
+  "jeep:yjrenegaderedblackblackfd": {
+   "entity": "rz_auto:jeep_yjrenegaderedblackblackfd",
+   "item": "rz_auto:jeep_yjrenegaderedblackblackfd",
+   "bedrock_spawn_egg": "jeep:yjrenegaderedblackblackfd_spawn_egg"
+  },
+  "jeep:yjrenegaderedblackblackhd": {
+   "entity": "rz_auto:jeep_yjrenegaderedblackblackhd",
+   "item": "rz_auto:jeep_yjrenegaderedblackblackhd",
+   "bedrock_spawn_egg": "jeep:yjrenegaderedblackblackhd_spawn_egg"
+  },
+  "jeep:yjrenegaderedblackredfd": {
+   "entity": "rz_auto:jeep_yjrenegaderedblackredfd",
+   "item": "rz_auto:jeep_yjrenegaderedblackredfd",
+   "bedrock_spawn_egg": "jeep:yjrenegaderedblackredfd_spawn_egg"
+  },
+  "jeep:yjrenegaderedblackwhitefd": {
+   "entity": "rz_auto:jeep_yjrenegaderedblackwhitefd",
+   "item": "rz_auto:jeep_yjrenegaderedblackwhitefd",
+   "bedrock_spawn_egg": "jeep:yjrenegaderedblackwhitefd_spawn_egg"
+  },
+  "jeep:yjrenegaderedblackwhitehd": {
+   "entity": "rz_auto:jeep_yjrenegaderedblackwhitehd",
+   "item": "rz_auto:jeep_yjrenegaderedblackwhitehd",
+   "bedrock_spawn_egg": "jeep:yjrenegaderedblackwhitehd_spawn_egg"
+  },
+  "jeep:yjrenegaderedredblackfd": {
+   "entity": "rz_auto:jeep_yjrenegaderedredblackfd",
+   "item": "rz_auto:jeep_yjrenegaderedredblackfd",
+   "bedrock_spawn_egg": "jeep:yjrenegaderedredblackfd_spawn_egg"
+  },
+  "jeep:yjrenegaderedredblackhd": {
+   "entity": "rz_auto:jeep_yjrenegaderedredblackhd",
+   "item": "rz_auto:jeep_yjrenegaderedredblackhd",
+   "bedrock_spawn_egg": "jeep:yjrenegaderedredblackhd_spawn_egg"
+  },
+  "jeep:yjrenegadewhiteblackblackfd": {
+   "entity": "rz_auto:jeep_yjrenegadewhiteblackblackfd",
+   "item": "rz_auto:jeep_yjrenegadewhiteblackblackfd",
+   "bedrock_spawn_egg": "jeep:yjrenegadewhiteblackblackfd_spawn_egg"
+  },
+  "jeep:yjrenegadewhiteblackblackhd": {
+   "entity": "rz_auto:jeep_yjrenegadewhiteblackblackhd",
+   "item": "rz_auto:jeep_yjrenegadewhiteblackblackhd",
+   "bedrock_spawn_egg": "jeep:yjrenegadewhiteblackblackhd_spawn_egg"
+  },
+  "jeep:yjrenegadewhiteblackwhitefd": {
+   "entity": "rz_auto:jeep_yjrenegadewhiteblackwhitefd",
+   "item": "rz_auto:jeep_yjrenegadewhiteblackwhitefd",
+   "bedrock_spawn_egg": "jeep:yjrenegadewhiteblackwhitefd_spawn_egg"
+  },
+  "jeep:yjrenegadewhiteblackwhitehd": {
+   "entity": "rz_auto:jeep_yjrenegadewhiteblackwhitehd",
+   "item": "rz_auto:jeep_yjrenegadewhiteblackwhitehd",
+   "bedrock_spawn_egg": "jeep:yjrenegadewhiteblackwhitehd_spawn_egg"
+  },
+  "jeep:yjrenegadewhiteredblackfd": {
+   "entity": "rz_auto:jeep_yjrenegadewhiteredblackfd",
+   "item": "rz_auto:jeep_yjrenegadewhiteredblackfd",
+   "bedrock_spawn_egg": "jeep:yjrenegadewhiteredblackfd_spawn_egg"
+  },
+  "jeep:yjrenegadewhiteredblackhd": {
+   "entity": "rz_auto:jeep_yjrenegadewhiteredblackhd",
+   "item": "rz_auto:jeep_yjrenegadewhiteredblackhd",
+   "bedrock_spawn_egg": "jeep:yjrenegadewhiteredblackhd_spawn_egg"
+  },
+  "jeep:yjrenegadewhiteredwhitefd": {
+   "entity": "rz_auto:jeep_yjrenegadewhiteredwhitefd",
+   "item": "rz_auto:jeep_yjrenegadewhiteredwhitefd",
+   "bedrock_spawn_egg": "jeep:yjrenegadewhiteredwhitefd_spawn_egg"
+  },
+  "jeep:yjrenegadewhiteredwhitehd": {
+   "entity": "rz_auto:jeep_yjrenegadewhiteredwhitehd",
+   "item": "rz_auto:jeep_yjrenegadewhiteredwhitehd",
+   "bedrock_spawn_egg": "jeep:yjrenegadewhiteredwhitehd_spawn_egg"
+  },
+  "jeep:yjrenegadewhitetanblackfd": {
+   "entity": "rz_auto:jeep_yjrenegadewhitetanblackfd",
+   "item": "rz_auto:jeep_yjrenegadewhitetanblackfd",
+   "bedrock_spawn_egg": "jeep:yjrenegadewhitetanblackfd_spawn_egg"
+  },
+  "jeep:yjrenegadewhitetanblackhd": {
+   "entity": "rz_auto:jeep_yjrenegadewhitetanblackhd",
+   "item": "rz_auto:jeep_yjrenegadewhitetanblackhd",
+   "bedrock_spawn_egg": "jeep:yjrenegadewhitetanblackhd_spawn_egg"
+  },
+  "jeep:yjrenegadewhitetanwhitefd": {
+   "entity": "rz_auto:jeep_yjrenegadewhitetanwhitefd",
+   "item": "rz_auto:jeep_yjrenegadewhitetanwhitefd",
+   "bedrock_spawn_egg": "jeep:yjrenegadewhitetanwhitefd_spawn_egg"
+  },
+  "jeep:yjrenegadewhitetanwhitehd": {
+   "entity": "rz_auto:jeep_yjrenegadewhitetanwhitehd",
+   "item": "rz_auto:jeep_yjrenegadewhitetanwhitehd",
+   "bedrock_spawn_egg": "jeep:yjrenegadewhitetanwhitehd_spawn_egg"
+  },
+  "jeep:yjriogreentanblackfd": {
+   "entity": "rz_auto:jeep_yjriogreentanblackfd",
+   "item": "rz_auto:jeep_yjriogreentanblackfd",
+   "bedrock_spawn_egg": "jeep:yjriogreentanblackfd_spawn_egg"
+  },
+  "jeep:yjriogreentanblackhd": {
+   "entity": "rz_auto:jeep_yjriogreentanblackhd",
+   "item": "rz_auto:jeep_yjriogreentanblackhd",
+   "bedrock_spawn_egg": "jeep:yjriogreentanblackhd_spawn_egg"
+  },
+  "jeep:yjriogreentantanfd": {
+   "entity": "rz_auto:jeep_yjriogreentantanfd",
+   "item": "rz_auto:jeep_yjriogreentantanfd",
+   "bedrock_spawn_egg": "jeep:yjriogreentantanfd_spawn_egg"
+  },
+  "jeep:yjriogreentantanhd": {
+   "entity": "rz_auto:jeep_yjriogreentantanhd",
+   "item": "rz_auto:jeep_yjriogreentantanhd",
+   "bedrock_spawn_egg": "jeep:yjriogreentantanhd_spawn_egg"
+  },
+  "jeep:yjriosandtanblackfd": {
+   "entity": "rz_auto:jeep_yjriosandtanblackfd",
+   "item": "rz_auto:jeep_yjriosandtanblackfd",
+   "bedrock_spawn_egg": "jeep:yjriosandtanblackfd_spawn_egg"
+  },
+  "jeep:yjriosandtanblackhd": {
+   "entity": "rz_auto:jeep_yjriosandtanblackhd",
+   "item": "rz_auto:jeep_yjriosandtanblackhd",
+   "bedrock_spawn_egg": "jeep:yjriosandtanblackhd_spawn_egg"
+  },
+  "jeep:yjriosandtantanfd": {
+   "entity": "rz_auto:jeep_yjriosandtantanfd",
+   "item": "rz_auto:jeep_yjriosandtantanfd",
+   "bedrock_spawn_egg": "jeep:yjriosandtantanfd_spawn_egg"
+  },
+  "jeep:yjriosandtantanhd": {
+   "entity": "rz_auto:jeep_yjriosandtantanhd",
+   "item": "rz_auto:jeep_yjriosandtantanhd",
+   "bedrock_spawn_egg": "jeep:yjriosandtantanhd_spawn_egg"
+  },
+  "jeep:yjsaharagreengreentanfd": {
+   "entity": "rz_auto:jeep_yjsaharagreengreentanfd",
+   "item": "rz_auto:jeep_yjsaharagreengreentanfd",
+   "bedrock_spawn_egg": "jeep:yjsaharagreengreentanfd_spawn_egg"
+  },
+  "jeep:yjsaharagreengreentanhd": {
+   "entity": "rz_auto:jeep_yjsaharagreengreentanhd",
+   "item": "rz_auto:jeep_yjsaharagreengreentanhd",
+   "bedrock_spawn_egg": "jeep:yjsaharagreengreentanhd_spawn_egg"
+  },
+  "jeep:yjsaharagreentantanfd": {
+   "entity": "rz_auto:jeep_yjsaharagreentantanfd",
+   "item": "rz_auto:jeep_yjsaharagreentantanfd",
+   "bedrock_spawn_egg": "jeep:yjsaharagreentantanfd_spawn_egg"
+  },
+  "jeep:yjsaharagreentantanhd": {
+   "entity": "rz_auto:jeep_yjsaharagreentantanhd",
+   "item": "rz_auto:jeep_yjsaharagreentantanhd",
+   "bedrock_spawn_egg": "jeep:yjsaharagreentantanhd_spawn_egg"
+  },
+  "jeep:yjsaharakhakikhakisandfd": {
+   "entity": "rz_auto:jeep_yjsaharakhakikhakisandfd",
+   "item": "rz_auto:jeep_yjsaharakhakikhakisandfd",
+   "bedrock_spawn_egg": "jeep:yjsaharakhakikhakisandfd_spawn_egg"
+  },
+  "jeep:yjsaharakhakikhakisandhd": {
+   "entity": "rz_auto:jeep_yjsaharakhakikhakisandhd",
+   "item": "rz_auto:jeep_yjsaharakhakikhakisandhd",
+   "bedrock_spawn_egg": "jeep:yjsaharakhakikhakisandhd_spawn_egg"
+  },
+  "jeep:yjsaharakhakikhakitanfd": {
+   "entity": "rz_auto:jeep_yjsaharakhakikhakitanfd",
+   "item": "rz_auto:jeep_yjsaharakhakikhakitanfd",
+   "bedrock_spawn_egg": "jeep:yjsaharakhakikhakitanfd_spawn_egg"
+  },
+  "jeep:yjsaharakhakikhakitanhd": {
+   "entity": "rz_auto:jeep_yjsaharakhakikhakitanhd",
+   "item": "rz_auto:jeep_yjsaharakhakikhakitanhd",
+   "bedrock_spawn_egg": "jeep:yjsaharakhakikhakitanhd_spawn_egg"
+  },
+  "jeep:yjsaharasandgreentanfd": {
+   "entity": "rz_auto:jeep_yjsaharasandgreentanfd",
+   "item": "rz_auto:jeep_yjsaharasandgreentanfd",
+   "bedrock_spawn_egg": "jeep:yjsaharasandgreentanfd_spawn_egg"
+  },
+  "jeep:yjsaharasandgreentanhd": {
+   "entity": "rz_auto:jeep_yjsaharasandgreentanhd",
+   "item": "rz_auto:jeep_yjsaharasandgreentanhd",
+   "bedrock_spawn_egg": "jeep:yjsaharasandgreentanhd_spawn_egg"
+  },
+  "jeep:yjsaharasandtantanfd": {
+   "entity": "rz_auto:jeep_yjsaharasandtantanfd",
+   "item": "rz_auto:jeep_yjsaharasandtantanfd",
+   "bedrock_spawn_egg": "jeep:yjsaharasandtantanfd_spawn_egg"
+  },
+  "jeep:yjsaharasandtantanhd": {
+   "entity": "rz_auto:jeep_yjsaharasandtantanhd",
+   "item": "rz_auto:jeep_yjsaharasandtantanhd",
+   "bedrock_spawn_egg": "jeep:yjsaharasandtantanhd_spawn_egg"
+  },
+  "jeep:yjsaharasilvergreentanfd": {
+   "entity": "rz_auto:jeep_yjsaharasilvergreentanfd",
+   "item": "rz_auto:jeep_yjsaharasilvergreentanfd",
+   "bedrock_spawn_egg": "jeep:yjsaharasilvergreentanfd_spawn_egg"
+  },
+  "jeep:yjsaharasilvergreentanhd": {
+   "entity": "rz_auto:jeep_yjsaharasilvergreentanhd",
+   "item": "rz_auto:jeep_yjsaharasilvergreentanhd",
+   "bedrock_spawn_egg": "jeep:yjsaharasilvergreentanhd_spawn_egg"
+  },
+  "jeep:yjsaharatankhakitanfd": {
+   "entity": "rz_auto:jeep_yjsaharatankhakitanfd",
+   "item": "rz_auto:jeep_yjsaharatankhakitanfd",
+   "bedrock_spawn_egg": "jeep:yjsaharatankhakitanfd_spawn_egg"
+  },
+  "jeep:yjsaharatankhakitanhd": {
+   "entity": "rz_auto:jeep_yjsaharatankhakitanhd",
+   "item": "rz_auto:jeep_yjsaharatankhakitanhd",
+   "bedrock_spawn_egg": "jeep:yjsaharatankhakitanhd_spawn_egg"
+  },
+  "jeep:yjsplashblackgrayblackfd": {
+   "entity": "rz_auto:jeep_yjsplashblackgrayblackfd",
+   "item": "rz_auto:jeep_yjsplashblackgrayblackfd",
+   "bedrock_spawn_egg": "jeep:yjsplashblackgrayblackfd_spawn_egg"
+  },
+  "jeep:yjsplashblackgrayblackhd": {
+   "entity": "rz_auto:jeep_yjsplashblackgrayblackhd",
+   "item": "rz_auto:jeep_yjsplashblackgrayblackhd",
+   "bedrock_spawn_egg": "jeep:yjsplashblackgrayblackhd_spawn_egg"
+  },
+  "jeep:yjsplashblackgraygrayfd": {
+   "entity": "rz_auto:jeep_yjsplashblackgraygrayfd",
+   "item": "rz_auto:jeep_yjsplashblackgraygrayfd",
+   "bedrock_spawn_egg": "jeep:yjsplashblackgraygrayfd_spawn_egg"
+  },
+  "jeep:yjsplashblackgraygrayhd": {
+   "entity": "rz_auto:jeep_yjsplashblackgraygrayhd",
+   "item": "rz_auto:jeep_yjsplashblackgraygrayhd",
+   "bedrock_spawn_egg": "jeep:yjsplashblackgraygrayhd_spawn_egg"
+  },
+  "jeep:yjsplashbluegrayblackfd": {
+   "entity": "rz_auto:jeep_yjsplashbluegrayblackfd",
+   "item": "rz_auto:jeep_yjsplashbluegrayblackfd",
+   "bedrock_spawn_egg": "jeep:yjsplashbluegrayblackfd_spawn_egg"
+  },
+  "jeep:yjsplashbluegrayblackhd": {
+   "entity": "rz_auto:jeep_yjsplashbluegrayblackhd",
+   "item": "rz_auto:jeep_yjsplashbluegrayblackhd",
+   "bedrock_spawn_egg": "jeep:yjsplashbluegrayblackhd_spawn_egg"
+  },
+  "jeep:yjsplashbluegraygrayfd": {
+   "entity": "rz_auto:jeep_yjsplashbluegraygrayfd",
+   "item": "rz_auto:jeep_yjsplashbluegraygrayfd",
+   "bedrock_spawn_egg": "jeep:yjsplashbluegraygrayfd_spawn_egg"
+  },
+  "jeep:yjsplashbluegraygrayhd": {
+   "entity": "rz_auto:jeep_yjsplashbluegraygrayhd",
+   "item": "rz_auto:jeep_yjsplashbluegraygrayhd",
+   "bedrock_spawn_egg": "jeep:yjsplashbluegraygrayhd_spawn_egg"
+  },
+  "jeep:yjsplashredgrayblackfd": {
+   "entity": "rz_auto:jeep_yjsplashredgrayblackfd",
+   "item": "rz_auto:jeep_yjsplashredgrayblackfd",
+   "bedrock_spawn_egg": "jeep:yjsplashredgrayblackfd_spawn_egg"
+  },
+  "jeep:yjsplashredgrayblackhd": {
+   "entity": "rz_auto:jeep_yjsplashredgrayblackhd",
+   "item": "rz_auto:jeep_yjsplashredgrayblackhd",
+   "bedrock_spawn_egg": "jeep:yjsplashredgrayblackhd_spawn_egg"
+  },
+  "jeep:yjsplashredgraytanfd": {
+   "entity": "rz_auto:jeep_yjsplashredgraytanfd",
+   "item": "rz_auto:jeep_yjsplashredgraytanfd",
+   "bedrock_spawn_egg": "jeep:yjsplashredgraytanfd_spawn_egg"
+  },
+  "jeep:yjsplashredgraytanhd": {
+   "entity": "rz_auto:jeep_yjsplashredgraytanhd",
+   "item": "rz_auto:jeep_yjsplashredgraytanhd",
+   "bedrock_spawn_egg": "jeep:yjsplashredgraytanhd_spawn_egg"
+  },
+  "jeep:yjsplashwhitegreenblackfd": {
+   "entity": "rz_auto:jeep_yjsplashwhitegreenblackfd",
+   "item": "rz_auto:jeep_yjsplashwhitegreenblackfd",
+   "bedrock_spawn_egg": "jeep:yjsplashwhitegreenblackfd_spawn_egg"
+  },
+  "jeep:yjsplashwhitegreenblackhd": {
+   "entity": "rz_auto:jeep_yjsplashwhitegreenblackhd",
+   "item": "rz_auto:jeep_yjsplashwhitegreenblackhd",
+   "bedrock_spawn_egg": "jeep:yjsplashwhitegreenblackhd_spawn_egg"
+  },
+  "jeep:yjsplashwhitegreengrayfd": {
+   "entity": "rz_auto:jeep_yjsplashwhitegreengrayfd",
+   "item": "rz_auto:jeep_yjsplashwhitegreengrayfd",
+   "bedrock_spawn_egg": "jeep:yjsplashwhitegreengrayfd_spawn_egg"
+  },
+  "jeep:yjsplashwhitegreengrayhd": {
+   "entity": "rz_auto:jeep_yjsplashwhitegreengrayhd",
+   "item": "rz_auto:jeep_yjsplashwhitegreengrayhd",
+   "bedrock_spawn_egg": "jeep:yjsplashwhitegreengrayhd_spawn_egg"
+  },
+  "jeep:yjsplashwhitewhiteblackfd": {
+   "entity": "rz_auto:jeep_yjsplashwhitewhiteblackfd",
+   "item": "rz_auto:jeep_yjsplashwhitewhiteblackfd",
+   "bedrock_spawn_egg": "jeep:yjsplashwhitewhiteblackfd_spawn_egg"
+  },
+  "jeep:yjsplashwhitewhiteblackhd": {
+   "entity": "rz_auto:jeep_yjsplashwhitewhiteblackhd",
+   "item": "rz_auto:jeep_yjsplashwhitewhiteblackhd",
+   "bedrock_spawn_egg": "jeep:yjsplashwhitewhiteblackhd_spawn_egg"
+  },
+  "jeep:yjsplashwhitewhitegrayfd": {
+   "entity": "rz_auto:jeep_yjsplashwhitewhitegrayfd",
+   "item": "rz_auto:jeep_yjsplashwhitewhitegrayfd",
+   "bedrock_spawn_egg": "jeep:yjsplashwhitewhitegrayfd_spawn_egg"
+  },
+  "jeep:yjsplashwhitewhitegrayhd": {
+   "entity": "rz_auto:jeep_yjsplashwhitewhitegrayhd",
+   "item": "rz_auto:jeep_yjsplashwhitewhitegrayhd",
+   "bedrock_spawn_egg": "jeep:yjsplashwhitewhitegrayhd_spawn_egg"
+  },
+  "jeep:yjzredgrayblackfd": {
+   "entity": "rz_auto:jeep_yjzredgrayblackfd",
+   "item": "rz_auto:jeep_yjzredgrayblackfd",
+   "bedrock_spawn_egg": "jeep:yjzredgrayblackfd_spawn_egg"
+  },
+  "jeep:yjzredgrayblackhd": {
+   "entity": "rz_auto:jeep_yjzredgrayblackhd",
+   "item": "rz_auto:jeep_yjzredgrayblackhd",
+   "bedrock_spawn_egg": "jeep:yjzredgrayblackhd_spawn_egg"
+  }
+ },
+ "other_items": {
+  "carworkshop:driver_license": "rz_auto:driver_license",
+  "carworkshop:gear": "rz_auto:gear",
+  "carworkshop:bench": "rz_auto:bench",
+  "rz:vehicle_remote": "rz_auto:vehicle_remote",
+  "jeep:roof": "rz_auto:jeep_roof (в оригинале ничего не делает с v1.33)",
+  "city:siren_tool": "rz_auto:siren_tool (в оригинале ничего не делает с v1.33)",
+  "maybach:bounce_tool": "rz_auto:bounce_tool (в оригинале ничего не делает с v1.33)"
+ }
+}
