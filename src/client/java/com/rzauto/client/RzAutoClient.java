@@ -31,6 +31,7 @@ public class RzAutoClient implements ClientModInitializer {
 		for (VehicleRegistry.Entry e : VehicleRegistry.entries()) {
 			EntityRendererRegistry.register(e.type(), VehicleRenderer::new);
 		}
+		com.rzauto.block.BenchBlock.CLIENT_OPEN = pos -> Minecraft.getInstance().setScreenAndShow(new BenchScreen(pos));
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("rz_auto", "vehicle_hud"), new VehicleHud());
 		net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(mc -> { VehicleAudio.tick(mc); keys(mc); });
 	}

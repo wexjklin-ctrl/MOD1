@@ -41,12 +41,25 @@ public final class VehicleRegistry {
 	/** Описание машины по типу сущности (null для чужих типов). */
 	public static VehicleSpec specOf(EntityType<?> type) { return SPECS.get(type); }
 
+	public static net.minecraft.world.level.block.Block BENCH;
+	public static Item BENCH_ITEM;
+
+	private static void registerBench() {
+		Identifier id = Identifier.fromNamespaceAndPath(RzAutoMod.MOD_ID, "bench");
+		ResourceKey<net.minecraft.world.level.block.Block> bk = ResourceKey.create(Registries.BLOCK, id);
+		BENCH = Registry.register(BuiltInRegistries.BLOCK, bk, new com.rzauto.block.BenchBlock(
+			net.minecraft.world.level.block.state.BlockBehaviour.Properties.of().setId(bk).strength(2.5f).sound(net.minecraft.world.level.block.SoundType.WOOD)));
+		ResourceKey<Item> ik = ResourceKey.create(Registries.ITEM, id);
+		BENCH_ITEM = Registry.register(BuiltInRegistries.ITEM, ik, new net.minecraft.world.item.BlockItem(BENCH, new Item.Properties().setId(ik)));
+	}
+
 	private static Item simple(String path) {
 		ResourceKey<Item> key = ResourceKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath(RzAutoMod.MOD_ID, path));
 		return Registry.register(BuiltInRegistries.ITEM, key, new Item(new Item.Properties().setId(key)));
 	}
 
 	public static void registerAll() {
+		registerBench();
 		GEAR = simple("gear");
 		LICENSE = simple("driver_license");
 		for (VehicleSpec spec : VehicleCatalog.all()) {

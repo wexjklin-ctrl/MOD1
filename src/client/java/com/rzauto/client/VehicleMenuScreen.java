@@ -49,7 +49,7 @@ final class VehicleMenuScreen extends net.minecraft.client.gui.screens.Screen {
 		btn(car.lightsOn() ? "Фары: ВКЛ  (выключить)" : "Фары: ВЫКЛ  (включить)", VehicleEntity.ACT_LIGHTS, x, y + step * r++, w, h);
 		if (sp != null && sp.hasSiren()) btn(car.sirenOn() ? "Сирена: ВКЛ  (выключить)" : "Сирена: ВЫКЛ  (включить)", VehicleEntity.ACT_SIREN, x, y + step * r++, w, h);
 		btn("Пересесть на другое место", VehicleEntity.ACT_SEAT, x, y + step * r++, w, h);
-		btn(car.gearsOn() ? "Передачи: ВКЛ (Ctrl выше, Shift ниже, выход F)" : "Передачи: ВЫКЛ  (включить)", VehicleEntity.ACT_GEARS, x, y + step * r++, w, h);
+		btn(car.gearsOn() ? "Передачи: ВКЛ (Shift выше, Ctrl ниже, выход F)" : "Передачи: ВЫКЛ  (включить)", VehicleEntity.ACT_GEARS, x, y + step * r++, w, h);
 		int ry = y + step * r++;
 		btn("-", VehicleEntity.ACT_SENS_DOWN, x, ry, 24, h);
 		Button lab = Button.builder(Component.literal("Руль GTA 5, чувствительность: " + String.format("%.1f", car.sensValue())), b -> { }).bounds(x + 28, ry, w - 56, h).build();

@@ -621,5 +621,7 @@
  "key.rz_auto.lights": "Фары вкл/выкл",
  "key.rz_auto.siren": "Сирена",
  "key.rz_auto.gear_up": "Передача выше",
- "key.rz_auto.gear_down": "Передача ниже"
+ "key.rz_auto.gear_down": "Передача ниже",
+ "block.rz_auto.bench": "Верстак автомобилей",
+ "item.rz_auto.bench": "Верстак автомобилей"
 }

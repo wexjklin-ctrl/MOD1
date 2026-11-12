@@ -23,13 +23,45 @@ public class RzAutoMod implements ModInitializer {
 		LOG.info("RZ Auto: зарегистрировано сущностей и предметов: {}", VehicleRegistry.entries().size());
 		// яйца призыва: ключи всех машин во вкладке творческого режима «Spawn Eggs»
 		net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents.modifyOutputEvent(net.minecraft.world.item.CreativeModeTabs.SPAWN_EGGS)
-				.register(entries -> { entries.accept(VehicleRegistry.GEAR); entries.accept(VehicleRegistry.LICENSE); for (VehicleRegistry.Entry e : VehicleRegistry.entries()) entries.accept(e.item()); });
+				.register(entries -> { entries.accept(VehicleRegistry.BENCH_ITEM); entries.accept(VehicleRegistry.GEAR); entries.accept(VehicleRegistry.LICENSE); for (VehicleRegistry.Entry e : VehicleRegistry.entries()) entries.accept(e.item()); });
 		net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry.serverboundPlay().register(com.rzauto.net.VehicleActionPayload.TYPE, com.rzauto.net.VehicleActionPayload.CODEC);
 		net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.registerGlobalReceiver(com.rzauto.net.VehicleActionPayload.TYPE, (payload, ctx) -> {
 			net.minecraft.world.entity.Entity ent = ctx.player().level().getEntity(payload.entityId());
 			if (ent instanceof VehicleEntity ve) ve.handleAction(ctx.player(), payload.action());
 		});
+		net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry.serverboundPlay().register(com.rzauto.net.BenchCraftPayload.TYPE, com.rzauto.net.BenchCraftPayload.CODEC);
+		net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.registerGlobalReceiver(com.rzauto.net.BenchCraftPayload.TYPE, (payload, ctx) -> benchCraft(ctx.player(), payload));
 		if (System.getProperty("rz.smoke") != null) installSmokeTest();
+	}
+
+	/** Крафт на верстаке: проверка близости к верстаку, наличия материалов в инвентаре, списание и выдача. */
+	private static void benchCraft(net.minecraft.server.level.ServerPlayer p, com.rzauto.net.BenchCraftPayload pl) {
+		net.minecraft.core.BlockPos pos = net.minecraft.core.BlockPos.of(pl.pos());
+		if (p.distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5) > 64 || !p.level().getBlockState(pos).is(VehicleRegistry.BENCH)) return;
+		com.rzauto.logic.BenchRecipes.Recipe r = com.rzauto.logic.BenchRecipes.byId(pl.recipe());
+		if (r == null) return;
+		net.minecraft.world.Container inv = p.getInventory();
+		java.util.Map<String, Integer> have = new java.util.HashMap<>();
+		for (int i = 0; i < inv.getContainerSize(); i++) {
+			net.minecraft.world.item.ItemStack st = inv.getItem(i);
+			if (!st.isEmpty()) have.merge(net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(st.getItem()).toString(), st.getCount(), Integer::sum);
+		}
+		for (var n : r.need().entrySet()) if (have.getOrDefault(n.getKey(), 0) < n.getValue()) { p.sendSystemMessage(net.minecraft.network.chat.Component.literal("§cНе хватает материалов."), true); return; }
+		net.minecraft.world.item.Item out = net.minecraft.core.registries.BuiltInRegistries.ITEM.getValue(net.minecraft.resources.Identifier.parse(r.result()));
+		if (out == null || out == net.minecraft.world.item.Items.AIR) return;
+		for (var n : r.need().entrySet()) {
+			int left = n.getValue();
+			for (int i = 0; i < inv.getContainerSize() && left > 0; i++) {
+				net.minecraft.world.item.ItemStack st = inv.getItem(i);
+				if (st.isEmpty() || !net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(st.getItem()).toString().equals(n.getKey())) continue;
+				int take = Math.min(left, st.getCount());
+				st.shrink(take); left -= take;
+			}
+		}
+		net.minecraft.world.item.ItemStack give = new net.minecraft.world.item.ItemStack(out, r.count());
+		if (!p.getInventory().add(give)) p.drop(give, false);
+		inv.setChanged();
+		p.sendSystemMessage(net.minecraft.network.chat.Component.literal("§aСоздано: " + give.getHoverName().getString()), true);
 	}
 
 	/** Проверка в CI: сервер стартует, все 307 сущностей создаются, затем сервер останавливается. */
