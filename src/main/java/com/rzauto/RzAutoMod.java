@@ -48,12 +48,12 @@ public class RzAutoMod implements ModInitializer {
 		for (int i = 0; i < 120; i++) v.tick();
 		LOG.info("RZ SMOKE: после падения y={} (старт {}), onGround={}", v.getY(), sp.getY() + 20, v.onGround());
 		double x0 = v.getX(), z0 = v.getZ();
-		v.debugSetSpeed(0.5);
+		v.debugSetSpeed(0.2);   // 1-я передача = 10% от top_speed, лимит ~0.21
 		int ticks = 0;
 		for (; ticks < 400 && (v.debugSpeed() != 0 || ticks == 0); ticks++) v.tick();
 		double dist = Math.hypot(v.getX() - x0, v.getZ() - z0);
 		LOG.info("RZ SMOKE: заезд: проехала {} блоков, остановилась за {} тиков, speed={}", String.format("%.1f", dist), ticks, v.debugSpeed());
-		LOG.info("RZ SMOKE: заезд {}", (dist > 3 && v.debugSpeed() == 0) ? "OK" : "FAIL");
+		LOG.info("RZ SMOKE: заезд {}", (dist > 0.5 && v.debugSpeed() == 0) ? "OK" : "FAIL");
 		v.discard();
 	}
 }
