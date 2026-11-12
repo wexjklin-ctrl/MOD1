@@ -45,6 +45,11 @@ for ts in sorted(glob.glob(os.path.join(src, '*.texture_set.json'))):
         sz = (MAXW, int(sz[1] * MAXW / sz[0]))
     def fit(im, mode=Image.NEAREST): return im.resize(sz, mode) if im.size != sz else im
     base = fit(base); mask = fit(mask)
+    # свечение только там, где кузов непрозрачен и цвет не чёрный (иначе слой «eyes» рисует чёрные квадраты поверх прозрачных мигалок)
+    from PIL import ImageChops
+    mask = ImageChops.darker(mask, base.getchannel('A'))
+    lum = ImageChops.lighter(ImageChops.lighter(base.getchannel('R'), base.getchannel('G')), base.getchannel('B'))
+    mask = ImageChops.multiply(mask, lum.point(lambda v: 255 if v >= 8 else 0))
     base.save(os.path.join(out, name + '.png'))
     # specular
     if mer is not None:
