@@ -59,7 +59,7 @@ public class RzAutoMod implements ModInitializer {
 			}
 		}
 		net.minecraft.world.item.ItemStack give = new net.minecraft.world.item.ItemStack(out, r.count());
-		if (!p.getInventory().add(give)) p.drop(give, false);
+		if (!p.getInventory().add(give)) p.spawnAtLocation(p.level(), give);
 		inv.setChanged();
 		p.sendSystemMessage(net.minecraft.network.chat.Component.literal("§aСоздано: " + give.getHoverName().getString()), true);
 	}
