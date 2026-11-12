@@ -200,8 +200,18 @@ final class GeoModel {
 		for (Bone b : bones) {
 			if (!a.has(b.name)) continue;
 			JsonArray c = a.getAsJsonArray(b.name);
-			b.dyn = new float[6];
-			for (int k = 0; k < 3; k++) { JsonArray e = c.get(k).getAsJsonArray(); b.dyn[k * 2] = f(e, 0); b.dyn[k * 2 + 1] = f(e, 1); }
+			float[] d = new float[6];
+			boolean any = false;
+			boolean steerBone = b.name.toLowerCase().contains("steer") || b.name.toLowerCase().contains("fork");
+			for (int k = 0; k < 3; k++) {
+				JsonArray e = c.get(k).getAsJsonArray();
+				float kind = f(e, 0), kv = f(e, 1);
+				// крен кузова (steering на оси Z не у руля) не анимируем: из-за него весь кузов стал бы динамическим и дорогим в отрисовке
+				if (kind == 2f && k == 2 && !steerBone) { kind = 0; kv = 0; }
+				d[k * 2] = kind; d[k * 2 + 1] = kv;
+				if (kind != 0f) any = true;
+			}
+			if (any) b.dyn = d;
 		}
 	}
 
@@ -227,29 +237,172 @@ final class GeoModel {
 		return m;
 	}
 
-	/**
-	 * Поза: статичные каналы анимации + колёса/руль.
-	 * @param dist  путь машины вперёд в блоках (назад = уменьшается), от него вращаются колёса
-	 * @param steer скорость поворота в градусах за секунду (знак как у yaw в Minecraft), от неё поворачиваются передние колёса и руль
-	 */
-	void render(PoseStack.Pose pp, VertexConsumer vc, int light, float dist, float steer) {
+	/** Готовая к отрисовке геометрия под конкретную текстуру: полностью прозрачные грани выброшены, неподвижные грани уже в системе модели. */
+	static final class Baked {
+		float[] sp = new float[0];   // 23 float на грань: 4 * (x,y,z,u,v) + (nx,ny,nz)
+		int sn;
+		Cube[] dc = new Cube[0];
+		int[] db = new int[0], df = new int[0];
+		int quads() { return sn + dc.length; }
+	}
+
+	private final Map<String, Baked> bakedCache = new HashMap<>();
+
+	/** Геометрия для текстуры (файл PNG берётся из ресурсов; если не прочитался, рисуются все грани). */
+	synchronized Baked baked(net.minecraft.resources.Identifier tex) {
+		String key = tex.toString();
+		Baked b = bakedCache.get(key);
+		if (b != null) return b;
+		int[] wh = new int[2];
+		byte[] alpha = null;
+		try {
+			var res = net.minecraft.client.Minecraft.getInstance().getResourceManager().getResource(tex);
+			if (res.isPresent()) try (var in = res.get().open()) { alpha = PngAlpha.read(in.readAllBytes(), wh); }
+		} catch (Throwable t) { com.rzauto.RzAutoMod.LOG.warn("текстура {} не прочиталась для отбраковки граней: {}", tex, t.toString()); }
+		b = bake(alpha, wh[0], wh[1]);
+		bakedCache.put(key, b);
+		return b;
+	}
+
+	private boolean isDyn(int i) {
+		for (int g = 0; i >= 0 && g < 64; g++) {
+			if (bones[i].dyn != null) return true;
+			int p = bones[i].parent;
+			if (p == i) return false;
+			i = p;
+		}
+		return false;
+	}
+
+	private static boolean faceVisible(Cube c, int face, byte[] a, int w, int h) {
+		if (a == null) return true;
+		float umin = 9, umax = -9, vmin = 9, vmax = -9;
+		for (int k = 0; k < 4; k++) {
+			float u = c.uv[(face * 4 + k) * 2], v = c.uv[(face * 4 + k) * 2 + 1];
+			umin = Math.min(umin, u); umax = Math.max(umax, u); vmin = Math.min(vmin, v); vmax = Math.max(vmax, v);
+		}
+		int x0 = Math.max(0, (int) Math.floor(umin * w + 0.01f)), x1 = Math.min(w, Math.max(x0 + 1, (int) Math.ceil(umax * w - 0.01f)));
+		int y0 = Math.max(0, (int) Math.floor(vmin * h + 0.01f)), y1 = Math.min(h, Math.max(y0 + 1, (int) Math.ceil(vmax * h - 0.01f)));
+		for (int y = y0; y < y1; y++) for (int x = x0; x < x1; x++) if ((a[y * w + x] & 0xFF) > 25) return true;
+		return false;
+	}
+
+	private Baked bake(byte[] alpha, int w, int h) {
+		Baked out = new Baked();
+		java.util.List<float[]> stat = new ArrayList<>();
+		java.util.List<int[]> dyn = new ArrayList<>();
+		java.util.List<Cube> dynCubes = new ArrayList<>();
 		Matrix4f[] memo = new Matrix4f[bones.length];
 		Vector3f v = new Vector3f(), n = new Vector3f();
 		for (int i = 0; i < bones.length; i++) {
 			Bone b = bones[i];
 			if (b.cubes.isEmpty()) continue;
-			Matrix4f m = world(i, memo, dist, steer);
-			for (Cube c : b.cubes) {
-				for (int k = 0; k < 24; k++) {
-					v.set(c.pos[k * 3], c.pos[k * 3 + 1], c.pos[k * 3 + 2]);
+			boolean d = isDyn(i);
+			Matrix4f m = d ? null : world(i, memo, 0f, 0f);
+			for (Cube c : b.cubes) for (int face = 0; face < 6; face++) {
+				if (!faceVisible(c, face, alpha, w, h)) continue;
+				if (d) { dynCubes.add(c); dyn.add(new int[] {i, face}); continue; }
+				float[] q = new float[23];
+				for (int k = 0; k < 4; k++) {
+					int vi = face * 4 + k;
+					v.set(c.pos[vi * 3], c.pos[vi * 3 + 1], c.pos[vi * 3 + 2]);
 					m.transformPosition(v);
-					int face = k / 4;
-					n.set(c.nrm[face * 3], c.nrm[face * 3 + 1], c.nrm[face * 3 + 2]);
-					m.transformDirection(n); n.normalize();
-					vc.addVertex(pp, v.x, v.y, v.z).setColor(-1).setUv(c.uv[k * 2], c.uv[k * 2 + 1])
-						.setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pp, n.x, n.y, n.z);
+					q[k * 5] = v.x; q[k * 5 + 1] = v.y; q[k * 5 + 2] = v.z; q[k * 5 + 3] = c.uv[vi * 2]; q[k * 5 + 4] = c.uv[vi * 2 + 1];
 				}
+				n.set(c.nrm[face * 3], c.nrm[face * 3 + 1], c.nrm[face * 3 + 2]);
+				m.transformDirection(n); n.normalize();
+				q[20] = n.x; q[21] = n.y; q[22] = n.z;
+				stat.add(q);
 			}
+		}
+		out.sn = stat.size();
+		out.sp = new float[out.sn * 23];
+		for (int i = 0; i < out.sn; i++) System.arraycopy(stat.get(i), 0, out.sp, i * 23, 23);
+		out.dc = dynCubes.toArray(new Cube[0]);
+		out.db = new int[dyn.size()]; out.df = new int[dyn.size()];
+		for (int i = 0; i < dyn.size(); i++) { out.db[i] = dyn.get(i)[0]; out.df[i] = dyn.get(i)[1]; }
+		return out;
+	}
+
+	/**
+	 * Отрисовка: неподвижные грани копируются из заготовки, считаются заново только колёса и руль.
+	 * @param dist  путь машины вперёд в блоках (назад = уменьшается), от него вращаются колёса
+	 * @param steer скорость поворота в градусах за секунду (знак как у yaw в Minecraft), от неё поворачиваются передние колёса и руль
+	 */
+	void render(Baked bk, PoseStack.Pose pp, VertexConsumer vc, int light, float dist, float steer) {
+		float[] sp = bk.sp;
+		for (int q = 0; q < bk.sn; q++) {
+			int o = q * 23;
+			float nx = sp[o + 20], ny = sp[o + 21], nz = sp[o + 22];
+			for (int k = 0; k < 4; k++) {
+				int a = o + k * 5;
+				vc.addVertex(pp, sp[a], sp[a + 1], sp[a + 2]).setColor(-1).setUv(sp[a + 3], sp[a + 4])
+					.setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pp, nx, ny, nz);
+			}
+		}
+		if (bk.dc.length == 0) return;
+		Matrix4f[] memo = new Matrix4f[bones.length];
+		Vector3f v = new Vector3f(), n = new Vector3f();
+		for (int i = 0; i < bk.dc.length; i++) {
+			Cube c = bk.dc[i];
+			int face = bk.df[i];
+			Matrix4f m = world(bk.db[i], memo, dist, steer);
+			n.set(c.nrm[face * 3], c.nrm[face * 3 + 1], c.nrm[face * 3 + 2]);
+			m.transformDirection(n); n.normalize();
+			for (int k = 0; k < 4; k++) {
+				int vi = face * 4 + k;
+				v.set(c.pos[vi * 3], c.pos[vi * 3 + 1], c.pos[vi * 3 + 2]);
+				m.transformPosition(v);
+				vc.addVertex(pp, v.x, v.y, v.z).setColor(-1).setUv(c.uv[vi * 2], c.uv[vi * 2 + 1])
+					.setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pp, n.x, n.y, n.z);
+			}
+		}
+	}
+
+	/** Минимальный разбор PNG: только альфа-канал (8 бит RGBA, без чересстрочности: так сохраняет tools/build_textures.py). */
+	static final class PngAlpha {
+		static byte[] read(byte[] d, int[] wh) throws java.io.IOException {
+			int p = 8, w = 0, h = 0, depth = 0, type = 0, il = 0;
+			java.io.ByteArrayOutputStream idat = new java.io.ByteArrayOutputStream();
+			while (p + 8 <= d.length) {
+				int len = ((d[p] & 255) << 24) | ((d[p + 1] & 255) << 16) | ((d[p + 2] & 255) << 8) | (d[p + 3] & 255);
+				String t = new String(d, p + 4, 4, StandardCharsets.ISO_8859_1);
+				if (t.equals("IHDR")) {
+					w = ((d[p + 8] & 255) << 24) | ((d[p + 9] & 255) << 16) | ((d[p + 10] & 255) << 8) | (d[p + 11] & 255);
+					h = ((d[p + 12] & 255) << 24) | ((d[p + 13] & 255) << 16) | ((d[p + 14] & 255) << 8) | (d[p + 15] & 255);
+					depth = d[p + 16] & 255; type = d[p + 17] & 255; il = d[p + 20] & 255;
+				} else if (t.equals("IDAT")) idat.write(d, p + 8, len);
+				else if (t.equals("IEND")) break;
+				p += 12 + len;
+			}
+			if (depth != 8 || type != 6 || il != 0 || w <= 0 || h <= 0) return null;
+			java.util.zip.Inflater inf = new java.util.zip.Inflater();
+			inf.setInput(idat.toByteArray());
+			int stride = w * 4;
+			byte[] raw = new byte[(stride + 1) * h];
+			try { int off = 0; while (off < raw.length && !inf.finished()) { int r = inf.inflate(raw, off, raw.length - off); if (r == 0 && (inf.needsInput() || inf.needsDictionary())) break; off += r; } }
+			catch (java.util.zip.DataFormatException e) { throw new java.io.IOException(e); }
+			finally { inf.end(); }
+			byte[] prev = new byte[stride], cur = new byte[stride], a = new byte[w * h];
+			for (int y = 0; y < h; y++) {
+				int ft = raw[y * (stride + 1)] & 255;
+				System.arraycopy(raw, y * (stride + 1) + 1, cur, 0, stride);
+				for (int i = 0; i < stride; i++) {
+					int left = i >= 4 ? cur[i - 4] & 255 : 0, up = prev[i] & 255, ul = i >= 4 ? prev[i - 4] & 255 : 0, x = cur[i] & 255, r;
+					switch (ft) {
+						case 1 -> r = x + left;
+						case 2 -> r = x + up;
+						case 3 -> r = x + ((left + up) >> 1);
+						case 4 -> { int pa = Math.abs(up - ul), pb = Math.abs(left - ul), pc = Math.abs(left + up - 2 * ul); r = x + (pa <= pb && pa <= pc ? left : pb <= pc ? up : ul); }
+						default -> r = x;
+					}
+					cur[i] = (byte) r;
+				}
+				for (int x = 0; x < w; x++) a[y * w + x] = cur[x * 4 + 3];
+				byte[] t = prev; prev = cur; cur = t;
+			}
+			wh[0] = w; wh[1] = h;
+			return a;
 		}
 	}
 }

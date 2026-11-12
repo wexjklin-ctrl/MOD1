@@ -28,6 +28,7 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 		public boolean moto;
 		public boolean hide;
 		public GeoModel model;
+		public GeoModel.Baked bake, bakeE;
 		/** путь вперёд в блоках (по модулю 18, чтобы не терять точность) и скорость поворота (град/с) для колёс и руля */
 		public float dist, steer;
 		public Identifier tex, texE;
@@ -100,6 +101,9 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 			String tn = com.rzauto.logic.VehicleCatalog.texture(spec.bedrockId());
 			s.tex = (s.model != null && tn != null) ? Identifier.fromNamespaceAndPath("rz_auto", "textures/entity/" + tn + ".png") : null;
 			s.texE = (s.tex != null && hasEmissive(tn)) ? Identifier.fromNamespaceAndPath("rz_auto", "textures/entity/" + tn + "_e.png") : null;
+			s.bake = s.tex != null ? s.model.baked(s.tex) : null;
+			s.bakeE = s.texE != null ? s.model.baked(s.texE) : null;
+			if (s.bakeE != null && s.bakeE.quads() == 0) { s.bakeE = null; s.texE = null; }
 		}
 	}
 
@@ -111,8 +115,8 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 			pose.scale(com.rzauto.RzConfig.renderScale, com.rzauto.RzConfig.renderScale, com.rzauto.RzConfig.renderScale);
 			final int lt = s.lightCoords;
 			final GeoModel gm = s.model;
-			collector.submitCustomGeometry(pose, RenderTypes.entityCutout(s.tex), (p, vc) -> gm.render(p, vc, lt, s.dist, s.steer));
-			if (s.texE != null) collector.submitCustomGeometry(pose, RenderTypes.eyes(s.texE), (p, vc) -> gm.render(p, vc, 0xF000F0, s.dist, s.steer));
+			collector.submitCustomGeometry(pose, RenderTypes.entityCutout(s.tex), (p, vc) -> gm.render(s.bake, p, vc, lt, s.dist, s.steer));
+			if (s.texE != null) collector.submitCustomGeometry(pose, RenderTypes.eyes(s.texE), (p, vc) -> gm.render(s.bakeE, p, vc, 0xF000F0, s.dist, s.steer));
 			pose.popPose();
 			super.submit(s, pose, collector, camera);
 			return;

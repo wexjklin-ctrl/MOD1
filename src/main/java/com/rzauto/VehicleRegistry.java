@@ -55,7 +55,7 @@ public final class VehicleRegistry {
 					.sized(w, h)
 					.passengerAttachments(seatPts)   // места из vehicles.json (x, z); высота пока общая
 					.clientTrackingRange(8)   // 8 чанков = 128 блоков; уменьшить при нагрузке (см. PROMPT, «Обновление 4»)
-					.updateInterval(2)
+					.updateInterval(1)
 					.build(typeKey);
 			Registry.register(BuiltInRegistries.ENTITY_TYPE, typeKey, type);
 

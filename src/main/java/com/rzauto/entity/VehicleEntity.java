@@ -57,6 +57,12 @@ public class VehicleEntity extends Entity {
 		super(type, level);
 	}
 
+	/** Плавное движение на клиенте между пакетами позиции (как у лодок). */
+	@Override
+	protected net.minecraft.world.entity.InterpolationHandler createInterpolationHandler() {
+		return new net.minecraft.world.entity.LinearInterpolationHandler(this);
+	}
+
 	private VehicleSpec spec() {
 		if (spec == null) spec = VehicleRegistry.specOf(getType());
 		return spec;
