@@ -27,3 +27,44 @@ java {
 	sourceCompatibility = JavaVersion.VERSION_25
 	targetCompatibility = JavaVersion.VERSION_25
 }
+
+// ---- Справка по API (только для разработки): печатает в лог сигнатуры классов из api_query.txt
+// и ищет классы по шаблонам из api_find.txt. Запускается после compileJava, даже если он упал.
+tasks.register('apiDump') {
+	doLast {
+		def files = [] as LinkedHashSet
+		files.addAll(sourceSets.main.compileClasspath.files)
+		try { files.addAll(sourceSets.client.compileClasspath.files) } catch (Throwable t) {}
+		def jars = files.findAll { it.name.endsWith('.jar') }
+		def cp = jars.collect { it.absolutePath }.join(File.pathSeparator)
+		println "=== API-DUMP: ${jars.size()} jars"
+		def find = file('api_find.txt')
+		if (find.exists()) {
+			find.readLines().findAll { it.trim() && !it.startsWith('#') }.each { pat ->
+				println "=== FIND ${pat}"
+				def rx = java.util.regex.Pattern.compile(pat)
+				jars.each { j ->
+					try {
+						new java.util.zip.ZipFile(j).withCloseable { z ->
+							z.entries().each { e ->
+								if (e.name.endsWith('.class') && rx.matcher(e.name).find()) println "  ${e.name.replace('/', '.').replaceAll('\\.class$','')}"
+							}
+						}
+					} catch (Throwable t) {}
+				}
+			}
+		}
+		def q = file('api_query.txt')
+		if (q.exists()) {
+			def javap = new File(System.getProperty('java.home'), 'bin/javap').absolutePath
+			q.readLines().findAll { it.trim() && !it.startsWith('#') }.each { c ->
+				println "=== CLASS ${c}"
+				def pr = new ProcessBuilder(javap, '-protected', '-cp', cp, c.trim()).redirectErrorStream(true).start()
+				println pr.inputStream.text
+				pr.waitFor()
+			}
+		}
+		println "=== API-DUMP END"
+	}
+}
+tasks.named('compileJava') { finalizedBy 'apiDump' }

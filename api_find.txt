@@ -1,0 +1,10 @@
+# шаблоны (regex) для поиска классов в jar-ах Minecraft и Fabric API
+fabric/api/client/rendering/v1/.*Entity
+fabric/api/object/builder/v1/entity/
+fabric/api/networking/v1/(PayloadTypeRegistry|ServerPlayNetworking|ServerPlayConnectionEvents)\.class
+fabric/api/client/networking/v1/ClientPlayNetworking\.class
+fabric/api/event/player/Use(Entity|Item)Callback
+fabric/api/client/keymapping/v1/
+fabric/api/event/lifecycle/v1/ServerTickEvents
+net/minecraft/client/renderer/entity/(EntityRenderer|EntityRenderers|EntityRendererProvider|LivingEntityRenderer)(\$.*)?\.class
+net/minecraft/client/renderer/entity/state/EntityRenderState
