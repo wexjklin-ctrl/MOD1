@@ -6,7 +6,12 @@
 	"description": "Порт аддона RZ Auto (Bedrock v1.33): 307 машин, физика, топливо, поломки, передачи.",
 	"environment": "*",
 	"entrypoints": {
-		"main": ["com.rzauto.RzAutoMod"]
+		"main": [
+			"com.rzauto.RzAutoMod"
+		],
+		"client": [
+			"com.rzauto.client.RzAutoClient"
+		]
 	},
 	"depends": {
 		"fabricloader": ">=0.20.1",

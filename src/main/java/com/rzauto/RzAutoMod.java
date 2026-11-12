@@ -14,6 +14,7 @@ public class RzAutoMod implements ModInitializer {
 	public void onInitialize() {
 		VehicleCatalog.load();
 		LOG.info("RZ Auto: загружено {} машин", VehicleCatalog.all().size());
-		// TODO(этап 3): для каждой VehicleSpec зарегистрировать EntityType (VehicleEntity) и предмет-ключ.
+		VehicleRegistry.registerAll();
+		LOG.info("RZ Auto: зарегистрировано сущностей и предметов: {}", VehicleRegistry.entries().size());
 	}
 }
