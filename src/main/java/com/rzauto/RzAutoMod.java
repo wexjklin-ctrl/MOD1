@@ -33,7 +33,27 @@ public class RzAutoMod implements ModInitializer {
 				if (v != null) { ok++; v.discard(); }
 			}
 			LOG.info("RZ SMOKE: создано {} из {}", ok, VehicleRegistry.entries().size());
+			try { driveTest(w); } catch (Throwable t) { LOG.error("RZ SMOKE: заезд упал", t); }
 			server.halt(false);
 		});
+	}
+
+	/** Заезд без игрока: падение на землю, разгон по инерции, торможение (проверка Physics + move на сервере). */
+	private static void driveTest(ServerLevel w) {
+		VehicleRegistry.Entry en = VehicleRegistry.entries().get(0);
+		VehicleEntity v = en.type().create(w, EntitySpawnReason.COMMAND);
+		net.minecraft.core.BlockPos sp = w.getSharedSpawnPos();
+		v.setPos(sp.getX() + 0.5, sp.getY() + 20, sp.getZ() + 0.5);
+		w.addFreshEntity(v);
+		for (int i = 0; i < 120; i++) v.tick();
+		LOG.info("RZ SMOKE: после падения y={} (старт {}), onGround={}", v.getY(), sp.getY() + 20, v.onGround());
+		double x0 = v.getX(), z0 = v.getZ();
+		v.debugSetSpeed(0.5);
+		int ticks = 0;
+		for (; ticks < 400 && (v.debugSpeed() != 0 || ticks == 0); ticks++) v.tick();
+		double dist = Math.hypot(v.getX() - x0, v.getZ() - z0);
+		LOG.info("RZ SMOKE: заезд: проехала {} блоков, остановилась за {} тиков, speed={}", String.format("%.1f", dist), ticks, v.debugSpeed());
+		LOG.info("RZ SMOKE: заезд {}", (dist > 3 && v.debugSpeed() == 0) ? "OK" : "FAIL");
+		v.discard();
 	}
 }

@@ -88,6 +88,10 @@ public class VehicleEntity extends Entity {
 		setYRot((float) st.yawDeg);
 	}
 
+	/** Только для тестов CI. */
+	public void debugSetSpeed(double v) { st.speed = v; }
+	public double debugSpeed() { return st.speed; }
+
 	public UUID getOwner() { return owner; }
 	public void setOwner(UUID owner) { this.owner = owner; }
 
