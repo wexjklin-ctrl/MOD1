@@ -26,7 +26,7 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 		public float yaw;
 		public int color = 0xFF8899AA;
 		public boolean moto;
-		public boolean hide;
+		public boolean hide, lights, siren;
 		public GeoModel model;
 		public GeoModel.Baked bake, bakeE;
 		/** путь вперёд в блоках (по модулю 18, чтобы не терять точность) и скорость поворота (град/с) для колёс и руля */
@@ -49,10 +49,39 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 	private static final class Track {
 		boolean init;
 		double x, z, dist;
-		float yaw, steer, vel, acc, pitch, roll;
+		float yaw, steer, vel, acc, pitch, roll, pp, pv, rp, rv;
 		long ns;
 	}
 	private static final java.util.Map<VehicleEntity, Track> TRACKS = new java.util.WeakHashMap<>();
+
+
+	/** Высота опоры (верх блока с коллизией) под точкой, не выше y+1.2; NaN, если опоры нет. */
+	private static double ground(net.minecraft.world.level.Level level, double x, double y, double z) {
+		int bx = net.minecraft.util.Mth.floor(x), bz = net.minecraft.util.Mth.floor(z), top = net.minecraft.util.Mth.floor(y + 1.2);
+		net.minecraft.core.BlockPos.MutableBlockPos mp = new net.minecraft.core.BlockPos.MutableBlockPos();
+		for (int by = top; by >= top - 4; by--) {
+			mp.set(bx, by, bz);
+			net.minecraft.world.phys.shapes.VoxelShape sh = level.getBlockState(mp).getCollisionShape(level, mp);
+			if (sh.isEmpty()) continue;
+			double h = by + sh.max(net.minecraft.core.Direction.Axis.Y);
+			if (h <= y + 1.2) return h;
+		}
+		return Double.NaN;
+	}
+
+	/** Наклон кузова по рельефу под колёсами {тангаж, крен} в градусах (положительный тангаж = нос вниз). */
+	private static float[] terrain(VehicleEntity e, VehicleSpec spec, double x, double y, double z, float yaw) {
+		double[] dm = spec == null ? null : com.rzauto.logic.VehicleCatalog.dims(spec.bedrockId());
+		double halfL = dm == null ? 1.3 : Math.max(0.5, dm[1] * 0.33), halfW = dm == null ? 0.7 : Math.max(0.3, dm[0] * 0.33);
+		double yr = Math.toRadians(yaw), fx = -Math.sin(yr), fz = Math.cos(yr), lx = Math.cos(yr), lz = Math.sin(yr);
+		net.minecraft.world.level.Level lv = e.level();
+		double hf = ground(lv, x + fx * halfL, y, z + fz * halfL), hr = ground(lv, x - fx * halfL, y, z - fz * halfL);
+		double hl = ground(lv, x + lx * halfW, y, z + lz * halfW), hrr = ground(lv, x - lx * halfW, y, z - lz * halfW);
+		if (Double.isNaN(hf)) hf = y; if (Double.isNaN(hr)) hr = y; if (Double.isNaN(hl)) hl = y; if (Double.isNaN(hrr)) hrr = y;
+		float p = (float) -Math.toDegrees(Math.atan2(hf - hr, 2 * halfL));
+		float r = (float) Math.toDegrees(Math.atan2(hl - hrr, 2 * halfW));
+		return new float[] { net.minecraft.util.Mth.clamp(p, -32f, 32f), net.minecraft.util.Mth.clamp(r, -22f, 22f) };
+	}
 
 	private static void track(VehicleEntity e, State s, float partial) {
 		Track t = TRACKS.computeIfAbsent(e, k -> new Track());
@@ -81,6 +110,14 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 		} else if (dt >= 1f) {
 			t.steer = 0;
 		}
+		// подвеска по блокам: пружина тянет тангаж/крен к наклону рельефа под колёсами (на склоне, ступеньках, плитах), стоя тоже держит наклон
+		float[] tg = terrain(e, VehicleRegistry.specOf(e.getType()), x, pos.y, z, yaw);
+		if (!t.init) { t.pp = tg[0]; t.rp = tg[1]; t.pv = 0; t.rv = 0; }
+		else {
+			float h = net.minecraft.util.Mth.clamp(dt, 0f, 0.05f);
+			t.pv += ((tg[0] - t.pp) * 85f - t.pv * 9f) * h; t.pp += t.pv * h;
+			t.rv += ((tg[1] - t.rp) * 85f - t.rv * 9f) * h; t.rp += t.rv * h;
+		}
 		t.init = true; t.x = x; t.z = z; t.yaw = yaw; t.ns = now;
 		// наклон кузова по инерции: торможение клюёт носом, разгон приседает, на повороте крен наружу
 		float pt = net.minecraft.util.Mth.clamp(-t.acc * 28f, -3.5f, 4.5f);
@@ -88,7 +125,7 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 		float rt = net.minecraft.util.Mth.clamp(lat * 70f, -4.5f, 4.5f);
 		float k = 1f - (float) Math.exp(-Math.max(dt, 0f) / 0.15f);
 		t.pitch += (pt - t.pitch) * k; t.roll += (rt - t.roll) * k;
-		s.pitch = t.pitch; s.roll = t.roll;
+		s.pitch = t.pitch + t.pp; s.roll = t.roll + t.rp;
 		s.dist = (float) (t.dist % 18.0);
 		s.steer = t.steer;
 	}
@@ -100,6 +137,7 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 	public void extractRenderState(VehicleEntity e, State s, float partial) {
 		super.extractRenderState(e, s, partial);
 		s.yaw = e.getYRot(partial);
+		s.lights = e.lightsOn(); s.siren = e.sirenOn();
 		track(e, s, partial);
 		net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
 		// Камера от первого лица внутри коробки: не рисуем её для самого водителя/пассажира
@@ -132,7 +170,8 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 			final int lt = s.lightCoords;
 			final GeoModel gm = s.model;
 			collector.submitCustomGeometry(pose, RenderTypes.entityCutout(s.tex), (p, vc) -> gm.render(s.bake, p, vc, lt, s.dist, s.steer, 0f));
-			if (s.texE != null) collector.submitCustomGeometry(pose, RenderTypes.eyes(s.texE), (p, vc) -> gm.render(s.bakeE, p, vc, 0xF000F0, s.dist, s.steer, 0.006f));
+			boolean glow = s.siren ? (System.currentTimeMillis() / 220 % 2 == 0) : s.lights;
+			if (s.texE != null && glow) collector.submitCustomGeometry(pose, RenderTypes.eyes(s.texE), (p, vc) -> gm.render(s.bakeE, p, vc, 0xF000F0, s.dist, s.steer, 0.006f));
 			pose.popPose();
 			super.submit(s, pose, collector, camera);
 			return;

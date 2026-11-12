@@ -31,6 +31,9 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.entity.EntityDimensions;
+import net.minecraft.tags.DamageTypeTags;
+import com.rzauto.logic.VehicleCatalog;
 
 /**
  * Машина. Этап 2: серверная физика (com.rzauto.logic.Physics). Водитель = первый пассажир-игрок;
@@ -66,11 +69,22 @@ public class VehicleEntity extends Entity {
 	public static final EntityDataAccessor<Byte> DATA_LOCK = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.BYTE);
 	public static final EntityDataAccessor<Boolean> DATA_BROKEN = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.BOOLEAN);
 	public static final EntityDataAccessor<Float> DATA_SPEED = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.FLOAT);
+	public static final EntityDataAccessor<String> DATA_OWNER = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.STRING);
+	public static final EntityDataAccessor<Boolean> DATA_LIGHTS = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.BOOLEAN);
+	public static final EntityDataAccessor<Boolean> DATA_SIREN = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.BOOLEAN);
+	public static final EntityDataAccessor<Boolean> DATA_GEARS = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.BOOLEAN);
+	public static final EntityDataAccessor<Float> DATA_SENS = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.FLOAT);
+	public static final EntityDataAccessor<Float> DATA_HP = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.FLOAT);
+	/** Номера мест пассажиров по порядку в списке (4 бита на каждого, 15 = не задано). */
+	public static final EntityDataAccessor<Integer> DATA_SEATS = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.INT);
 
 	/** Действия из меню / клавиши F (пакет VehicleActionPayload). */
-	public static final int ACT_ENTER = 0, ACT_ENGINE = 1, ACT_LOCK = 2, ACT_REPAIR = 3;
+	public static final int ACT_ENTER = 0, ACT_ENGINE = 1, ACT_LOCK = 2, ACT_REPAIR = 3, ACT_LIGHTS = 4, ACT_SIREN = 5, ACT_SEAT = 6, ACT_SENS_DOWN = 7, ACT_SENS_UP = 8, ACT_GEARS = 9;
+	public static final float SENS_MIN = 0.6f, SENS_MAX = 3.0f, SENS_STEP = 0.2f, SENS_DEFAULT = 1.4f;
 
-	private boolean fuelInit, hadDriver;
+	private boolean fuelInit, hadDriver, lastSprint, lastSneak;
+	private float hp = -1f, sens = SENS_DEFAULT;
+	private boolean lights = true, siren;
 	private int gateMsgCooldown;
 	private final java.util.Random rnd = new java.util.Random();
 
@@ -82,6 +96,15 @@ public class VehicleEntity extends Entity {
 	public float syncedSpeed() { return entityData.get(DATA_SPEED); }
 	public Access.Lock lockState() { int i = entityData.get(DATA_LOCK); Access.Lock[] v = Access.Lock.values(); return v[Math.max(0, Math.min(v.length - 1, i))]; }
 	public boolean isLocked() { return lockState() != Access.Lock.OPEN; }
+
+	public boolean lightsOn() { return entityData.get(DATA_LIGHTS); }
+	public boolean sirenOn() { return entityData.get(DATA_SIREN); }
+	public boolean gearsOn() { return entityData.get(DATA_GEARS); }
+	public float sensValue() { return entityData.get(DATA_SENS); }
+	public float hpValue() { return entityData.get(DATA_HP); }
+	/** Владелец ещё не задан (машина «ничья»)? */
+	public boolean isUnclaimed() { return entityData.get(DATA_OWNER).isEmpty(); }
+	public boolean isOwnedBy(UUID id) { return id != null && entityData.get(DATA_OWNER).equals(id.toString()); }
 
 	private String ownerKey() { return owner == null ? null : owner.toString(); }
 
@@ -110,6 +133,78 @@ public class VehicleEntity extends Entity {
 	@Override
 	public LivingEntity getControllingPassenger() { return null; }
 
+
+	// ---- места: номер места пассажира хранится в синхронизированном int (на клиенте и сервере одинаково)
+	private int seatCount() {
+		double[][] sd = spec() == null ? null : VehicleCatalog.seats(spec().bedrockId());
+		return Math.max(1, sd == null ? 2 : Math.min(sd.length, 4));
+	}
+	private int seatAt(int idx) {
+		if (idx < 0 || idx > 7) return idx;
+		int v = (entityData.get(DATA_SEATS) >> (4 * idx)) & 15;
+		return v == 15 ? idx : v;
+	}
+	private void setSeatAt(int idx, int seat) {
+		if (idx < 0 || idx > 7) return;
+		int m = entityData.get(DATA_SEATS);
+		m = (m & ~(15 << (4 * idx))) | ((seat & 15) << (4 * idx));
+		entityData.set(DATA_SEATS, m);
+	}
+	/** Водитель = пассажир на месте 0. */
+	private Entity driverEntity() {
+		java.util.List<Entity> ps = getPassengers();
+		for (int i = 0; i < ps.size(); i++) if (seatAt(i) == 0) return ps.get(i);
+		return null;
+	}
+	public int seatOf(Entity e) { return seatAt(getPassengers().indexOf(e)); }
+
+	@Override
+	protected void addPassenger(Entity p) {
+		super.addPassenger(p);
+		if (level().isClientSide()) return;
+		java.util.List<Entity> ps = getPassengers();
+		int idx = ps.indexOf(p);
+		boolean[] used = new boolean[16];
+		for (int i = 0; i < ps.size(); i++) if (i != idx) used[seatAt(i)] = true;
+		int seat = 0;
+		while (seat < 15 && used[seat]) seat++;
+		setSeatAt(idx, seat);
+	}
+
+	@Override
+	protected void removePassenger(Entity p) {
+		int idx = getPassengers().indexOf(p);
+		super.removePassenger(p);
+		if (level().isClientSide() || idx < 0) return;
+		int n = getPassengers().size();
+		for (int i = idx; i < n; i++) setSeatAt(i, seatAt(i + 1));
+		setSeatAt(n, 15);
+	}
+
+	@Override
+	protected Vec3 getPassengerAttachmentPoint(Entity passenger, EntityDimensions dims, float scale) {
+		double[][] sd = spec() == null ? null : VehicleCatalog.seats(spec().bedrockId());
+		if (sd == null || sd.length == 0) return super.getPassengerAttachmentPoint(passenger, dims, scale);
+		int seat = Math.max(0, Math.min(sd.length - 1, seatOf(passenger)));
+		double k = com.rzauto.RzConfig.renderScale;
+		Vec3 v = new Vec3(sd[seat][0] * k, sd[seat][1] * k + com.rzauto.RzConfig.seatYOffset, sd[seat][2] * k);
+		return v.yRot((float) (-getYRot() * Math.PI / 180.0));
+	}
+
+	/** Сменить место: ближайшее свободное по кругу. */
+	private void changeSeat(ServerPlayer p) {
+		int idx = getPassengers().indexOf(p), n = seatCount();
+		if (idx < 0) return;
+		boolean[] used = new boolean[16];
+		for (int i = 0; i < getPassengers().size(); i++) if (i != idx) used[seatAt(i)] = true;
+		int cur = seatAt(idx);
+		for (int d = 1; d < n; d++) {
+			int c = (cur + d) % n;
+			if (!used[c]) { setSeatAt(idx, c); msg(p, c == 0 ? "§aМесто водителя." : "§aПассажирское место " + c + "."); return; }
+		}
+		msg(p, "§eСвободных мест нет.");
+	}
+
 	@Override
 	public void tick() {
 		super.tick();
@@ -119,22 +214,19 @@ public class VehicleEntity extends Entity {
 		initFuel();
 
 		ServerPlayer driver = null;
-		if (!getPassengers().isEmpty() && getPassengers().get(0) instanceof ServerPlayer p) driver = p;
+		if (driverEntity() instanceof ServerPlayer p) driver = p;
 
 		double x = 0, y = 0;
 		if (driver != null) {
 			Input in = driver.getLastClientInput();
 			x = (in.left() ? 1 : 0) - (in.right() ? 1 : 0);   // как в Bedrock: влево = +1
 			y = (in.forward() ? 1 : 0) - (in.backward() ? 1 : 0);
-			// Передачи: Прыжок (пробел) — короткое нажатие выше, удержание ниже (как в оригинале)
-			long now = level().getGameTime();
-			boolean jump = in.jump();
-			if (jump != lastJump) { gearDriver.onJump(jump, now); lastJump = jump; }
-			gearDriver.tick(vs.gears, s, driver.getInventory().getSelectedSlot(), now, gearOut);
-			if (gearOut.hud != null && (!gearOut.hud.equals(lastHud) || now % 10 == 0)) {
-				lastHud = gearOut.hud;
-				driver.sendSystemMessage(Component.literal(gearOut.hud), true);
+			// Передачи (если включены в меню): Ctrl — выше, Shift — ниже
+			if (vs.gears.mode) {
+				if (in.sprint() && !lastSprint) shiftGear(driver, s, +1);
+				if (in.shift() && !lastSneak) shiftGear(driver, s, -1);
 			}
+			lastSprint = in.sprint(); lastSneak = in.shift();
 		}
 		String m7 = vs.gears.tick7(s, driver != null);
 		if (m7 != null && driver != null) driver.sendSystemMessage(Component.literal(m7), true);
@@ -143,14 +235,14 @@ public class VehicleEntity extends Entity {
 
 		if (driver != null && !hadDriver && com.rzauto.RzConfig.autoStartEngine && !vs.wear.broken && vs.fuel > 0) vs.engineOn = true;
 		hadDriver = driver != null;
-		DriveGate gate = DriveGate.check(vs, true, true);
+		DriveGate gate = DriveGate.check(vs, true, !com.rzauto.RzConfig.requireLicense || (driver != null && holdsLicense(driver)));
 		boolean canDrive = gate.canDrive();
 		if (driver != null && !canDrive && gateMsgCooldown-- <= 0) { gateMsgCooldown = 40; if (gate.message != null) driver.sendSystemMessage(Component.literal(gate.message), true); }
 		if (!canDrive) { x = 0; y = 0; }
 
 		st.yawDeg = getYRot();
 		double max = canDrive ? Physics.currentMax(s, vs.gears.speedPercent(s, vs.speedPercent), vs.wear.broken, vs.fuel, vs.engineOn) : s.topSpeed();
-		if (vs.gta) Physics.tickGta(s, st, new Physics.Input(x, y), max);
+		if (vs.gta) Physics.tickGta(s, st, new Physics.Input(x, y), max, sens);
 		else Physics.tick(s, st, new Physics.Input(x, y), max, false, TURN_STRENGTH);
 		if (canDrive && driver != null) {
 			double d = Math.abs(st.speed);
@@ -164,7 +256,11 @@ public class VehicleEntity extends Entity {
 		double vy = onGround() ? -GRAVITY : (getDeltaMovement().y - GRAVITY) * 0.98;
 		setDeltaMovement(vel[0], vy, vel[1]);
 		move(MoverType.SELF, getDeltaMovement());
-		if (horizontalCollision) st.speed = Physics.collisionBleed(st.speed, max);
+		if (horizontalCollision) {
+			double av = Math.abs(st.speed);
+			if (av > 0.45) damage((float) ((av - 0.45) * 18.0));
+			st.speed = Physics.collisionBleed(st.speed, max);
+		}
 		setYRot((float) st.yawDeg);
 	}
 
@@ -172,8 +268,67 @@ public class VehicleEntity extends Entity {
 	public void debugSetSpeed(double v) { st.speed = v; }
 	public double debugSpeed() { return st.speed; }
 
+
+	private boolean holdsLicense(Player p) {
+		return VehicleRegistry.LICENSE != null && (p.getMainHandItem().is(VehicleRegistry.LICENSE) || p.getOffhandItem().is(VehicleRegistry.LICENSE));
+	}
+
+	private void shiftGear(ServerPlayer driver, VehicleSpec s, int dir) {
+		com.rzauto.logic.GearBox.Shift r = vs.gears.shift(s, dir);
+		if (r.hud() != null) driver.sendSystemMessage(Component.literal(r.hud()), true);
+	}
+
+	private float maxHp() { VehicleSpec s = spec(); return s == null ? 20f : Math.max(1f, s.health()); }
+
+	/** Урон машине: на нуле она ломается (чинится шестерёнкой), окончательно — только рукой или взрывом. */
+	private void damage(float amount) {
+		if (level().isClientSide() || amount <= 0 || vs.wear.broken) return;
+		if (hp < 0) hp = maxHp();
+		hp = Math.max(0f, hp - amount);
+		if (hp <= 0f) { vs.wear.broken = true; vs.engineOn = false; }
+		syncState();
+	}
+
+	/** Падение: урон машине (3 блока бесплатно, дальше 1.5 за блок). */
+	@Override
+	public boolean causeFallDamage(double distance, float multiplier, DamageSource source) {
+		if (!level().isClientSide() && distance > 3) damage((float) ((distance - 3) * 1.5));
+		return false;
+	}
+
+	@Override
+	public boolean canBeCollidedWith(Entity other) { return other != null && other.getVehicle() != this; }
+
+	private void destroy(boolean drop) {
+		if (level() instanceof ServerLevel sl) {
+			if (drop) { net.minecraft.world.item.Item it = VehicleRegistry.itemOf(getType()); if (it != null) spawnAtLocation(sl, new ItemStack(it)); }
+			ejectPassengers();
+			discard();
+		}
+	}
+
+	/** Починка шестерёнкой: берём из руки/инвентаря. */
+	private boolean repairWithGear(ServerPlayer p) {
+		if (!vs.wear.broken && (hp < 0 || hp >= maxHp() - 0.01f)) { msg(p, "§eМашина исправна."); return false; }
+		ItemStack found = ItemStack.EMPTY;
+		if (!p.isCreative()) {
+			for (int i = 0; i < p.getInventory().getContainerSize(); i++) {
+				ItemStack st0 = p.getInventory().getItem(i);
+				if (st0.is(VehicleRegistry.GEAR)) { found = st0; break; }
+			}
+			if (found.isEmpty()) { msg(p, "§cНужна шестерёнка в инвентаре."); return false; }
+			found.shrink(1);
+		}
+		Wear.replaceGear(vs.wear);
+		vs.gears.unlockGear7();
+		hp = maxHp();
+		syncState();
+		msg(p, "§aМашина отремонтирована.");
+		return true;
+	}
+
 	public UUID getOwner() { return owner; }
-	public void setOwner(UUID owner) { this.owner = owner; }
+	public void setOwner(UUID owner) { this.owner = owner; if (!level().isClientSide()) entityData.set(DATA_OWNER, owner == null ? "" : owner.toString()); }
 
 	@Override
 	protected void defineSynchedData(SynchedEntityData.Builder builder) {
@@ -182,6 +337,13 @@ public class VehicleEntity extends Entity {
 		builder.define(DATA_LOCK, (byte) 0);
 		builder.define(DATA_BROKEN, false);
 		builder.define(DATA_SPEED, 0f);
+		builder.define(DATA_OWNER, "");
+		builder.define(DATA_LIGHTS, true);
+		builder.define(DATA_SIREN, false);
+		builder.define(DATA_GEARS, false);
+		builder.define(DATA_SENS, SENS_DEFAULT);
+		builder.define(DATA_HP, 20f);
+		builder.define(DATA_SEATS, -1);
 	}
 
 	@Override
@@ -195,6 +357,10 @@ public class VehicleEntity extends Entity {
 			vs.wear.broken = "1".equals(in.getStringOr("broken", "0"));
 			vs.wear.mileage = Double.parseDouble(in.getStringOr("mileage", "0"));
 			vs.wear.checkedIndex = Integer.parseInt(in.getStringOr("mileage_idx", "-1"));
+			hp = Float.parseFloat(in.getStringOr("hp", "-1"));
+			sens = Float.parseFloat(in.getStringOr("sens", Float.toString(SENS_DEFAULT)));
+			lights = !"0".equals(in.getStringOr("lights", "1"));
+			vs.gears.mode = "1".equals(in.getStringOr("gears", "0"));
 		} catch (NumberFormatException e) { /* оставляем значения по умолчанию */ }
 	}
 
@@ -207,11 +373,21 @@ public class VehicleEntity extends Entity {
 		out.putString("broken", vs.wear.broken ? "1" : "0");
 		out.putString("mileage", Double.toString(vs.wear.mileage));
 		out.putString("mileage_idx", Integer.toString(vs.wear.checkedIndex));
+		out.putString("hp", Float.toString(hp));
+		out.putString("sens", Float.toString(sens));
+		out.putString("lights", lights ? "1" : "0");
+		out.putString("gears", vs.gears.mode ? "1" : "0");
 	}
 
 	@Override
 	public boolean hurtServer(ServerLevel level, DamageSource source, float amount) {
-		return false; // этап 1: машина неуязвима
+		// Окончательно ломается только взрывом или рукой (пустая рука, владелец / творческий режим)
+		if (source.is(DamageTypeTags.IS_EXPLOSION)) { destroy(true); return true; }
+		if (source.getEntity() instanceof Player p && source.getDirectEntity() == p && p.getMainHandItem().isEmpty()) {
+			if (owner == null || owner.equals(p.getUUID()) || p.isCreative()) { destroy(!p.isCreative()); return true; }
+			msg(p, "§eЛомать чужую машину нельзя.");
+		}
+		return false;
 	}
 
 	@Override
@@ -219,8 +395,7 @@ public class VehicleEntity extends Entity {
 
 	@Override
 	protected boolean canAddPassenger(Entity passenger) {
-		double[][] sd = spec() == null ? null : com.rzauto.logic.VehicleCatalog.seats(spec().bedrockId());
-		return getPassengers().size() < Math.max(1, sd == null ? 2 : Math.min(sd.length, 4));
+		return getPassengers().size() < seatCount();
 	}
 
 	private void initFuel() {
@@ -236,6 +411,12 @@ public class VehicleEntity extends Entity {
 		entityData.set(DATA_FUEL, (float) (Math.round(vs.fuel * 10) / 10.0));
 		entityData.set(DATA_LOCK, (byte) vs.lock.ordinal());
 		entityData.set(DATA_BROKEN, vs.wear.broken);
+		entityData.set(DATA_LIGHTS, lights);
+		entityData.set(DATA_SIREN, siren);
+		entityData.set(DATA_GEARS, vs.gears.mode);
+		entityData.set(DATA_SENS, sens);
+		entityData.set(DATA_HP, hp < 0 ? maxHp() : hp);
+		entityData.set(DATA_OWNER, owner == null ? "" : owner.toString());
 		entityData.set(DATA_SPEED, (float) (Math.round(st.speed * 50) / 50.0));
 	}
 
@@ -245,8 +426,9 @@ public class VehicleEntity extends Entity {
 	private void tryEnter(Player player) {
 		VehicleSpec sp0 = spec();
 		if (sp0 == null) return;
-		if (owner == null) owner = player.getUUID();
-		boolean ownerAtWheel = !getPassengers().isEmpty() && getPassengers().get(0).getUUID().equals(owner);
+		if (owner == null) setOwner(player.getUUID());
+		Entity dr0 = driverEntity();
+		boolean ownerAtWheel = dr0 != null && dr0.getUUID().equals(owner);
 		Access.Entry e = Access.canEnter(vs.lock, ownerKey(), player.getUUID().toString(), ownerAtWheel);
 		if (e != Access.Entry.ALLOW) { msg(player, "§cМашина закрыта владельцем."); return; }
 		if (player.startRiding(this)) {
@@ -263,7 +445,11 @@ public class VehicleEntity extends Entity {
 		if (s == null || isRemoved()) return;
 		if (p.getVehicle() != this && p.distanceToSqr(this) > 36) return;
 		if (action == ACT_ENTER) { if (p.getVehicle() == null) tryEnter(p); return; }
-		if (owner == null) owner = p.getUUID();
+		boolean rider = p.getVehicle() == this;
+		if (action == ACT_LIGHTS && rider) { lights = !lights; syncState(); return; }
+		if (action == ACT_SIREN && rider) { if (s.hasSiren()) siren = !siren; syncState(); return; }
+		if (action == ACT_SEAT && rider) { changeSeat(p); return; }
+		if (owner == null) setOwner(p.getUUID());
 		if (!owner.equals(p.getUUID())) { msg(p, "§eМеню доступно только владельцу машины."); return; }
 		switch (action) {
 			case ACT_ENGINE -> {
@@ -273,7 +459,10 @@ public class VehicleEntity extends Entity {
 				else vs.engineOn = true;
 			}
 			case ACT_LOCK -> vs.lock = vs.lock == Access.Lock.OPEN ? Access.Lock.LOCKED : Access.Lock.OPEN;
-			case ACT_REPAIR -> { if (vs.wear.broken) { Wear.replaceGear(vs.wear); msg(p, "§aМашина отремонтирована."); } }
+			case ACT_REPAIR -> repairWithGear(p);
+			case ACT_SENS_DOWN -> sens = Math.max(SENS_MIN, Math.round((sens - SENS_STEP) * 10f) / 10f);
+			case ACT_SENS_UP -> sens = Math.min(SENS_MAX, Math.round((sens + SENS_STEP) * 10f) / 10f);
+			case ACT_GEARS -> vs.gears.mode = !vs.gears.mode;
 			default -> { }
 		}
 		syncState();
@@ -286,6 +475,7 @@ public class VehicleEntity extends Entity {
 			initFuel();
 			ItemStack held = player.getItemInHand(hand);
 			VehicleSpec s = spec();
+			if (s != null && held.is(VehicleRegistry.GEAR) && player instanceof ServerPlayer sp0) { repairWithGear(sp0); return InteractionResult.SUCCESS; }
 			if (s != null && held.is(Items.LAVA_BUCKET)) {
 				if (vs.fuel >= s.maxFuel()) { msg(player, "§eБак полон."); return InteractionResult.SUCCESS; }
 				vs.fuel = Fuel.addBucket(s, vs.fuel);

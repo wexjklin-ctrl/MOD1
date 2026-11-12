@@ -20,6 +20,8 @@ public final class RzConfig {
 	public static boolean startFullTank = true;
 	/** Двигатель заводится сам, когда водитель садится (иначе: меню → «Завести двигатель»). */
 	public static boolean autoStartEngine = true;
+	/** Чтобы ехать, нужны водительские права в одной из рук (как в оригинале). */
+	public static boolean requireLicense = true;
 
 	public static void load() {
 		try {
@@ -30,12 +32,14 @@ public final class RzConfig {
 				if (o.has("seatYOffset")) seatYOffset = o.get("seatYOffset").getAsFloat();
 				if (o.has("startFullTank")) startFullTank = o.get("startFullTank").getAsBoolean();
 				if (o.has("autoStartEngine")) autoStartEngine = o.get("autoStartEngine").getAsBoolean();
+				if (o.has("requireLicense")) requireLicense = o.get("requireLicense").getAsBoolean();
 			} else {
 				JsonObject o = new JsonObject();
 				o.addProperty("renderScale", renderScale);
 				o.addProperty("seatYOffset", seatYOffset);
 				o.addProperty("startFullTank", startFullTank);
 				o.addProperty("autoStartEngine", autoStartEngine);
+				o.addProperty("requireLicense", requireLicense);
 				Gson g = new GsonBuilder().setPrettyPrinting().create();
 				Files.writeString(p, g.toJson(o));
 			}

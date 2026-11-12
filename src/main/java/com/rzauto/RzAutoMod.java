@@ -23,7 +23,7 @@ public class RzAutoMod implements ModInitializer {
 		LOG.info("RZ Auto: зарегистрировано сущностей и предметов: {}", VehicleRegistry.entries().size());
 		// яйца призыва: ключи всех машин во вкладке творческого режима «Spawn Eggs»
 		net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents.modifyOutputEvent(net.minecraft.world.item.CreativeModeTabs.SPAWN_EGGS)
-			.register(entries -> { for (VehicleRegistry.Entry e : VehicleRegistry.entries()) entries.accept(e.item()); });
+				.register(entries -> { entries.accept(VehicleRegistry.GEAR); entries.accept(VehicleRegistry.LICENSE); for (VehicleRegistry.Entry e : VehicleRegistry.entries()) entries.accept(e.item()); });
 		net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry.serverboundPlay().register(com.rzauto.net.VehicleActionPayload.TYPE, com.rzauto.net.VehicleActionPayload.CODEC);
 		net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.registerGlobalReceiver(com.rzauto.net.VehicleActionPayload.TYPE, (payload, ctx) -> {
 			net.minecraft.world.entity.Entity ent = ctx.player().level().getEntity(payload.entityId());

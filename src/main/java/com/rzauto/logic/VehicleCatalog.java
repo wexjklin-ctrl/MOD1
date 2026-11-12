@@ -9,6 +9,7 @@ import java.util.*;
 public final class VehicleCatalog {
 	private static final Map<String, VehicleSpec> BY_ID = new LinkedHashMap<>();
 	private static final Map<String, double[][]> SEATS = new HashMap<>();
+	private static final Map<String, double[]> DIMS = new HashMap<>();
 	private static final Map<String, String> GEOM = new HashMap<>(), TEX = new HashMap<>(), ANIM = new HashMap<>();
 
 	public static void load() {
@@ -18,6 +19,13 @@ public final class VehicleCatalog {
 		} catch (IOException e) {
 			throw new UncheckedIOException(e);
 		}
+		DIMS.clear();
+		try (var in = VehicleCatalog.class.getResourceAsStream("/data/dims.json")) {
+			if (in != null) for (var en : JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8)).getAsJsonObject().entrySet()) {
+				JsonArray a = en.getValue().getAsJsonArray();
+				DIMS.put(en.getKey(), new double[] { a.get(0).getAsDouble(), a.get(1).getAsDouble(), a.get(2).getAsDouble() });
+			}
+		} catch (IOException e) { /* размеры необязательны */ }
 	}
 
 	public static void parse(Reader r) {
@@ -54,6 +62,9 @@ public final class VehicleCatalog {
 			}
 		}
 	}
+
+	/** Габариты машины в блоках {ширина, длина, высота} (с учётом масштаба анимации) или null. */
+	public static double[] dims(String bedrockId) { return DIMS.get(bedrockId); }
 
 	/** Места из Bedrock (x, y, z относительно машины; первое = водитель); null, если нет. */
 	public static double[][] seats(String bedrockId) { return SEATS.get(bedrockId); }

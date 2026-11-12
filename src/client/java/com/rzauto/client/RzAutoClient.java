@@ -21,6 +21,11 @@ public class RzAutoClient implements ClientModInitializer {
 	/** I: меню машины. */
 	static final KeyMapping MENU = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.rz_auto.menu", InputConstants.KEY_I, CATEGORY));
 
+	/** L: фары вкл/выкл. */
+	static final KeyMapping LIGHTS = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.rz_auto.lights", InputConstants.KEY_L, CATEGORY));
+	/** H: сирена (только полицейские машины). */
+	static final KeyMapping SIREN = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.rz_auto.siren", InputConstants.KEY_H, CATEGORY));
+
 	@Override
 	public void onInitializeClient() {
 		for (VehicleRegistry.Entry e : VehicleRegistry.entries()) {
@@ -39,7 +44,11 @@ public class RzAutoClient implements ClientModInitializer {
 		while (MENU.consumeClick()) {
 			VehicleEntity ve = VehicleHud.riding(mc);
 			if (ve == null) ve = VehicleHud.looked(mc);
-			if (ve != null && mc.gui.screen() == null) mc.setScreenAndShow(new VehicleMenuScreen(ve));
+			if (ve == null || mc.gui.screen() != null) continue;
+			if (!ve.isUnclaimed() && !ve.isOwnedBy(mc.player.getUUID())) { mc.gui.hud.setOverlayMessage(net.minecraft.network.chat.Component.literal("Меню доступно только владельцу машины."), false); continue; }
+			mc.setScreenAndShow(new VehicleMenuScreen(ve));
 		}
+		while (LIGHTS.consumeClick()) { VehicleEntity ve = VehicleHud.riding(mc); if (ve != null) ClientPlayNetworking.send(new VehicleActionPayload(ve.getId(), VehicleEntity.ACT_LIGHTS)); }
+		while (SIREN.consumeClick()) { VehicleEntity ve = VehicleHud.riding(mc); if (ve != null) ClientPlayNetworking.send(new VehicleActionPayload(ve.getId(), VehicleEntity.ACT_SIREN)); }
 	}
 }

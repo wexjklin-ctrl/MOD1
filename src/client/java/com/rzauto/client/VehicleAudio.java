@@ -42,13 +42,40 @@ final class VehicleAudio {
 		}
 	}
 
+	/** Сирена: зацикленный звук, привязан к машине, пока сирена включена. */
+	private static final class Siren extends net.minecraft.client.resources.sounds.AbstractTickableSoundInstance {
+		private final VehicleEntity car;
+		Siren(VehicleEntity car) {
+			super(Identifier.fromNamespaceAndPath("rz_auto", "explorer.siren"), SoundSource.NEUTRAL, SoundInstance.createUnseededRandom());
+			this.car = car; this.looping = true; this.volume = 1.4f; this.pitch = 1f;
+			this.x = car.getX(); this.y = car.getY(); this.z = car.getZ();
+		}
+		@Override public void tick() {
+			if (car.isRemoved() || !car.sirenOn()) { stop(); return; }
+			this.x = car.getX(); this.y = car.getY(); this.z = car.getZ();
+		}
+	}
+	private static final Map<VehicleEntity, Siren> SIRENS = new HashMap<>();
+
+	private static void sirens(Minecraft mc) {
+		for (net.minecraft.world.entity.Entity ent : mc.level.entitiesForRendering()) {
+			if (ent instanceof VehicleEntity e && !e.isRemoved() && e.sirenOn() && !SIRENS.containsKey(e)) {
+				Siren si = new Siren(e);
+				SIRENS.put(e, si);
+				mc.getSoundManager().play(si);
+			}
+		}
+		SIRENS.entrySet().removeIf(en -> en.getKey().isRemoved() || !en.getKey().sirenOn());
+	}
+
 	private static void play(String event, double vol, double pitch, VehicleEntity e) {
 		Minecraft.getInstance().getSoundManager().play(new Shot(Identifier.fromNamespaceAndPath("rz_auto", event),
 			(float) Math.min(vol, 1.6), (float) Math.max(0.5, Math.min(2.0, pitch)), e.getX(), e.getY(), e.getZ()));
 	}
 
 	static void tick(Minecraft mc) {
-		if (mc.level == null || mc.player == null) { STATE.clear(); return; }
+		if (mc.level == null || mc.player == null) { STATE.clear(); SIRENS.clear(); return; }
+		sirens(mc);
 		for (net.minecraft.world.entity.Entity ent : mc.level.entitiesForRendering()) {
 			if (!(ent instanceof VehicleEntity e) || e.isRemoved()) continue;
 			if (e.distanceToSqr(mc.player) > HEARD_RANGE * HEARD_RANGE) continue;

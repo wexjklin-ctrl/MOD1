@@ -110,13 +110,16 @@ public final class Physics {
 	 * Управление «как в GTA»: поворот работает сразу на малой скорости (радиус ~4 блока на 20 км/ч, вписывается в городские повороты),
 	 * на высокой скорости угол поворота уменьшается; разгон резче с места, торможение сильнее, без разгона машина сама замедляется.
 	 */
-	public static void tickGta(VehicleSpec s, State st, Input in, double effMax) {
+	public static void tickGta(VehicleSpec s, State st, Input in, double effMax) { tickGta(s, st, in, effMax, 1.0); }
+
+	/** @param sens чувствительность руля (множитель скорости и угла поворота) */
+	public static void tickGta(VehicleSpec s, State st, Input in, double effMax, double sens) {
 		Params p = Params.of(s);
 		double top = Math.max(s.topSpeed(), 0.05), v = st.speed, av = Math.abs(v);
-		st.steer = stepTowards(st.steer, in.x(), in.x() == 0 ? 0.40 : 0.30);
+		st.steer = stepTowards(st.steer, in.x(), (in.x() == 0 ? 0.40 : 0.30) * Math.max(1.0, sens));
 		double low = clamp(av / 0.12, 0, 1);
 		double high = 1 - 0.6 * clamp((av - 0.4) / Math.max(top - 0.4, 0.1), 0, 1);
-		double yawMax = s.motorcycle() ? GTA_YAW_MOTO : GTA_YAW_CAR;
+		double yawMax = (s.motorcycle() ? GTA_YAW_MOTO : GTA_YAW_CAR) * sens;
 		st.yawDeg = normalizeAngle(st.yawDeg - st.steer * yawMax * low * high * (v >= 0 ? 1 : -1));
 
 		boolean throttling = Math.abs(in.y()) > THROTTLE_DEADZONE;

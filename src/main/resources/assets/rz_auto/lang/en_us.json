@@ -615,5 +615,11 @@
  "entity.rz_auto.jeep_yjzredgrayblackhd": "Jeep Yjzredgrayblackhd",
  "key.rz_auto.enter": "Сесть в машину",
  "key.rz_auto.menu": "Меню машины",
- "key.category.rz_auto.keys": "RZ Auto"
+ "key.category.rz_auto.keys": "RZ Auto",
+ "item.rz_auto.gear": "Шестерёнка",
+ "item.rz_auto.driver_license": "Водительские права",
+ "key.rz_auto.lights": "Фары вкл/выкл",
+ "key.rz_auto.siren": "Сирена",
+ "key.rz_auto.gear_up": "Передача выше",
+ "key.rz_auto.gear_down": "Передача ниже"
 }

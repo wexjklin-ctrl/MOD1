@@ -15,6 +15,11 @@ public record VehicleSpec(
 		return "rz_auto:" + bedrockId.replace(':', '_');
 	}
 
+	/** Полицейские машины: можно включать сирену. */
+	public boolean hasSiren() {
+		return bedrockId.equals("ford:fhp") || bedrockId.equals("ford:fmpd") || bedrockId.equals("ford:lcso") || bedrockId.equals("ford:unmarked");
+	}
+
 	/** Бездорожье: штраф -70% на песке/грязи/земле/дёрне/моху, кроме этих семейств. */
 	public boolean offroadExempt() {
 		return bedrockId.startsWith("jeep:yj") || bedrockId.startsWith("jeep:xj") || bedrockId.startsWith("ford:");

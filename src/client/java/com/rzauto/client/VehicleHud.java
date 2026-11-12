@@ -53,37 +53,77 @@ final class VehicleHud implements HudElement {
 		if (locked) g.text(mc.font, "Закрыта владельцем", x + 10, y + 36, 0xFFFF6A5A, false);
 	}
 
+	private static void disc(GuiGraphicsExtractor g, int cx, int cy, int r, int color) {
+		for (int dy = -r; dy <= r; dy++) {
+			int half = (int) Math.round(Math.sqrt((double) r * r - (double) dy * dy));
+			g.fill(cx - half, cy + dy, cx + half, cy + dy + 1, color);
+		}
+	}
+
+	/** Круглый спидометр (шкала 270°, ноль слева внизу, красная стрелка), топливо и статус под ним. */
 	private static void gauge(GuiGraphicsExtractor g, Minecraft mc, VehicleEntity ve) {
 		VehicleSpec s = VehicleRegistry.specOf(ve.getType());
 		if (s == null) return;
-		int w = 150, h = 74, x = g.guiWidth() - w - 12, y = g.guiHeight() - h - 12;
-		g.fill(x, y, x + w, y + h, BG);
-		g.fill(x, y + h - 2, x + w, y + h, EDGE);
-		// скорость
+		final int R = 40;
+		int cx = g.guiWidth() - R - 12, cy = g.guiHeight() - R - 34;
 		double kmh = Math.abs(ve.syncedSpeed()) * 72.0;
-		double frac = Math.min(1.0, Math.abs(ve.syncedSpeed()) / Math.max(s.topSpeed(), 0.05));
-		String sp = Long.toString(Math.round(kmh));
+		double topKmh = s.topSpeed() * 72.0;
+		int max = (int) Math.max(120, Math.ceil(topKmh * 1.05 / 40.0) * 40);
+		int labelStep = max <= 240 ? 20 : 40;
+		disc(g, cx, cy, R + 2, 0xFF2A2E35);
+		disc(g, cx, cy, R, 0xFF050607);
+		final double START = -135, SWEEP = 270;
+		int minor = labelStep / 2;
+		for (int v = 0; v <= max; v += minor) {
+			double a = Math.toRadians(START + SWEEP * v / max);
+			boolean major = v % labelStep == 0;
+			g.pose().pushMatrix();
+			g.pose().translate(cx, cy);
+			g.pose().rotate((float) a);
+			g.fill(major ? -1 : 0, -R + 2, major ? 1 : 1, -R + (major ? 8 : 5), major ? 0xFFFFFFFF : 0xFFB0B4BC);
+			g.pose().popMatrix();
+			if (major) {
+				String t = Integer.toString(v);
+				double rr = R - 15;
+				float px = (float) (cx + rr * Math.sin(a)), py = (float) (cy - rr * Math.cos(a));
+				g.pose().pushMatrix();
+				g.pose().translate(px, py);
+				g.pose().scale(0.5f, 0.5f);
+				g.text(mc.font, t, -mc.font.width(t) / 2, -4, 0xFFFFFFFF, false);
+				g.pose().popMatrix();
+			}
+		}
+		// цифровое табло
+		String num = Long.toString(Math.round(kmh));
+		g.fill(cx - 14, cy + 14, cx + 14, cy + 25, 0xFF1A1C20);
+		g.text(mc.font, num, cx - mc.font.width(num) / 2, cy + 15, 0xFFFFA030, false);
 		g.pose().pushMatrix();
-		g.pose().translate(x + 10, y + 7);
-		g.pose().scale(2.5f, 2.5f);
-		g.text(mc.font, sp, 0, 0, frac > 0.95 ? 0xFFFF5A4A : WHITE, true);
+		g.pose().translate(cx + 15, cy + 19);
+		g.pose().scale(0.5f, 0.5f);
+		g.text(mc.font, "км/ч", 0, 0, DIM, false);
 		g.pose().popMatrix();
-		g.text(mc.font, "км/ч", x + 14 + (int) (mc.font.width(sp) * 2.5f), y + 20, DIM, false);
-		// шкала скорости
-		bar(g, x + 10, y + 34, w - 20, 5, frac, 0xFF3DDC84, 0xFFFFC233, 0xFFFF4A3D);
-		// топливо (лава)
+		// стрелка
+		double na = Math.toRadians(START + SWEEP * Math.min(kmh, max) / max);
+		g.pose().pushMatrix();
+		g.pose().translate(cx, cy);
+		g.pose().rotate((float) na);
+		g.fill(-1, -R + 6, 1, 6, 0xFFE02020);
+		g.pose().popMatrix();
+		disc(g, cx, cy, 4, 0xFF303338);
+		// топливо (лава) и статус под циферблатом
 		double fuel = ve.fuelValue() / Math.max(s.maxFuel(), 0.01);
-		g.text(mc.font, "ЛАВА", x + 10, y + 44, DIM, false);
-		bar(g, x + 40, y + 45, w - 50, 7, Math.min(1.0, fuel), 0xFFFF6A00, 0xFFFF8A00, 0xFFFFC233);
-		// статус
+		int bx = cx - R, by = cy + R + 6, bw = 2 * R;
+		g.fill(bx, by, bx + bw, by + 4, 0xFF2A2E35);
+		int fw = (int) Math.round(bw * Math.max(0, Math.min(1, fuel)));
+		if (fw > 0) g.fill(bx, by, bx + fw, by + 4, fuel < 0.15 ? 0xFFFF4A3D : 0xFFFF8A00);
 		String eng = ve.isBroken() ? "СЛОМАНА" : ve.isEngineOn() ? "ДВИГАТЕЛЬ" : "ЗАГЛУШЕН";
 		int ec = ve.isBroken() ? 0xFFFF4A3D : ve.isEngineOn() ? 0xFF3DDC84 : DIM;
-		g.fill(x + 10, y + 59, x + 14, y + 63, ec);
-		g.text(mc.font, eng, x + 18, y + 58, ec, false);
-		String lk = ve.lockState() == Access.Lock.OPEN ? "открыта" : "закрыта";
-		String hint = "[" + RzAutoClient.MENU.getTranslatedKeyMessage().getString() + "] меню";
-		g.text(mc.font, hint, x + w - 10 - mc.font.width(hint), y + 58, DIM, false);
-		if (fuel <= 0.12 && System.currentTimeMillis() / 400 % 2 == 0) g.text(mc.font, "МАЛО ТОПЛИВА", x + 10, y - 11, 0xFFFF6A00, true);
+		g.pose().pushMatrix();
+		g.pose().translate(bx, by + 7);
+		g.pose().scale(0.6f, 0.6f);
+		g.text(mc.font, eng + (ve.lightsOn() ? "  ФАРЫ" : "") + (ve.sirenOn() ? "  СИРЕНА" : "") + "  [" + RzAutoClient.MENU.getTranslatedKeyMessage().getString() + "] меню", 0, 0, ec, false);
+		g.pose().popMatrix();
+		if (fuel <= 0.12 && System.currentTimeMillis() / 400 % 2 == 0) g.text(mc.font, "МАЛО ТОПЛИВА", cx - R, cy - R - 12, 0xFFFF6A00, true);
 	}
 
 	private static void bar(GuiGraphicsExtractor g, int x, int y, int w, int h, double frac, int c1, int c2, int c3) {

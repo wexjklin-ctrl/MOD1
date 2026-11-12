@@ -15,7 +15,8 @@ import net.minecraft.network.chat.Component;
 final class VehicleMenuScreen extends net.minecraft.client.gui.screens.Screen {
 	private final VehicleEntity car;
 	private int sig = -1;
-	private static final int PW = 230, PH = 196;
+	private static final int PW = 240;
+	private int ph = 220;
 
 	VehicleMenuScreen(VehicleEntity car) {
 		super(Component.literal("Автомобиль"));
@@ -23,24 +24,41 @@ final class VehicleMenuScreen extends net.minecraft.client.gui.screens.Screen {
 	}
 
 	private int signature() {
-		return (car.isEngineOn() ? 1 : 0) | (car.isBroken() ? 2 : 0) | (car.lockState().ordinal() << 2);
+		return (car.isEngineOn() ? 1 : 0) | (car.isBroken() ? 2 : 0) | (car.lockState().ordinal() << 2) | (car.lightsOn() ? 16 : 0)
+			| (car.sirenOn() ? 32 : 0) | (car.gearsOn() ? 64 : 0) | (Math.round(car.sensValue() * 10) << 8) | (Math.round(car.hpValue()) << 16);
 	}
 
 	private void act(int action) { ClientPlayNetworking.send(new VehicleActionPayload(car.getId(), action)); }
 
+	private Button btn(String text, int action, int x, int y, int w, int h) {
+		Button b = Button.builder(Component.literal(text), bb -> act(action)).bounds(x, y, w, h).build();
+		addRenderableWidget(b);
+		return b;
+	}
+
 	@Override
 	protected void init() {
 		sig = signature();
-		int x = (width - PW) / 2 + 15, y = (height - PH) / 2 + 58, w = PW - 30, h = 20, gap = 4;
-		addRenderableWidget(Button.builder(Component.literal(car.isEngineOn() ? "Двигатель: ВКЛ  (заглушить)" : "Двигатель: ВЫКЛ  (завести)"), b -> act(VehicleEntity.ACT_ENGINE)).bounds(x, y, w, h).build());
-		addRenderableWidget(Button.builder(Component.literal(car.isLocked() ? "Замок: ЗАКРЫТО  (открыть)" : "Замок: ОТКРЫТО  (закрыть)"), b -> act(VehicleEntity.ACT_LOCK)).bounds(x, y + (h + gap), w, h).build());
-		Button repair = Button.builder(Component.literal(car.isBroken() ? "Починить" : "Исправна"), b -> act(VehicleEntity.ACT_REPAIR)).bounds(x, y + 2 * (h + gap), w, h).build();
-		repair.active = car.isBroken();
-		addRenderableWidget(repair);
-		Button steer = Button.builder(Component.literal("Руль: GTA 5  ✓"), b -> { }).bounds(x, y + 3 * (h + gap), w, h).build();
-		steer.active = false;   // пока единственный режим
-		addRenderableWidget(steer);
-		addRenderableWidget(Button.builder(Component.literal("Закрыть"), b -> onClose()).bounds(x, y + 4 * (h + gap) + 4, w, h).build());
+		VehicleSpec sp = VehicleRegistry.specOf(car.getType());
+		int rows = 8 + (sp != null && sp.hasSiren() ? 1 : 0);
+		ph = 66 + rows * 24 + 8;
+		int x = (width - PW) / 2 + 15, y = (height - ph) / 2 + 66, w = PW - 30, h = 20, step = h + 4;
+		int r = 0;
+		btn(car.isEngineOn() ? "Двигатель: ВКЛ  (заглушить)" : "Двигатель: ВЫКЛ  (завести)", VehicleEntity.ACT_ENGINE, x, y + step * r++, w, h);
+		btn(car.isLocked() ? "Замок: ЗАКРЫТО  (открыть)" : "Замок: ОТКРЫТО  (закрыть)", VehicleEntity.ACT_LOCK, x, y + step * r++, w, h);
+		btn(car.lightsOn() ? "Фары: ВКЛ  (выключить)" : "Фары: ВЫКЛ  (включить)", VehicleEntity.ACT_LIGHTS, x, y + step * r++, w, h);
+		if (sp != null && sp.hasSiren()) btn(car.sirenOn() ? "Сирена: ВКЛ  (выключить)" : "Сирена: ВЫКЛ  (включить)", VehicleEntity.ACT_SIREN, x, y + step * r++, w, h);
+		btn("Пересесть на другое место", VehicleEntity.ACT_SEAT, x, y + step * r++, w, h);
+		btn(car.gearsOn() ? "Передачи: ВКЛ  (Ctrl выше, Shift ниже)" : "Передачи: ВЫКЛ  (включить)", VehicleEntity.ACT_GEARS, x, y + step * r++, w, h);
+		int ry = y + step * r++;
+		btn("-", VehicleEntity.ACT_SENS_DOWN, x, ry, 24, h);
+		Button lab = Button.builder(Component.literal("Руль GTA 5, чувствительность: " + String.format("%.1f", car.sensValue())), b -> { }).bounds(x + 28, ry, w - 56, h).build();
+		lab.active = false;
+		addRenderableWidget(lab);
+		btn("+", VehicleEntity.ACT_SENS_UP, x + w - 24, ry, 24, h);
+		Button repair = btn(car.isBroken() || car.hpValue() < (sp == null ? 20 : sp.health()) - 0.01f ? "Починить (нужна шестерёнка)" : "Исправна", VehicleEntity.ACT_REPAIR, x, y + step * r++, w, h);
+		repair.active = car.isBroken() || car.hpValue() < (sp == null ? 20 : sp.health()) - 0.01f;
+		addRenderableWidget(Button.builder(Component.literal("Закрыть"), b -> onClose()).bounds(x, y + step * r++ + 4, w, h).build());
 	}
 
 	@Override
@@ -61,19 +79,23 @@ final class VehicleMenuScreen extends net.minecraft.client.gui.screens.Screen {
 
 	@Override
 	public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
-		int x = (width - PW) / 2, y = (height - PH) / 2;
+		int x = (width - PW) / 2, y = (height - ph) / 2;
 		g.fill(0, 0, width, height, 0x70000000);
-		g.fill(x, y, x + PW, y + PH, 0xF0121418);
+		g.fill(x, y, x + PW, y + ph, 0xF0121418);
 		g.fill(x, y, x + PW, y + 3, VehicleHud.EDGE);
-		g.outline(x, y, PW, PH, 0xFF2A2E35);
+		g.outline(x, y, PW, ph, 0xFF2A2E35);
 		VehicleSpec s = VehicleRegistry.specOf(car.getType());
 		g.text(font, car.getName().getString(), x + 15, y + 12, VehicleHud.WHITE, true);
 		String lk = car.lockState() == Access.Lock.OPEN ? "открыта" : "закрыта";
 		g.text(font, "Меню автомобиля", x + 15, y + 25, VehicleHud.DIM, false);
 		double fuel = s == null ? 0 : car.fuelValue() / Math.max(s.maxFuel(), 0.01);
 		g.text(font, "ЛАВА", x + 15, y + 40, VehicleHud.DIM, false);
-		g.fill(x + 50, y + 41, x + PW - 15, y + 47, 0xFF2A2E35);
-		g.fill(x + 50, y + 41, x + 50 + (int) ((PW - 65) * Math.max(0, Math.min(1, fuel))), y + 47, 0xFFFF7A00);
+		g.fill(x + 80, y + 41, x + PW - 15, y + 47, 0xFF2A2E35);
+		g.fill(x + 80, y + 41, x + 80 + (int) ((PW - 95) * Math.max(0, Math.min(1, fuel))), y + 47, 0xFFFF7A00);
+		double hpf = s == null ? 1 : car.hpValue() / Math.max(s.health(), 1);
+		g.text(font, "ПРОЧНОСТЬ", x + 15, y + 52, VehicleHud.DIM, false);
+		g.fill(x + 80, y + 53, x + PW - 15, y + 59, 0xFF2A2E35);
+		g.fill(x + 80, y + 53, x + 80 + (int) ((PW - 95) * Math.max(0, Math.min(1, hpf))), y + 59, hpf > 0.5 ? 0xFF3DDC84 : hpf > 0.25 ? 0xFFFFC233 : 0xFFFF4A3D);
 		super.extractRenderState(g, mx, my, pt);
 	}
 }
