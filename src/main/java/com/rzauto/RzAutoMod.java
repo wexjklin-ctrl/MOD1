@@ -42,7 +42,7 @@ public class RzAutoMod implements ModInitializer {
 	private static void driveTest(ServerLevel w) {
 		VehicleRegistry.Entry en = VehicleRegistry.entries().get(0);
 		VehicleEntity v = en.type().create(w, EntitySpawnReason.COMMAND);
-		net.minecraft.core.BlockPos sp = w.getSharedSpawnPos();
+		net.minecraft.core.BlockPos sp = w.getRespawnData().pos();
 		v.setPos(sp.getX() + 0.5, sp.getY() + 20, sp.getZ() + 0.5);
 		w.addFreshEntity(v);
 		for (int i = 0; i < 120; i++) v.tick();
