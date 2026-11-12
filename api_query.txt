@@ -11,3 +11,5 @@ net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking$Context
 net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking$PlayPayloadHandler
 com.mojang.blaze3d.platform.InputConstants
 net.minecraft.world.entity.Entity
+net.minecraft.client.Minecraft
+net.minecraft.client.Options
