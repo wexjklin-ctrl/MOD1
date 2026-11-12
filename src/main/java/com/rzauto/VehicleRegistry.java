@@ -1,6 +1,8 @@
 package com.rzauto;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.List;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -24,7 +26,12 @@ public final class VehicleRegistry {
 
 	private static final List<Entry> ENTRIES = new ArrayList<>();
 
+	private static final Map<EntityType<?>, VehicleSpec> SPECS = new HashMap<>();
+
 	public static List<Entry> entries() { return ENTRIES; }
+
+	/** Описание машины по типу сущности (null для чужих типов). */
+	public static VehicleSpec specOf(EntityType<?> type) { return SPECS.get(type); }
 
 	public static void registerAll() {
 		for (VehicleSpec spec : VehicleCatalog.all()) {
@@ -36,6 +43,7 @@ public final class VehicleRegistry {
 			float h = spec.motorcycle() ? 1.4f : 1.5f;
 			EntityType<VehicleEntity> type = EntityType.Builder.<VehicleEntity>of(VehicleEntity::new, MobCategory.MISC)
 					.sized(w, h)
+					.passengerAttachments(0.5f)   // этап 2: все пассажиры в центре; точные места из vehicles.json позже
 					.clientTrackingRange(8)   // 8 чанков = 128 блоков; уменьшить при нагрузке (см. PROMPT, «Обновление 4»)
 					.updateInterval(2)
 					.build(typeKey);
@@ -45,6 +53,7 @@ public final class VehicleRegistry {
 			Item item = new VehicleItem(new Item.Properties().setId(itemKey).stacksTo(1), type);
 			Registry.register(BuiltInRegistries.ITEM, itemKey, item);
 
+			SPECS.put(type, spec);
 			ENTRIES.add(new Entry(spec, type, item));
 		}
 	}
