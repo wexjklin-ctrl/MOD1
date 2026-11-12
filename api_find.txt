@@ -1,2 +1,4 @@
-net/minecraft/client/resources/sounds/.*Boat.*Sound.*
-net/minecraft/client/resources/sounds/.*Minecart.*Sound.*
+net/minecraft/client/gui/GuiGraphics.*
+net/fabricmc/fabric/api/client/(keybinding|keymapping)/.*
+net/fabricmc/fabric/api/client/rendering/v1/hud/.*
+net/minecraft/client/gui/screens/.*Screen$

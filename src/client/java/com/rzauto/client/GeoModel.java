@@ -35,7 +35,7 @@ final class GeoModel {
 			String name = geometryId.startsWith("geometry.") ? geometryId.substring(9) : geometryId;
 			var in = GeoModel.class.getResourceAsStream("/assets/rz_auto/geo/" + name + ".geo.json");
 			if (in != null) try (var r = new InputStreamReader(in, StandardCharsets.UTF_8)) { m = parse(JsonParser.parseReader(r).getAsJsonObject(), geometryId); }
-			if (m != null) m.applyStatic(animId);
+			if (m != null) { m.applyStatic(animId); m.applyDyn(animId); }
 		} catch (Throwable t) {
 			com.rzauto.RzAutoMod.LOG.error("geo {} не загрузилась", geometryId, t);
 		}

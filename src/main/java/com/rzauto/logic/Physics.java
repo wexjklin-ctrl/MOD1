@@ -102,6 +102,36 @@ public final class Physics {
 		st.speed = clamp(speed, -effMax * p.reverseModifier(), effMax);
 	}
 
+
+	/** Максимальный угол поворота кузова за тик (градусы): автомобиль / мотоцикл. */
+	public static final double GTA_YAW_CAR = 4.8, GTA_YAW_MOTO = 6.0;
+
+	/**
+	 * Управление «как в GTA»: поворот работает сразу на малой скорости (радиус ~4 блока на 20 км/ч, вписывается в городские повороты),
+	 * на высокой скорости угол поворота уменьшается; разгон резче с места, торможение сильнее, без разгона машина сама замедляется.
+	 */
+	public static void tickGta(VehicleSpec s, State st, Input in, double effMax) {
+		Params p = Params.of(s);
+		double top = Math.max(s.topSpeed(), 0.05), v = st.speed, av = Math.abs(v);
+		st.steer = stepTowards(st.steer, in.x(), in.x() == 0 ? 0.40 : 0.30);
+		double low = clamp(av / 0.12, 0, 1);
+		double high = 1 - 0.6 * clamp((av - 0.4) / Math.max(top - 0.4, 0.1), 0, 1);
+		double yawMax = s.motorcycle() ? GTA_YAW_MOTO : GTA_YAW_CAR;
+		st.yawDeg = normalizeAngle(st.yawDeg - st.steer * yawMax * low * high * (v >= 0 ? 1 : -1));
+
+		boolean throttling = Math.abs(in.y()) > THROTTLE_DEADZONE;
+		boolean braking = throttling && av > 0.02 && Math.signum(in.y()) != Math.signum(v);
+		double reverseFactor = v >= 0 ? 1 : p.reverseModifier();
+		if (braking) {
+			v = stepTowards(v, 0, (p.brakeForce() / 20.0) * 1.4 * brakeFade(v, top));
+		} else if (throttling && av <= effMax * Math.abs(in.y())) {
+			double launch = 1 + 1.2 * (1 - clamp(av / top, 0, 1));
+			v += Math.signum(in.y()) * (effMax / 20.0 / s.accel()) * reverseFactor * launch;
+		}
+		if (!throttling) v = stepTowards(v, 0, 0.03);
+		st.speed = clamp(v, -effMax * p.reverseModifier(), effMax);
+	}
+
 	/**
 	 * Тик в «режиме руля» (ветка isWheelMode в groundEntityTick): аналоговый ввод, опционально эмуляция руля и занос.
 	 * @param rawX,rawY сырой ввод стика; @param surface текущее покрытие (null = обычное)

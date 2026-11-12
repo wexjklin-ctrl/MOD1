@@ -30,7 +30,7 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 		public GeoModel model;
 		public GeoModel.Baked bake, bakeE;
 		/** путь вперёд в блоках (по модулю 18, чтобы не терять точность) и скорость поворота (град/с) для колёс и руля */
-		public float dist, steer;
+		public float dist, steer, pitch, roll;
 		public Identifier tex, texE;
 	}
 
@@ -49,7 +49,7 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 	private static final class Track {
 		boolean init;
 		double x, z, dist;
-		float yaw, steer;
+		float yaw, steer, vel, acc, pitch, roll;
 		long ns;
 	}
 	private static final java.util.Map<VehicleEntity, Track> TRACKS = new java.util.WeakHashMap<>();
@@ -68,6 +68,12 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 				double yr = Math.toRadians(yaw);
 				double fwd = dx * -Math.sin(yr) + dz * Math.cos(yr);   // перед машины в мире: (-sin yaw, cos yaw)
 				t.dist += fwd;
+				float dtT = dt * 20f;
+				float vt = (float) (fwd / dtT);   // блоков за тик
+				float nv = t.vel + (vt - t.vel) * (1f - (float) Math.exp(-dt / 0.12f));
+				float ac = (nv - t.vel) / dtT;
+				t.vel = nv;
+				t.acc += (ac - t.acc) * (1f - (float) Math.exp(-dt / 0.18f));
 			}
 			float dyaw = net.minecraft.util.Mth.wrapDegrees(yaw - t.yaw);
 			float rate = net.minecraft.util.Mth.clamp(dyaw / dt, -150f, 150f);
@@ -76,6 +82,13 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 			t.steer = 0;
 		}
 		t.init = true; t.x = x; t.z = z; t.yaw = yaw; t.ns = now;
+		// наклон кузова по инерции: торможение клюёт носом, разгон приседает, на повороте крен наружу
+		float pt = net.minecraft.util.Mth.clamp(-t.acc * 28f, -3.5f, 4.5f);
+		float lat = t.vel * (-t.steer) * 0.0174533f / 20f;
+		float rt = net.minecraft.util.Mth.clamp(lat * 70f, -4.5f, 4.5f);
+		float k = 1f - (float) Math.exp(-Math.max(dt, 0f) / 0.15f);
+		t.pitch += (pt - t.pitch) * k; t.roll += (rt - t.roll) * k;
+		s.pitch = t.pitch; s.roll = t.roll;
 		s.dist = (float) (t.dist % 18.0);
 		s.steer = t.steer;
 	}
@@ -112,6 +125,9 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 		if (s.model != null && s.tex != null) {
 			pose.pushPose();
 			pose.mulPose(new Matrix4f().rotationY((float) Math.toRadians(-s.yaw)));
+			pose.translate(0f, 0.4f, 0f);
+			pose.mulPose(new Matrix4f().rotationX((float) Math.toRadians(s.pitch)).rotateZ((float) Math.toRadians(s.roll)));
+			pose.translate(0f, -0.4f, 0f);
 			pose.scale(com.rzauto.RzConfig.renderScale, com.rzauto.RzConfig.renderScale, com.rzauto.RzConfig.renderScale);
 			final int lt = s.lightCoords;
 			final GeoModel gm = s.model;

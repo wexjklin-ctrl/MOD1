@@ -47,7 +47,7 @@ public class VehicleEntity extends Entity {
 
 	private static VehicleState newState() {
 		VehicleState v = new VehicleState();
-		v.gears.mode = true;
+		v.gta = true;   // управление как в GTA, без ручных передач (скорость всегда 100%)
 		return v;
 	}
 	private static final double TURN_STRENGTH = com.rzauto.logic.VehicleState.DEFAULT_TURN_STRENGTH;   // по умолчанию 1 (как в оригинале)
@@ -110,7 +110,8 @@ public class VehicleEntity extends Entity {
 
 		st.yawDeg = getYRot();
 		double max = Physics.currentMax(s, vs.gears.speedPercent(s, vs.speedPercent), false, 1, true);
-		Physics.tick(s, st, new Physics.Input(x, y), max, false, TURN_STRENGTH);
+		if (vs.gta) Physics.tickGta(s, st, new Physics.Input(x, y), max);
+		else Physics.tick(s, st, new Physics.Input(x, y), max, false, TURN_STRENGTH);
 
 		Physics.horizontalVelocity(st.yawDeg, st.speed, st.lat, vel);
 		double vy = onGround() ? -GRAVITY : (getDeltaMovement().y - GRAVITY) * 0.98;
