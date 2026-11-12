@@ -8,6 +8,7 @@ import java.util.*;
 /** Читает vehicles.json (Gson входит в состав Minecraft). */
 public final class VehicleCatalog {
 	private static final Map<String, VehicleSpec> BY_ID = new LinkedHashMap<>();
+	private static final Map<String, double[][]> SEATS = new HashMap<>();
 
 	public static void load() {
 		try (var in = VehicleCatalog.class.getResourceAsStream("/data/vehicles.json")) {
@@ -20,6 +21,7 @@ public final class VehicleCatalog {
 
 	public static void parse(Reader r) {
 		BY_ID.clear();
+		SEATS.clear();
 		for (JsonElement el : JsonParser.parseReader(r).getAsJsonArray()) {
 			JsonObject o = el.getAsJsonObject(), p = o.getAsJsonObject("profile");
 			JsonObject f = p.getAsJsonObject("fuel");
@@ -35,8 +37,17 @@ public final class VehicleCatalog {
 				g == null ? 1 : g.get("fuelMult").getAsDouble(), g == null ? 1 : g.get("wearMult").getAsDouble(),
 				o.get("max_auto_step").getAsDouble(), o.get("health").getAsInt());
 			BY_ID.put(s.bedrockId(), s);
+			if (o.has("seats") && o.get("seats").isJsonArray()) {
+				JsonArray sa = o.getAsJsonArray("seats");
+				double[][] seats = new double[sa.size()][3];
+				for (int i = 0; i < seats.length; i++) for (int k = 0; k < 3; k++) seats[i][k] = sa.get(i).getAsJsonArray().get(k).getAsDouble();
+				SEATS.put(s.bedrockId(), seats);
+			}
 		}
 	}
+
+	/** Места из Bedrock (x, y, z относительно машины; первое = водитель); null, если нет. */
+	public static double[][] seats(String bedrockId) { return SEATS.get(bedrockId); }
 
 	public static Collection<VehicleSpec> all() { return BY_ID.values(); }
 	public static VehicleSpec get(String bedrockId) { return BY_ID.get(bedrockId); }

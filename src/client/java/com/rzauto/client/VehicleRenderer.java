@@ -26,6 +26,7 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 		public float yaw;
 		public int color = 0xFF8899AA;
 		public boolean moto;
+		public boolean hide;
 	}
 
 	public VehicleRenderer(EntityRendererProvider.Context ctx) {
@@ -39,6 +40,9 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 	public void extractRenderState(VehicleEntity e, State s, float partial) {
 		super.extractRenderState(e, s, partial);
 		s.yaw = e.getYRot(partial);
+		net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+		// Камера от первого лица внутри коробки: не рисуем её для самого водителя/пассажира
+		s.hide = mc.player != null && mc.player.getVehicle() == e && mc.options.getCameraType().isFirstPerson();
 		VehicleSpec spec = VehicleRegistry.specOf(e.getType());
 		if (spec != null) {
 			int h = spec.bedrockId().hashCode();
@@ -50,6 +54,7 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 
 	@Override
 	public void submit(State s, PoseStack pose, SubmitNodeCollector collector, CameraRenderState camera) {
+		if (s.hide) { super.submit(s, pose, collector, camera); return; }
 		pose.pushPose();
 		pose.mulPose(new Matrix4f().rotationY((float) Math.toRadians(180.0 - s.yaw)));
 		final int light = s.lightCoords;

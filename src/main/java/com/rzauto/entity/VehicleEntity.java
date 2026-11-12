@@ -14,7 +14,10 @@ import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.player.Input;
 import net.minecraft.world.entity.player.Player;
 import com.rzauto.VehicleRegistry;
+import com.rzauto.logic.GearDriver;
 import com.rzauto.logic.Physics;
+import com.rzauto.logic.VehicleState;
+import net.minecraft.network.chat.Component;
 import com.rzauto.logic.VehicleSpec;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.ValueInput;
@@ -35,6 +38,18 @@ public class VehicleEntity extends Entity {
 	private VehicleSpec spec;
 	private final Physics.State st = new Physics.State();
 	private final double[] vel = new double[2];
+	/** Состояние (передачи и т.д.); режим передач включён по умолчанию, чтобы скорость не была сразу 100%. */
+	private final VehicleState vs = newState();
+	private final GearDriver gearDriver = new GearDriver();
+	private final GearDriver.Out gearOut = new GearDriver.Out();
+	private boolean lastJump;
+	private String lastHud = "";
+
+	private static VehicleState newState() {
+		VehicleState v = new VehicleState();
+		v.gears.mode = true;
+		return v;
+	}
 	private static final double TURN_STRENGTH = com.rzauto.logic.VehicleState.DEFAULT_TURN_STRENGTH;   // по умолчанию 1 (как в оригинале)
 	private static final double GRAVITY = 0.08;
 
@@ -72,12 +87,23 @@ public class VehicleEntity extends Entity {
 			Input in = driver.getLastClientInput();
 			x = (in.left() ? 1 : 0) - (in.right() ? 1 : 0);   // как в Bedrock: влево = +1
 			y = (in.forward() ? 1 : 0) - (in.backward() ? 1 : 0);
+			// Передачи: Прыжок (пробел) — короткое нажатие выше, удержание ниже (как в оригинале)
+			long now = level().getGameTime();
+			boolean jump = in.jump();
+			if (jump != lastJump) { gearDriver.onJump(jump, now); lastJump = jump; }
+			gearDriver.tick(vs.gears, s, driver.getInventory().getSelectedSlot(), now, gearOut);
+			if (gearOut.hud != null && (!gearOut.hud.equals(lastHud) || now % 10 == 0)) {
+				lastHud = gearOut.hud;
+				driver.sendSystemMessage(Component.literal(gearOut.hud), true);
+			}
 		}
+		String m7 = vs.gears.tick7(s, driver != null);
+		if (m7 != null && driver != null) driver.sendSystemMessage(Component.literal(m7), true);
 		// Спящая машина: пусто, стоит, на земле, нет скорости → ничего не считаем.
 		if (driver == null && onGround() && st.speed == 0 && st.lat == 0) return;
 
 		st.yawDeg = getYRot();
-		double max = Physics.currentMax(s, 100, false, 1, true);
+		double max = Physics.currentMax(s, vs.gears.speedPercent(s, vs.speedPercent), false, 1, true);
 		Physics.tick(s, st, new Physics.Input(x, y), max, false, TURN_STRENGTH);
 
 		Physics.horizontalVelocity(st.yawDeg, st.speed, st.lat, vel);

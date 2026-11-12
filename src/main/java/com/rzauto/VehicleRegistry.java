@@ -12,6 +12,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.phys.Vec3;
 import com.rzauto.entity.VehicleEntity;
 import com.rzauto.item.VehicleItem;
 import com.rzauto.logic.VehicleCatalog;
@@ -41,9 +42,16 @@ public final class VehicleRegistry {
 			ResourceKey<EntityType<?>> typeKey = ResourceKey.create(Registries.ENTITY_TYPE, id);
 			float w = spec.motorcycle() ? 0.9f : 2.0f;
 			float h = spec.motorcycle() ? 1.4f : 1.5f;
+			double[][] sd = VehicleCatalog.seats(spec.bedrockId());
+			Vec3[] seatPts;
+			if (sd == null || sd.length == 0) seatPts = new Vec3[] { new Vec3(0, 0.5, 0) };
+			else {
+				seatPts = new Vec3[Math.min(sd.length, 2)];
+				for (int i = 0; i < seatPts.length; i++) seatPts[i] = new Vec3(sd[i][0], spec.motorcycle() ? 0.5 : 0.3, sd[i][2]);
+			}
 			EntityType<VehicleEntity> type = EntityType.Builder.<VehicleEntity>of(VehicleEntity::new, MobCategory.MISC)
 					.sized(w, h)
-					.passengerAttachments(0.5f)   // этап 2: все пассажиры в центре; точные места из vehicles.json позже
+					.passengerAttachments(seatPts)   // места из vehicles.json (x, z); высота пока общая
 					.clientTrackingRange(8)   // 8 чанков = 128 блоков; уменьшить при нагрузке (см. PROMPT, «Обновление 4»)
 					.updateInterval(2)
 					.build(typeKey);
