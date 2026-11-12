@@ -26,18 +26,20 @@ final class GeoModel {
 	private static final Map<String, GeoModel> CACHE = new HashMap<>();
 
 	/** Модель по id геометрии ("geometry.458") или null, если файла нет / он не разобрался. */
-	static synchronized GeoModel get(String geometryId) {
+	static synchronized GeoModel get(String geometryId, String animId) {
 		if (geometryId == null) return null;
-		if (CACHE.containsKey(geometryId)) return CACHE.get(geometryId);
+		String key = geometryId + "|" + animId;
+		if (CACHE.containsKey(key)) return CACHE.get(key);
 		GeoModel m = null;
 		try {
 			String name = geometryId.startsWith("geometry.") ? geometryId.substring(9) : geometryId;
 			var in = GeoModel.class.getResourceAsStream("/assets/rz_auto/geo/" + name + ".geo.json");
 			if (in != null) try (var r = new InputStreamReader(in, StandardCharsets.UTF_8)) { m = parse(JsonParser.parseReader(r).getAsJsonObject(), geometryId); }
+			if (m != null) m.applyStatic(animId);
 		} catch (Throwable t) {
 			com.rzauto.RzAutoMod.LOG.error("geo {} не загрузилась", geometryId, t);
 		}
-		CACHE.put(geometryId, m);
+		CACHE.put(key, m);
 		return m;
 	}
 
@@ -49,6 +51,8 @@ final class GeoModel {
 		String name, parentName;
 		int parent = -1;
 		float px, py, pz, rx, ry, rz;
+		/** статичная часть анимации езды: масштаб, добавка к повороту (градусы), смещение (блоки, Java-оси) */
+		float sx = 1, sy = 1, sz = 1, ax, ay, az, tx, ty, tz;
 		final List<Cube> cubes = new ArrayList<>();
 	}
 
@@ -146,12 +150,39 @@ final class GeoModel {
 		return out;
 	}
 
+	private static JsonObject STATIC;
+
+	private static synchronized JsonObject staticData() {
+		if (STATIC == null) {
+			STATIC = new JsonObject();
+			try (var in = GeoModel.class.getResourceAsStream("/assets/rz_auto/geo/anim_static.json")) {
+				if (in != null) STATIC = JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8)).getAsJsonObject();
+			} catch (Throwable t) { com.rzauto.RzAutoMod.LOG.error("anim_static.json", t); }
+		}
+		return STATIC;
+	}
+
+	/** Статичные каналы анимации езды (корневой масштаб 1.3..2.1, наклон руля и т.п.). Динамику (колёса, подвеска) добавим отдельно. */
+	private void applyStatic(String animId) {
+		if (animId == null) return;
+		JsonObject a = staticData().has(animId) ? staticData().getAsJsonObject(animId) : null;
+		if (a == null) return;
+		for (Bone b : bones) {
+			if (!a.has(b.name)) continue;
+			JsonObject e = a.getAsJsonObject(b.name);
+			if (e.has("scale")) { JsonArray v = e.getAsJsonArray("scale"); b.sx = f(v, 0); b.sy = f(v, 1); b.sz = f(v, 2); }
+			if (e.has("rot")) { JsonArray v = e.getAsJsonArray("rot"); b.ax = f(v, 0); b.ay = f(v, 1); b.az = f(v, 2); }
+			if (e.has("pos")) { JsonArray v = e.getAsJsonArray("pos"); b.tx = f(v, 0) / 16f; b.ty = f(v, 1) / 16f; b.tz = -f(v, 2) / 16f; }
+		}
+	}
+
 	private Matrix4f world(int i, Matrix4f[] memo) {
 		if (memo[i] != null) return memo[i];
 		Bone b = bones[i];
 		Matrix4f m = b.parent >= 0 && b.parent != i ? new Matrix4f(world(b.parent, memo)) : new Matrix4f();
-		m.translate(b.px, b.py, b.pz)
-			.rotateZ((float) Math.toRadians(-b.rz)).rotateY((float) Math.toRadians(-b.ry)).rotateX((float) Math.toRadians(b.rx))
+		m.translate(b.tx, b.ty, b.tz).translate(b.px, b.py, b.pz)
+			.rotateZ((float) Math.toRadians(-(b.rz + b.az))).rotateY((float) Math.toRadians(-(b.ry + b.ay))).rotateX((float) Math.toRadians(b.rx + b.ax))
+			.scale(b.sx, b.sy, b.sz)
 			.translate(-b.px, -b.py, -b.pz);
 		memo[i] = m;
 		return m;
@@ -171,7 +202,7 @@ final class GeoModel {
 					m.transformPosition(v);
 					int face = k / 4;
 					n.set(c.nrm[face * 3], c.nrm[face * 3 + 1], c.nrm[face * 3 + 2]);
-					m.transformDirection(n);
+					m.transformDirection(n); n.normalize();
 					vc.addVertex(pp, v.x, v.y, v.z).setColor(-1).setUv(c.uv[k * 2], c.uv[k * 2 + 1])
 						.setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pp, n.x, n.y, n.z);
 				}

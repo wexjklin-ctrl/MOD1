@@ -51,7 +51,7 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 			int r = 90 + (h & 0x7F), g = 90 + ((h >> 7) & 0x7F), b = 90 + ((h >> 14) & 0x7F);
 			s.color = 0xFF000000 | (r << 16) | (g << 8) | b;
 			s.moto = spec.motorcycle();
-			s.model = GeoModel.get(com.rzauto.logic.VehicleCatalog.geometry(spec.bedrockId()));
+			s.model = GeoModel.get(com.rzauto.logic.VehicleCatalog.geometry(spec.bedrockId()), com.rzauto.logic.VehicleCatalog.driveAnim(spec.bedrockId()));
 			String tn = com.rzauto.logic.VehicleCatalog.texture(spec.bedrockId());
 			s.tex = (s.model != null && tn != null) ? Identifier.fromNamespaceAndPath("rz_auto", "textures/entity/" + tn + ".png") : null;
 		}
