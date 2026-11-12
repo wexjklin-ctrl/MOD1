@@ -47,7 +47,7 @@ public final class VehicleRegistry {
 			if (sd == null || sd.length == 0) seatPts = new Vec3[] { new Vec3(0, 0.5, 0) };
 			else {
 				seatPts = new Vec3[Math.min(sd.length, 2)];
-				for (int i = 0; i < seatPts.length; i++) seatPts[i] = new Vec3(sd[i][0], spec.motorcycle() ? 0.5 : 0.3, sd[i][2]);
+				for (int i = 0; i < seatPts.length; i++) seatPts[i] = new Vec3(sd[i][0], spec.motorcycle() ? 0.4 : 0.1, sd[i][2]);
 			}
 			EntityType<VehicleEntity> type = EntityType.Builder.<VehicleEntity>of(VehicleEntity::new, MobCategory.MISC)
 					.sized(w, h)

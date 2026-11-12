@@ -56,10 +56,10 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 	public void submit(State s, PoseStack pose, SubmitNodeCollector collector, CameraRenderState camera) {
 		if (s.hide) { super.submit(s, pose, collector, camera); return; }
 		pose.pushPose();
-		pose.mulPose(new Matrix4f().rotationY((float) Math.toRadians(180.0 - s.yaw)));
+		pose.mulPose(new Matrix4f().rotationY((float) Math.toRadians(-s.yaw)));
 		final int light = s.lightCoords;
-		final float hw = s.moto ? 0.25f : 0.6f, hl = s.moto ? 0.9f : 1.1f, hh = s.moto ? 0.9f : 0.8f;
-		collector.submitCustomGeometry(pose, RenderTypes.entitySolid(WHITE), (p, vc) -> box(p, vc, hw, hl, hh, s.color, light));
+		final float hw = s.moto ? 0.25f : 0.6f, hl = s.moto ? 0.9f : 1.1f, hh = s.moto ? 0.9f : 1.0f;
+		collector.submitCustomGeometry(pose, RenderTypes.entityCutoutNoCull(WHITE), (p, vc) -> box(p, vc, hw, hl, hh, s.color, light));
 		pose.popPose();
 		super.submit(s, pose, collector, camera);
 	}

@@ -26,7 +26,11 @@ public class VehicleItem extends Item {
 		BlockPos pos = ctx.getClickedPos().relative(ctx.getClickedFace());
 		VehicleEntity e = type.spawn(level, ctx.getItemInHand(), player, pos, EntitySpawnReason.SPAWN_ITEM_USE, true, false);
 		if (e == null) return InteractionResult.FAIL;
-		if (player != null) e.setOwner(player.getUUID());
+		if (player != null) {
+			e.setOwner(player.getUUID());
+			e.setYRot(player.getYRot());   // перед машины = куда смотрел игрок
+			e.setYHeadRot(player.getYRot());
+		}
 		ctx.getItemInHand().shrink(1);
 		return InteractionResult.SUCCESS;
 	}

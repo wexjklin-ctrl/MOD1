@@ -154,7 +154,11 @@ public class VehicleEntity extends Entity {
 	public InteractionResult interact(Player player, InteractionHand hand, Vec3 hit) {
 		if (player.isSecondaryUseActive()) return InteractionResult.PASS;
 		if (!level().isClientSide()) {
-			player.startRiding(this);
+			if (player.startRiding(this)) {
+				player.setYRot(getYRot());   // водитель смотрит вперёд по ходу машины
+				player.setXRot(0);
+				player.setYHeadRot(getYRot());
+			}
 		}
 		return InteractionResult.SUCCESS;
 	}
