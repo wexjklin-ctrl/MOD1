@@ -1,3 +1,2 @@
-fabric/api/(creativetab|itemgroup)/.*Events
-net/minecraft/world/entity/(InterpolationHandler|vehicle/.*Boat|vehicle/.*Minecart)
-net/minecraft/.*Interpolat.*
+net/minecraft/client/resources/sounds/.*Boat.*Sound.*
+net/minecraft/client/resources/sounds/.*Minecart.*Sound.*
