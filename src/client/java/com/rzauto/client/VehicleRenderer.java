@@ -2,7 +2,7 @@ package com.rzauto.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.math.Axis;
+import org.joml.Matrix4f;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
@@ -51,7 +51,7 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 	@Override
 	public void submit(State s, PoseStack pose, SubmitNodeCollector collector, CameraRenderState camera) {
 		pose.pushPose();
-		pose.mulPose(Axis.YP.rotationDegrees(180.0f - s.yaw));
+		pose.mulPose(new Matrix4f().rotationY((float) Math.toRadians(180.0 - s.yaw)));
 		final int light = s.lightCoords;
 		final float hw = s.moto ? 0.25f : 0.6f, hl = s.moto ? 0.9f : 1.1f, hh = s.moto ? 0.9f : 0.8f;
 		collector.submitCustomGeometry(pose, RenderTypes.entitySolid(WHITE), (p, vc) -> box(vc, hw, hl, hh, s.color, light));
