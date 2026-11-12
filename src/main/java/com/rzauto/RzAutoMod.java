@@ -56,13 +56,19 @@ public class RzAutoMod implements ModInitializer {
 		w.addFreshEntity(v);
 		for (int i = 0; i < 120; i++) v.tick();
 		LOG.info("RZ SMOKE: после падения y={} (старт {}), onGround={}", v.getY(), sp.getY() + 20, v.onGround());
-		double x0 = v.getX(), z0 = v.getZ();
-		v.debugSetSpeed(0.2);   // 1-я передача = 10% от top_speed, лимит ~0.21
-		int ticks = 0;
-		for (; ticks < 400 && (v.debugSpeed() != 0 || ticks == 0); ticks++) v.tick();
-		double dist = Math.hypot(v.getX() - x0, v.getZ() - z0);
-		LOG.info("RZ SMOKE: заезд: проехала {} блоков, остановилась за {} тиков, speed={}", String.format("%.1f", dist), ticks, v.debugSpeed());
-		LOG.info("RZ SMOKE: заезд {}", (dist > 0.2 && v.debugSpeed() == 0) ? "OK" : "FAIL");
+		double x0 = v.getX(), y0 = v.getY(), z0 = v.getZ();
+		boolean ok = false;
+		for (int k = 0; k < 4 && !ok; k++) {   // случайный рельеф CI: пробуем 4 направления, пока не упрёмся в стену сразу
+			v.setPos(x0, y0, z0);
+			v.setYRot(90f * k);
+			v.debugSetSpeed(0.2);   // 1-я передача = 10% от top_speed, лимит ~0.21
+			int ticks = 0;
+			for (; ticks < 400 && (v.debugSpeed() != 0 || ticks == 0); ticks++) v.tick();
+			double dist = Math.hypot(v.getX() - x0, v.getZ() - z0);
+			LOG.info("RZ SMOKE: заезд (курс {}): проехала {} блоков, остановилась за {} тиков, speed={}", 90 * k, String.format("%.1f", dist), ticks, v.debugSpeed());
+			ok = dist > 0.2 && v.debugSpeed() == 0;
+		}
+		LOG.info("RZ SMOKE: заезд {}", ok ? "OK" : "FAIL");
 		v.discard();
 	}
 }
