@@ -34,12 +34,12 @@ public class RzAutoClient implements ClientModInitializer {
 		if (mc.player == null || mc.level == null) return;
 		while (ENTER.consumeClick()) {
 			VehicleEntity ve = VehicleHud.looked(mc);
-			if (ve != null && mc.screen == null) ClientPlayNetworking.send(new VehicleActionPayload(ve.getId(), VehicleEntity.ACT_ENTER));
+			if (ve != null && mc.gui.screen() == null) ClientPlayNetworking.send(new VehicleActionPayload(ve.getId(), VehicleEntity.ACT_ENTER));
 		}
 		while (MENU.consumeClick()) {
 			VehicleEntity ve = VehicleHud.riding(mc);
 			if (ve == null) ve = VehicleHud.looked(mc);
-			if (ve != null && mc.screen == null) mc.setScreenAndShow(new VehicleMenuScreen(ve));
+			if (ve != null && mc.gui.screen() == null) mc.setScreenAndShow(new VehicleMenuScreen(ve));
 		}
 	}
 }
