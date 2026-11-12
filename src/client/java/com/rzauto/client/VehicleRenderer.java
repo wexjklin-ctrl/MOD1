@@ -70,6 +70,7 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 		if (s.model != null && s.tex != null) {
 			pose.pushPose();
 			pose.mulPose(new Matrix4f().rotationY((float) Math.toRadians(-s.yaw)));
+			pose.scale(com.rzauto.RzConfig.renderScale, com.rzauto.RzConfig.renderScale, com.rzauto.RzConfig.renderScale);
 			final int lt = s.lightCoords;
 			final GeoModel gm = s.model;
 			collector.submitCustomGeometry(pose, RenderTypes.entityCutout(s.tex), (p, vc) -> gm.render(p, vc, lt));

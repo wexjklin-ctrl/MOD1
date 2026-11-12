@@ -16,6 +16,7 @@ public class RzAutoMod implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
+		RzConfig.load();
 		VehicleCatalog.load();
 		LOG.info("RZ Auto: загружено {} машин", VehicleCatalog.all().size());
 		VehicleRegistry.registerAll();

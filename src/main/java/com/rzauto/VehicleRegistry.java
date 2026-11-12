@@ -40,14 +40,16 @@ public final class VehicleRegistry {
 			Identifier id = Identifier.fromNamespaceAndPath(RzAutoMod.MOD_ID, path);
 
 			ResourceKey<EntityType<?>> typeKey = ResourceKey.create(Registries.ENTITY_TYPE, id);
-			float w = spec.motorcycle() ? 0.9f : 2.0f;
-			float h = spec.motorcycle() ? 1.4f : 1.5f;
+			float k = RzConfig.renderScale;
+			float w = (spec.motorcycle() ? 0.9f : 2.0f) * k;
+			float h = (spec.motorcycle() ? 1.4f : 1.5f) * k;
 			double[][] sd = VehicleCatalog.seats(spec.bedrockId());
 			Vec3[] seatPts;
 			if (sd == null || sd.length == 0) seatPts = new Vec3[] { new Vec3(0, 0.5, 0) };
 			else {
-				seatPts = new Vec3[Math.min(sd.length, 2)];
-				for (int i = 0; i < seatPts.length; i++) seatPts[i] = new Vec3(sd[i][0], spec.motorcycle() ? 0.4 : 0.1, sd[i][2]);
+				seatPts = new Vec3[Math.min(sd.length, 4)];
+				// Bedrock: x,y,z в блоках от начала сущности; модель растёт в k раз, поэтому и места тоже
+				for (int i = 0; i < seatPts.length; i++) seatPts[i] = new Vec3(sd[i][0] * k, sd[i][1] * k + RzConfig.seatYOffset, sd[i][2] * k);
 			}
 			EntityType<VehicleEntity> type = EntityType.Builder.<VehicleEntity>of(VehicleEntity::new, MobCategory.MISC)
 					.sized(w, h)

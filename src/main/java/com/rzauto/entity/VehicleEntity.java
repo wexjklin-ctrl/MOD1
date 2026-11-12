@@ -147,7 +147,8 @@ public class VehicleEntity extends Entity {
 
 	@Override
 	protected boolean canAddPassenger(Entity passenger) {
-		return getPassengers().size() < 2;
+		double[][] sd = spec() == null ? null : com.rzauto.logic.VehicleCatalog.seats(spec().bedrockId());
+		return getPassengers().size() < Math.max(1, sd == null ? 2 : Math.min(sd.length, 4));
 	}
 
 	@Override
