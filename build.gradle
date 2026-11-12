@@ -35,7 +35,7 @@ tasks.register('apiDump') {
 		// Если сборка упала, jar-файла нет, и шаг публикации CI не выложил бы логи. Кладём заглушку.
 		def libs = layout.buildDirectory.dir('libs').get().asFile
 		libs.mkdirs()
-		if (tasks.named('compileJava').get().state.failure != null) new File(libs, 'BUILD_FAILED_placeholder.jar').text = 'placeholder'
+		if (tasks.withType(JavaCompile).any { it.state.failure != null }) new File(libs, 'BUILD_FAILED_placeholder.jar').text = 'placeholder'
 		def files = [] as LinkedHashSet
 		files.addAll(sourceSets.main.compileClasspath.files)
 		try { files.addAll(sourceSets.client.compileClasspath.files) } catch (Throwable t) {}
@@ -72,6 +72,7 @@ tasks.register('apiDump') {
 	}
 }
 tasks.named('compileJava') { finalizedBy 'apiDump' }
+tasks.matching { it.name == 'compileClientJava' }.configureEach { finalizedBy 'apiDump' }
 
 // ---- Дымовой тест сервера (включается rz_smoke=true в gradle.properties) ----
 if (project.findProperty('rz_smoke') == 'true') {
