@@ -221,10 +221,10 @@ public class VehicleEntity extends Entity {
 			Input in = driver.getLastClientInput();
 			x = (in.left() ? 1 : 0) - (in.right() ? 1 : 0);   // как в Bedrock: влево = +1
 			y = (in.forward() ? 1 : 0) - (in.backward() ? 1 : 0);
-			// Передачи (если включены в меню): Ctrl — выше, Shift — ниже
+			// Передачи (если включены в меню): Shift — выше, Ctrl — ниже
 			if (vs.gears.mode) {
-				if (in.sprint() && !lastSprint) shiftGear(driver, s, +1);
-				if (in.shift() && !lastSneak) shiftGear(driver, s, -1);
+				if (in.shift() && !lastSneak) shiftGear(driver, s, +1);
+				if (in.sprint() && !lastSprint) shiftGear(driver, s, -1);
 			}
 			lastSprint = in.sprint(); lastSneak = in.shift();
 		}
@@ -258,7 +258,8 @@ public class VehicleEntity extends Entity {
 		move(MoverType.SELF, getDeltaMovement());
 		if (horizontalCollision) {
 			double av = Math.abs(st.speed);
-			if (av > 0.45) damage((float) ((av - 0.45) * 18.0));
+			// урон только от сильного лобового удара; скольжение боком и полублоки на поворотах не считаются
+			if (av > 1.3 && Math.abs(st.speed) > 1.3) damage((float) ((av - 1.3) * 2.0));
 			st.speed = Physics.collisionBleed(st.speed, max);
 		}
 		setYRot((float) st.yawDeg);
@@ -292,7 +293,7 @@ public class VehicleEntity extends Entity {
 	/** Падение: урон машине (3 блока бесплатно, дальше 1.5 за блок). */
 	@Override
 	public boolean causeFallDamage(double distance, float multiplier, DamageSource source) {
-		if (!level().isClientSide() && distance > 3) damage((float) ((distance - 3) * 1.5));
+		if (!level().isClientSide() && distance > 6) damage((float) ((distance - 6) * 0.5));
 		return false;
 	}
 

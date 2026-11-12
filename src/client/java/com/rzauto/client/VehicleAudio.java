@@ -47,12 +47,16 @@ final class VehicleAudio {
 		private final VehicleEntity car;
 		Siren(VehicleEntity car) {
 			super(net.minecraft.sounds.SoundEvent.createVariableRangeEvent(Identifier.fromNamespaceAndPath("rz_auto", "explorer.siren")), SoundSource.NEUTRAL, SoundInstance.createUnseededRandom());
-			this.car = car; this.looping = true; this.volume = 1.4f; this.pitch = 1f;
+			this.car = car; this.looping = true; this.volume = 1.0f; this.pitch = 1f; this.relative = false;
 			this.x = car.getX(); this.y = car.getY(); this.z = car.getZ();
 		}
 		@Override public void tick() {
 			if (car.isRemoved() || !car.sirenOn()) { stop(); return; }
 			this.x = car.getX(); this.y = car.getY(); this.z = car.getZ();
+			// слышно только рядом: линейное затухание до 40 блоков, дальше тишина
+			var pl = Minecraft.getInstance().player;
+			double d = pl == null ? 999 : Math.sqrt(car.distanceToSqr(pl));
+			this.volume = d >= 40 ? 0f : (float) (1.2 * (1.0 - d / 40.0));
 		}
 	}
 	private static final Map<VehicleEntity, Siren> SIRENS = new HashMap<>();

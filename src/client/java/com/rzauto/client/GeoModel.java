@@ -252,8 +252,11 @@ final class GeoModel {
 	private final Map<String, Baked> bakedCache = new HashMap<>();
 
 	/** Геометрия для текстуры (файл PNG берётся из ресурсов; если не прочитался, рисуются все грани). */
-	synchronized Baked baked(net.minecraft.resources.Identifier tex) {
-		String key = tex.toString();
+	synchronized Baked baked(net.minecraft.resources.Identifier tex) { return baked(tex, 0); }
+
+	/** mode: 0 = все кости, 1 = только мигалки (кость lightbar и её дети), 2 = всё кроме мигалок */
+	synchronized Baked baked(net.minecraft.resources.Identifier tex, int mode) {
+		String key = tex.toString() + "#" + mode;
 		Baked b = bakedCache.get(key);
 		if (b != null) return b;
 		int[] wh = new int[2];
@@ -262,7 +265,7 @@ final class GeoModel {
 			var res = net.minecraft.client.Minecraft.getInstance().getResourceManager().getResource(tex);
 			if (res.isPresent()) try (var in = res.get().open()) { alpha = PngAlpha.read(in.readAllBytes(), wh); }
 		} catch (Throwable t) { com.rzauto.RzAutoMod.LOG.warn("текстура {} не прочиталась для отбраковки граней: {}", tex, t.toString()); }
-		b = bake(alpha, wh[0], wh[1]);
+		b = bake(alpha, wh[0], wh[1], mode);
 		bakedCache.put(key, b);
 		return b;
 	}
@@ -290,7 +293,17 @@ final class GeoModel {
 		return false;
 	}
 
-	private Baked bake(byte[] alpha, int w, int h) {
+	private boolean underBar(int i) {
+		for (int g = 0; i >= 0 && g < 64; g++) {
+			if (bones[i].name.equalsIgnoreCase("lightbar")) return true;
+			int p = bones[i].parent;
+			if (p == i) return false;
+			i = p;
+		}
+		return false;
+	}
+
+	private Baked bake(byte[] alpha, int w, int h, int mode) {
 		Baked out = new Baked();
 		java.util.List<float[]> stat = new ArrayList<>();
 		java.util.List<int[]> dyn = new ArrayList<>();
@@ -300,6 +313,7 @@ final class GeoModel {
 		for (int i = 0; i < bones.length; i++) {
 			Bone b = bones[i];
 			if (b.cubes.isEmpty()) continue;
+			if (mode != 0 && underBar(i) != (mode == 1)) continue;
 			boolean d = isDyn(i);
 			Matrix4f m = d ? null : world(i, memo, 0f, 0f);
 			for (Cube c : b.cubes) for (int face = 0; face < 6; face++) {
