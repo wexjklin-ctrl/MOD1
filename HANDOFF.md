@@ -53,3 +53,5 @@
 - Не сделано: двигатель вкл/выкл, топливо, замок (`DriveGate`), сохранение `VehicleState` в NBT, хотбар-режим передач, меню/HUD, geo-модели, звук, камеры.
 - Если коробка всё ещё фиолетово-чёрная: текстура `textures/block/white_concrete.png` не подошла для `RenderTypes.entitySolid`.
 - Токен владельца: коммитит как Claude; git нужно `git config user.name/user.email` в песочнице.
+- Найдена причина «гигантской коробки»: `addVertex(x,y,z)` без `PoseStack.Pose` рисовал коробку в начале координат камеры. Исправлено (`addVertex(pose, ...)`), НЕ проверено в игре.
+- Добавлены `assets/rz_auto/items/*.json` (иконка = minecart как временная) и `lang/en_us.json` (генерируется из vehicles.json). Нужны настоящие иконки (spawn_egg_texture из аддона).
