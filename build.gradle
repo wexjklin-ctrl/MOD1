@@ -68,3 +68,17 @@ tasks.register('apiDump') {
 	}
 }
 tasks.named('compileJava') { finalizedBy 'apiDump' }
+
+// ---- Дымовой тест сервера (включается rz_smoke=true в gradle.properties) ----
+if (project.findProperty('rz_smoke') == 'true') {
+	loom { runs { server { vmArg '-Drz.smoke=true' } } }
+	tasks.matching { it.name == 'runServer' }.configureEach {
+		timeout = java.time.Duration.ofMinutes(6)
+		doFirst {
+			def d = file('run'); d.mkdirs()
+			// Лицензия Minecraft EULA принята владельцем проекта для этого тестового запуска в CI.
+			new File(d, 'eula.txt').text = 'eula=true\n'
+		}
+	}
+	tasks.named('build') { finalizedBy 'runServer' }
+}
