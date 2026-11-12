@@ -27,7 +27,7 @@ final class VehicleHud implements HudElement {
 	@Override
 	public void extractRenderState(GuiGraphicsExtractor g, DeltaTracker dt) {
 		Minecraft mc = Minecraft.getInstance();
-		if (mc.player == null || mc.options.hideGui || mc.gui.screen() != null) return;
+		if (mc.player == null || mc.gui.hud.isHidden() || mc.gui.screen() != null) return;
 		VehicleEntity ride = riding(mc);
 		if (ride != null) { gauge(g, mc, ride); return; }
 		VehicleEntity ve = looked(mc);
