@@ -1,4 +1,2 @@
-net/minecraft/client/gui/GuiGraphics.*
-net/fabricmc/fabric/api/client/(keybinding|keymapping)/.*
-net/fabricmc/fabric/api/client/rendering/v1/hud/.*
-net/minecraft/client/gui/screens/.*Screen$
+net/minecraft/client/gui/components/Button\$.*
+net/minecraft/client/input/.*Event
