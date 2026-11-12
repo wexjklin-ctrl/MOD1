@@ -13,3 +13,4 @@ com.mojang.blaze3d.platform.InputConstants
 net.minecraft.world.entity.Entity
 net.minecraft.client.Minecraft
 net.minecraft.client.Options
+net.minecraft.client.gui.Gui
