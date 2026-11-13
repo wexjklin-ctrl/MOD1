@@ -81,6 +81,8 @@ final class RadioClient {
 		} catch (Exception ignored) { }
 	}
 
+	static void addVolume(float d) { volume = Math.max(0.1f, Math.min(1f, Math.round((volume + d) * 10f) / 10f)); save(); }
+
 	static void setEnabled(boolean v) { enabled = v; if (!v) stop(); save(); }
 
 	static String stationName(int idx) { return idx >= 0 && idx < stations.size() ? stations.get(idx).name() : "Станция " + (idx + 1); }

@@ -44,6 +44,8 @@ final class VehicleMenuScreen extends net.minecraft.client.gui.screens.Screen {
 	}
 
 	private void act(int action) { if (action == -3) { onClose(); return; } if (action == -2) return; if (action == -1) { CamMode.toggle(); rebuildWidgets(); return; }
+		if (action == -8) { RadioClient.addVolume(-0.1f); rebuildWidgets(); return; }
+		if (action == -9) { RadioClient.addVolume(0.1f); rebuildWidgets(); return; }
 		if (action == -4) { RadioClient.setEnabled(!RadioClient.enabled); rebuildWidgets(); return; }
 		if (action == -5) { RadioClient.toggle(net.minecraft.client.Minecraft.getInstance(), car); return; }
 		if (action == -6) { RadioClient.step(net.minecraft.client.Minecraft.getInstance(), car, -1); return; }
@@ -70,10 +72,10 @@ final class VehicleMenuScreen extends net.minecraft.client.gui.screens.Screen {
 		lw = rx - m - lx;
 
 		boolean rider = net.minecraft.client.Minecraft.getInstance().player != null && net.minecraft.client.Minecraft.getInstance().player.getVehicle() == car;
-		int n = 8 + (siren ? 1 : 0) + (jeepYj ? 1 : 0) + 2 + 1 + (rider ? 2 : 0);   // + руль, «закрыть», приём радио, радио   // + руль и «закрыть»
+		int n = 6 + (siren ? 1 : 0) + (jeepYj ? 1 : 0) + 1 + 2 + (rider ? 2 : 0) + 1;   // основные + руль + приём/громкость + радио в машине + починить
 		int pad = 10, top = ry + 28;
 		int avail = rh - 28 - pad - 4;
-		int gap = 4, h = Math.max(15, Math.min(26, (avail - gap * (n - 1)) / n));
+		int gap = 3, h = Math.max(12, Math.min(26, (avail - gap * (n - 1)) / n));
 		int x = rx + pad, w = rw - 2 * pad, y = top;
 		boolean canRepair = car.isBroken() || car.hpValue() < (sp == null ? 20 : sp.health()) - 0.01f;
 
@@ -89,18 +91,21 @@ final class VehicleMenuScreen extends net.minecraft.client.gui.screens.Screen {
 		int bw = Math.max(22, h + 4);
 		row(8, "Руль", String.format(java.util.Locale.ROOT, "%.1f", car.sensValue()), true, false, VehicleEntity.ACT_SENS_DOWN, x, y, bw, h);
 		rows.set(rows.size() - 1, new Row(10, "", "", true, false, x, y, bw, h));
-		row(8, "Руль GTA 5", String.format(java.util.Locale.ROOT, "чувств. %.1f", car.sensValue()), false, false, -2, x + bw + 3, y, w - 2 * bw - 6, h);
+		row(8, String.format(java.util.Locale.ROOT, "Руль GTA 5: %.1f", car.sensValue()), "", false, false, -2, x + bw + 3, y, w - 2 * bw - 6, h);
 		row(11, "", "", true, false, VehicleEntity.ACT_SENS_UP, x + w - bw, y, bw, h); y += h + gap;
 		row(13, "Приём радио", RadioClient.enabled ? "ВКЛ" : "ВЫКЛ", true, RadioClient.enabled, -4, x, y, w, h); y += h + gap;
+		row(13, "", "", true, false, -8, x, y, bw, h);
+		rows.set(rows.size() - 1, new Row(10, "", "", true, false, x, y, bw, h));
+		row(13, "Громкость радио: " + Math.round(RadioClient.volume * 100) + "%", "", false, false, -2, x + bw + 3, y, w - 2 * bw - 6, h);
+		row(11, "", "", true, false, -9, x + w - bw, y, bw, h); y += h + gap;
 		if (rider) {
 			int rv = car.radioValue();
 			row(13, "Радио", rv > 0 ? "ИГРАЕТ" : "ВЫКЛ", true, rv > 0, -5, x, y, w, h); y += h + gap;
 			row(10, "", "", true, false, -6, x, y, bw, h);
-			row(13, RadioClient.stationName(rv > 0 ? rv - 1 : RadioClient.lastIdx), RadioClient.status, false, false, -2, x + bw + 3, y, w - 2 * bw - 6, h);
+			row(13, RadioClient.stationName(rv > 0 ? rv - 1 : RadioClient.lastIdx), "", false, false, -2, x + bw + 3, y, w - 2 * bw - 6, h);
 			row(11, "", "", true, false, -7, x + w - bw, y, bw, h); y += h + gap;
 		}
 		row(9, "Починить", canRepair ? "нужна шестерёнка" : "исправна", canRepair, false, VehicleEntity.ACT_REPAIR, x, y, w, h); y += h + gap;
-		row(12, "Закрыть", "I", true, false, -3, x, y, w, h);
 	}
 
 	@Override
@@ -209,7 +214,7 @@ final class VehicleMenuScreen extends net.minecraft.client.gui.screens.Screen {
 			icon(g, r.icon, ix, iy, px, !r.enabled ? 0xFF3F6B55 : r.accent ? ACCENT : TXT);
 			int ty = r.y + (r.h - 8) / 2;
 			if (!r.label.isEmpty()) g.text(font, r.label, ix + isz + 7, ty, !r.enabled ? 0xFF5B8A74 : TXT, false);
-			if (!r.state.isEmpty()) g.text(font, r.state, r.x + r.w - 7 - font.width(r.state), ty, r.accent ? ACCENT : TXT_DIM, false);
+			if (!r.state.isEmpty() && (r.label.isEmpty() || ix + isz + 7 + font.width(r.label) + 8 < r.x + r.w - 7 - font.width(r.state))) g.text(font, r.state, r.x + r.w - 7 - font.width(r.state), ty, r.accent ? ACCENT : TXT_DIM, false);
 		}
 	}
 }
