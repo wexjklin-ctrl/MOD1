@@ -199,16 +199,27 @@ public class VehicleEntity extends Entity {
 		tiltDy += (t[1] - tiltDy) * 0.3f;
 	}
 
+	/** Клиентский рендер отдаёт сюда реальные тангаж и крен кузова {pitch, roll} (градусы), чтобы сиденье шло ровно за нарисованным кузовом. */
+	public static java.util.function.Function<VehicleEntity, float[]> CLIENT_POSE;
+
 	@Override
 	protected Vec3 getPassengerAttachmentPoint(Entity passenger, EntityDimensions dims, float scale) {
 		double[][] sd = spec() == null ? null : VehicleCatalog.seats(spec().bedrockId());
 		if (sd == null || sd.length == 0) return super.getPassengerAttachmentPoint(passenger, dims, scale);
 		int seat = Math.max(0, Math.min(sd.length - 1, seatOf(passenger)));
 		double k = com.rzauto.RzConfig.renderScale;
-		double sy = sd[seat][1] * k + com.rzauto.RzConfig.seatYOffset, sz = sd[seat][2] * k;
-		// сиденье едет вместе с кузовом: поворот вокруг точки (0; 0,4) по тангажу и просадка вниз
-		double th = Math.toRadians(tiltPitch), cy = 0.4 + (sy - 0.4) * Math.cos(th) - sz * Math.sin(th), cz = (sy - 0.4) * Math.sin(th) + sz * Math.cos(th);
-		Vec3 v = new Vec3(sd[seat][0] * k, cy + tiltDy, cz);
+		double sx = sd[seat][0] * k, sy = sd[seat][1] * k + com.rzauto.RzConfig.seatYOffset, sz = sd[seat][2] * k;
+		float pitch = tiltPitch, roll = 0f;
+		if (level().isClientSide() && CLIENT_POSE != null) {
+			float[] c = CLIENT_POSE.apply(this);
+			if (c != null) { pitch = c[0]; roll = c[1]; }
+		}
+		// та же матрица, что у кузова в рендере: поворот вокруг оси (0; 0,4) по тангажу (X), затем крену (Z); просадки кузова нет, поэтому и у сиденья её нет
+		double th = Math.toRadians(pitch), rl = Math.toRadians(roll);
+		double x0 = sx, y0 = sy - 0.4, z0 = sz;
+		double x1 = x0 * Math.cos(rl) - y0 * Math.sin(rl), y1 = x0 * Math.sin(rl) + y0 * Math.cos(rl);
+		double y2 = y1 * Math.cos(th) - z0 * Math.sin(th), z2 = y1 * Math.sin(th) + z0 * Math.cos(th);
+		Vec3 v = new Vec3(x1, y2 + 0.4, z2);
 		return v.yRot((float) (-getYRot() * Math.PI / 180.0));
 	}
 

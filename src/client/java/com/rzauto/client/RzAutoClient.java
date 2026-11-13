@@ -31,6 +31,7 @@ public class RzAutoClient implements ClientModInitializer {
 		for (VehicleRegistry.Entry e : VehicleRegistry.entries()) {
 			EntityRendererRegistry.register(e.type(), VehicleRenderer::new);
 		}
+		VehicleEntity.CLIENT_POSE = VehicleRenderer::poseOf;
 		CamMode.load();
 		com.rzauto.block.BenchBlock.CLIENT_OPEN = pos -> Minecraft.getInstance().setScreenAndShow(new BenchScreen(pos));
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("rz_auto", "vehicle_hud"), new VehicleHud());

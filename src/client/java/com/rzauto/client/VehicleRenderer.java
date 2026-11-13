@@ -180,6 +180,12 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 		s.steer = t.steer;
 	}
 
+	/** Тангаж и крен кузова, как он сейчас нарисован: по ним двигается сиденье. null, если машина ещё не рисовалась. */
+	public static float[] poseOf(VehicleEntity e) {
+		Track t = TRACKS.get(e);
+		return t == null || !t.init ? null : new float[] { t.pitch + t.pp, t.roll + t.rp };
+	}
+
 	@Override
 	public State createRenderState() { return new State(); }
 
