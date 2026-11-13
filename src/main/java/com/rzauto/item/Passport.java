@@ -24,6 +24,19 @@ public final class Passport {
 	public static String ownerUuid(ItemStack s) { return isDoc(s) ? tag(s).getStringOr("rz_owner", "") : ""; }
 	public static String ownerName(ItemStack s) { return isDoc(s) ? tag(s).getStringOr("rz_name", "") : ""; }
 	public static String date(ItemStack s) { return isDoc(s) ? tag(s).getStringOr("rz_date", "") : ""; }
+	/** Доступные печати (путь внутри textures/gui без .png). Выбор хранится в паспорте. */
+	public static final String[] SEALS = { "seals/rz_eagle", "seal_red", "seals/sakura", "seal" };
+	public static final String[] SEAL_NAMES = { "Орёл RZ", "Красная печать", "Сакура", "Синяя печать" };
+	public static int sealIndex(ItemStack s) { return isDoc(s) ? Math.floorMod(tag(s).getIntOr("rz_seal", 0), SEALS.length) : 0; }
+	public static String seal(ItemStack s) { return SEALS[sealIndex(s)]; }
+	/** Следующая печать по кругу (только сервер). */
+	public static int nextSeal(ItemStack s) {
+		CompoundTag t = tag(s);
+		int n = (sealIndex(s) + 1) % SEALS.length;
+		t.putInt("rz_seal", n);
+		s.set(DataComponents.CUSTOM_DATA, CustomData.of(t));
+		return n;
+	}
 	public static boolean signed(ItemStack s) { return !ownerUuid(s).isEmpty(); }
 
 	/** Присвоить документ игроку (только сервер). */

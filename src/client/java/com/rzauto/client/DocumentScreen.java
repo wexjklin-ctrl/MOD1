@@ -14,7 +14,6 @@ import java.util.UUID;
 
 /** Окно паспорта: актуальный скин владельца (вид спереди), ник, дата выдачи и печать. Открывается клавишей I с паспортом в руке вне машины. */
 final class DocumentScreen extends net.minecraft.client.gui.screens.Screen {
-	private static final Identifier SEAL = Identifier.fromNamespaceAndPath("rz_auto", "textures/gui/seal.png");
 	private final ItemStack doc;
 
 	DocumentScreen(ItemStack doc) {
@@ -86,8 +85,9 @@ final class DocumentScreen extends net.minecraft.client.gui.screens.Screen {
 			g.text(font, Passport.date(doc), tx, py + 90, 0xFF1A1A1A, false);
 			g.text(font, "Положите в бардачок машины,", tx, py + 118, 0xFF6A5F3E, false);
 			g.text(font, "оформленной на владельца.", tx, py + 130, 0xFF6A5F3E, false);
+			g.text(font, "ПКМ с паспортом: сменить печать", tx, py + 148, 0xFF6A5F3E, false);
 			int sz = Math.min(96, ph - 64);
-			g.blit(RenderPipelines.GUI_TEXTURED, SEAL, px + pw - sz - 14, py + ph - sz - 12, 0f, 0f, sz, sz, 256, 256, 256, 256);
+			g.blit(RenderPipelines.GUI_TEXTURED, Identifier.fromNamespaceAndPath("rz_auto", "textures/gui/" + Passport.seal(doc) + ".png"), px + pw - sz - 14, py + ph - sz - 12, 0f, 0f, sz, sz, 256, 256, 256, 256);
 		} else {
 			g.text(font, "Документ не подписан", px + 14, py + 56, 0xFF8A2A2A, false);
 			g.text(font, "Присядьте (Shift) и нажмите ПКМ,", px + 14, py + 76, 0xFF1A1A1A, false);

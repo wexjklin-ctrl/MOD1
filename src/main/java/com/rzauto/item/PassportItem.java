@@ -19,9 +19,19 @@ public class PassportItem extends Item {
 
 	@Override
 	public InteractionResult use(Level level, Player player, InteractionHand hand) {
-		if (!player.isShiftKeyDown()) return InteractionResult.PASS;
+		ItemStack st0 = player.getItemInHand(hand);
+		if (!player.isShiftKeyDown()) {
+			// ПКМ по своему подписанному паспорту: сменить печать
+			if (Passport.signed(st0) && Passport.ownerUuid(st0).equals(player.getUUID().toString())) {
+				if (level.isClientSide()) return InteractionResult.SUCCESS;
+				int n = Passport.nextSeal(st0);
+				say(player, "§aПечать: " + Passport.SEAL_NAMES[n]);
+				return InteractionResult.SUCCESS;
+			}
+			return InteractionResult.PASS;
+		}
 		if (level.isClientSide()) return InteractionResult.SUCCESS;
-		ItemStack st = player.getItemInHand(hand);
+		ItemStack st = st0;
 		if (Passport.signed(st)) {
 			say(player, "§eДокумент уже принадлежит: " + Passport.ownerName(st));
 			return InteractionResult.SUCCESS;
