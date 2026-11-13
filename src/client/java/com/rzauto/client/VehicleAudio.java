@@ -26,7 +26,7 @@ final class VehicleAudio {
 
 	private static final class St {
 		final Sound.Mixer mixer = new Sound.Mixer();
-		double x, z; boolean init;
+		double x, z; boolean init; int gear = -1;
 		double speed;
 		double idleT, moveT;
 		final double[] roadT = new double[Surface.ROAD_KEYS.length];
@@ -99,6 +99,12 @@ final class VehicleAudio {
 			double v = s.init ? Math.hypot(dx, dz) : 0;   // блоков за тик = внутренняя скорость
 			s.speed += (v - s.speed) * 0.5; s.x = e.getX(); s.z = e.getZ(); s.init = true;
 			boolean engineOn = !e.getPassengers().isEmpty();
+			// звук переключения передач: срабатывает по смене синхронизированной передачи, а не отдельным опросом
+			if (engineOn && e.gearsOn()) {
+				int gn = e.gearNum();
+				if (s.gear >= 0 && gn != s.gear) play(gn > s.gear ? "rz.gear.up" + (1 + RND.nextInt(4)) : "rz.gear.down", 0.6, 1.0, e);
+				s.gear = gn;
+			} else s.gear = -1;
 			String surface = "minecraft:" + com.rzauto.entity.Terrain.supportId(mc.level, e);
 			s.mixer.update(spec, engineOn, s.speed, spec.topSpeed(), e.onGround(), surface, false, 0, master);
 			if (s.mixer.silent(engineOn, s.speed)) { it.remove(); continue; }
