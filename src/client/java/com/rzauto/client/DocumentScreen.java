@@ -97,7 +97,7 @@ final class DocumentScreen extends net.minecraft.client.gui.screens.Screen {
 	@Override
 	public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
 		g.fillGradient(0, 0, width, height, 0xB004100A, 0xD006180F);
-		pw = Math.min(width - 20, 340); ph = Math.min(height - 40, 200);
+		pw = Math.min(width - 40, 330); ph = Math.min(height - 40, 200);
 		px = (width - pw) / 2; py = (height - ph) / 2 + 8;
 		for (int i = 0; i < 3; i++) {   // вкладки над панелью
 			int tx = tabX(i), top = tab == i ? py - 14 : py - 10;
@@ -105,6 +105,7 @@ final class DocumentScreen extends net.minecraft.client.gui.screens.Screen {
 			g.fill(tx + 1, top + 1, tx + 79, py + 4, TAB_COL[i]);
 			g.centeredText(font, TABS[i], tx + 40, top + 5, 0xFF202020);
 		}
+		for (int k = 3; k >= 1; k--) { g.fill(px + k * 4, py + k * 4, px + pw + k * 4, py + ph + k * 4, 0xFF2E6BC8); g.fill(px + k * 4 + 1, py + k * 4 + 1, px + pw + k * 4 - 1, py + ph + k * 4 - 1, 0xFFD8CCA6); }
 		g.fill(px, py, px + pw, py + ph, 0xFFEADFBE);
 		g.fill(px + 4, py + 4, px + pw - 4, py + 6, 0xFF2E6BC8);
 		g.fill(px + 4, py + ph - 6, px + pw - 4, py + ph - 4, 0xFF2E6BC8);

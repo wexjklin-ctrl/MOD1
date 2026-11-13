@@ -19,6 +19,7 @@ final class DeskScreen extends net.minecraft.client.gui.screens.Screen {
 	private static final int PW = 300, PH = 190;
 	private final BlockPos pos;
 	private int tab = 0, seal = -1;
+	private boolean stamped;
 	private String country, target = "", text = "";
 
 	DeskScreen(BlockPos pos) {
@@ -46,8 +47,6 @@ final class DeskScreen extends net.minecraft.client.gui.screens.Screen {
 		if (country == null) country = Passport.country(pass);
 		if (seal < 0) seal = Passport.sealIndex(pass);
 		int x0 = x0(), y0 = y0();
-		addRenderableWidget(Button.builder(Component.literal("Паспорт"), b -> { tab = 0; rebuildWidgets(); }).bounds(x0 + 12, y0 + 22, 90, 16).build()).active = tab != 0;
-		addRenderableWidget(Button.builder(Component.literal("Нарушение"), b -> { tab = 1; rebuildWidgets(); }).bounds(x0 + 106, y0 + 22, 90, 16).build()).active = tab != 1;
 		if (pass.isEmpty()) return;
 		int n = Passport.SEALS.length;
 		if (tab == 0) {
@@ -66,7 +65,8 @@ final class DeskScreen extends net.minecraft.client.gui.screens.Screen {
 			EditBox t2 = new EditBox(font, x0 + 16, y0 + 102, 268, 18, Component.literal("Нарушение"));
 			t2.setMaxLength(80); t2.setValue(text); t2.setResponder(s -> text = s);
 			addRenderableWidget(t2);
-			addRenderableWidget(Button.builder(Component.literal("Отправить нарушение"), b -> { ClientPlayNetworking.send(new DeskViolationPayload(pos.asLong(), target, text)); text = ""; rebuildWidgets(); }).bounds(x0 + 16, y0 + 150, 150, 20).build());
+			addRenderableWidget(Button.builder(Component.literal(stamped ? "Печать приложена" : "Приложить печать"), b -> { stamped = !stamped; rebuildWidgets(); }).bounds(x0 + 16, y0 + 126, 150, 18).build());
+			addRenderableWidget(Button.builder(Component.literal("Отправить нарушение"), b -> { ClientPlayNetworking.send(new DeskViolationPayload(pos.asLong(), target, text)); text = ""; stamped = false; rebuildWidgets(); }).bounds(x0 + 16, y0 + 154, 150, 20).build()).active = stamped;
 		}
 	}
 
@@ -77,12 +77,30 @@ final class DeskScreen extends net.minecraft.client.gui.screens.Screen {
 	}
 
 	@Override
+	public boolean mouseClicked(MouseButtonEvent e, boolean dbl) {
+		for (int i = 0; i < 2; i++) {
+			int tx = x0() + PW - 8 - (2 - i) * 98;
+			if (e.x() >= tx && e.x() < tx + 94 && e.y() >= y0() - 14 && e.y() < y0() + 4) { if (tab != i) { tab = i; rebuildWidgets(); } return true; }
+		}
+		return super.mouseClicked(e, dbl);
+	}
+
+	@Override
 	public boolean isPauseScreen() { return false; }
 
 	@Override
 	public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
 		int x0 = x0(), y0 = y0();
 		g.fillGradient(0, 0, width, height, 0xB004100A, 0xD006180F);
+		String[] names = { "ПАСПОРТ", "НАРУШЕНИЕ" };
+		int[] cols = { 0xFF9BDB8A, 0xFFE0583A };
+		for (int i = 0; i < 2; i++) {
+			int tx = x0 + PW - 8 - (2 - i) * 98, top = tab == i ? y0 - 14 : y0 - 10;
+			g.fill(tx, top, tx + 94, y0 + 4, 0xFF2E6BC8);
+			g.fill(tx + 1, top + 1, tx + 93, y0 + 4, cols[i]);
+			g.centeredText(font, names[i], tx + 47, top + 5, 0xFF202020);
+		}
+		for (int k = 3; k >= 1; k--) { g.fill(x0 + k * 4, y0 + k * 4, x0 + PW + k * 4, y0 + PH + k * 4, 0xFF2E6BC8); g.fill(x0 + k * 4 + 1, y0 + k * 4 + 1, x0 + PW + k * 4 - 1, y0 + PH + k * 4 - 1, 0xFFD8CCA6); }
 		g.fill(x0, y0, x0 + PW, y0 + PH, 0xFFEADFBE);
 		g.fill(x0 + 4, y0 + 4, x0 + PW - 4, y0 + 6, 0xFF2E6BC8);
 		g.fill(x0 + 4, y0 + PH - 6, x0 + PW - 4, y0 + PH - 4, 0xFF2E6BC8);
@@ -95,7 +113,8 @@ final class DeskScreen extends net.minecraft.client.gui.screens.Screen {
 		int sz = 96, sx = x0 + PW - sz - 16, sy = y0 + 50;
 		g.fill(sx - 4, sy - 4, sx + sz + 4, sy + sz + 4, 0xFFD3C79F);
 		int shown = tab == 0 ? seal : Passport.sealIndex(pass);
-		g.blit(RenderPipelines.GUI_TEXTURED, Identifier.fromNamespaceAndPath("rz_auto", "textures/gui/" + Passport.sealPath(shown) + ".png"), sx, sy, 0f, 0f, sz, sz, 256, 256, 256, 256);
+		if (tab == 0 || stamped) g.blit(RenderPipelines.GUI_TEXTURED, Identifier.fromNamespaceAndPath("rz_auto", "textures/gui/" + Passport.sealPath(shown) + ".png"), sx, sy, 0f, 0f, sz, sz, 256, 256, 256, 256);
+		else g.centeredText(font, "место для печати", sx + sz / 2, sy + sz / 2 - 4, 0xFF9A8E68);
 		if (tab == 0) {
 			g.text(font, "Название страны", x0 + 16, y0 + 50, c, false);
 			g.text(font, "Герб", x0 + 16, y0 + 94, c, false);
@@ -103,8 +122,14 @@ final class DeskScreen extends net.minecraft.client.gui.screens.Screen {
 		} else {
 			g.text(font, "Игрок", x0 + 16, y0 + 50, c, false);
 			g.text(font, "Нарушение", x0 + 16, y0 + 90, c, false);
-			g.text(font, "Печать: " + Passport.country(pass), x0 + 16, y0 + 130, 0xFF1A1A1A, false);
+			g.text(font, clip(Passport.country(pass), 150), x0 + 16, y0 + 145, 0xFF4A6FA8, false);
 		}
 		super.extractRenderState(g, mx, my, pt);
+	}
+
+	private String clip(String s, int w) {
+		if (font.width(s) <= w) return s;
+		while (s.length() > 3 && font.width(s + "...") > w) s = s.substring(0, s.length() - 1);
+		return s + "...";
 	}
 }
