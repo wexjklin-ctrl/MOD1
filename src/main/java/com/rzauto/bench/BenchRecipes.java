@@ -59,7 +59,6 @@ public final class BenchRecipes {
 				}
 				int c = srcItem.indexOf(':');
 				String group = srcItem.endsWith("_spawn_egg") && c > 0 ? srcItem.substring(0, c) : "";
-				if (!group.isEmpty()) { need.clear(); Arrays.fill(grid, ""); }   // машины на верстаке бесплатные: материалы не нужны
 				Recipe rc = new Recipe(o.get("id").getAsString(), res, cnt, group, need, grid);
 				ALL.add(rc); BY_ID.put(rc.id(), rc);
 			}
