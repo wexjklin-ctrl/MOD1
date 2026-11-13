@@ -180,7 +180,7 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 		float k = 1f - (float) Math.exp(-Math.max(dt, 0f) / 0.15f);
 		t.pitch += (pt - t.pitch) * k; t.roll += (rt - t.roll) * k;
 		s.pitch = t.pitch + t.pp; s.roll = t.roll + t.rp; s.dy = t.dy;
-		t.pop += net.minecraft.util.Mth.clamp((e.lightsOn() ? 1f : 0f) - t.pop, -Math.max(dt, 0f) / 0.5f, Math.max(dt, 0f) / 0.5f);
+		t.pop += net.minecraft.util.Mth.clamp((e.lightsOn() && e.isEngineOn() ? 1f : 0f) - t.pop, -Math.max(dt, 0f) / 0.5f, Math.max(dt, 0f) / 0.5f);
 		s.pop = t.pop;
 		s.dist = (float) (t.dist % 18.0);
 		s.steer = t.steer;
@@ -255,7 +255,7 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 	public void extractRenderState(VehicleEntity e, State s, float partial) {
 		super.extractRenderState(e, s, partial);
 		s.yaw = e.getYRot(partial);
-		s.lights = e.lightsOn(); s.siren = e.sirenOn();
+		s.lights = e.lightsOn() && e.isEngineOn(); s.siren = e.sirenOn();
 		track(e, s, partial);
 		s.wx = e.getX(partial); s.wy = e.getY(partial); s.wz = e.getZ(partial);
 		s.marks = markQuads(e, s.wx, s.wy, s.wz);

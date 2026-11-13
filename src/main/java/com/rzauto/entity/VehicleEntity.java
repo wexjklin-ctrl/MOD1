@@ -153,7 +153,7 @@ public class VehicleEntity extends Entity {
 	@Override
 	public float maxUpStep() {
 		VehicleSpec s = spec();
-		return s != null ? Math.min(1.0f, (float) s.stepHeight()) : 0.6f;
+		return s != null ? Math.max(0.6f, Math.min(1.0f, (float) s.stepHeight())) : 0.6f;
 	}
 
 	/** Сервер авторитетен: клиент водителя не симулирует машину. */
@@ -209,6 +209,7 @@ public class VehicleEntity extends Entity {
 	}
 
 	private float tiltPitch, tiltDy;
+	private int stepGrace;   // тиков без штрафа склона после въезда на полублок/плиту
 	/** Сглаженный наклон и просадка кузова по рельефу (одинаково на сервере и клиенте): по ним смещаются сиденья. */
 	private void tiltTick() {
 		VehicleSpec sp = spec();
@@ -336,9 +337,11 @@ public class VehicleEntity extends Entity {
 			if (fx != null) max *= OFFROAD_MULT;   // земля, песок, грязь: -40% (джипы и полиция не страдают)
 		}
 		if (canDrive) lastMax = max;
+		final double yaw0 = st.yawDeg;
 		if (vs.gta) {
 			String under = Terrain.supportId(level(), this);
 			double slope = Math.max(-0.5, Math.min(0.5, -Math.sin(Math.toRadians(tiltPitch))));
+			if (stepGrace > 0) { stepGrace--; slope = 0; }
 			Physics.Env env = com.rzauto.logic.Surface.env(under, slope);
 			if (crawl) env = new Physics.Env(env.grip(), 1.0, 0.0);
 			env = new Physics.Env(env.grip(), env.traction(), env.slope(), lug, assist);
@@ -360,9 +363,19 @@ public class VehicleEntity extends Entity {
 			double fh = getFluidHeight(net.minecraft.tags.FluidTags.WATER);
 			vy = Math.max(-0.05, Math.min(0.06, (fh - 0.5) * 0.25));
 		} else vy = onGround() ? -GRAVITY : (getDeltaMovement().y - GRAVITY) * 0.98;
+		// поворот от задней оси, как у настоящей машины: центр кузова смещается так, чтобы задние колёса не уезжали вбок
+		double[] dmv = VehicleCatalog.dims(s.bedrockId());
+		double rearL = dmv == null ? 0.8 : Math.max(0.3, dmv[1] * 0.30);
+		double r0 = Math.toRadians(yaw0), r1 = Math.toRadians(st.yawDeg);
+		if (Math.abs(st.speed) > 0.005) { vel[0] += rearL * (Math.sin(r0) - Math.sin(r1)); vel[1] += rearL * (Math.cos(r1) - Math.cos(r0)); }
 		setDeltaMovement(vel[0], vy, vel[1]);
-		double px0 = getX(), pz0 = getZ();
+		double px0 = getX(), pz0 = getZ(), py0 = getY();
 		move(MoverType.SELF, getDeltaMovement());
+		double rise = getY() - py0;
+		if (onGround() && rise > 0.04) {
+			if (rise <= 0.52) stepGrace = 10;   // полублок/плита: скорость не теряем
+			else st.speed *= 0.82;              // полный блок: теряем скорость
+		}
 		if (horizontalCollision) {
 			double av = Math.abs(st.speed);
 			double dl2 = vel[0] * vel[0] + vel[1] * vel[1];

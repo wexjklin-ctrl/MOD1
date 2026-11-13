@@ -98,7 +98,7 @@ final class VehicleAudio {
 			double dx = e.getX() - s.x, dz = e.getZ() - s.z;
 			double v = s.init ? Math.hypot(dx, dz) : 0;   // блоков за тик = внутренняя скорость
 			s.speed += (v - s.speed) * 0.5; s.x = e.getX(); s.z = e.getZ(); s.init = true;
-			boolean engineOn = !e.getPassengers().isEmpty();
+			boolean engineOn = !e.getPassengers().isEmpty() && e.isEngineOn();
 			// звук переключения передач: срабатывает по смене синхронизированной передачи, а не отдельным опросом
 			if (engineOn && e.gearsOn()) {
 				int gn = e.gearNum();
