@@ -15,6 +15,7 @@ public final class Terrain {
 		BlockPos.MutableBlockPos mp = new BlockPos.MutableBlockPos();
 		for (int by = top; by >= top - 4; by--) {
 			mp.set(bx, by, bz);
+			if (level.getBlockState(mp).is(net.minecraft.tags.BlockTags.LEAVES)) continue;
 			VoxelShape sh = level.getBlockState(mp).getCollisionShape(level, mp);
 			if (sh.isEmpty()) continue;
 			double h = by + sh.max(Direction.Axis.Y);

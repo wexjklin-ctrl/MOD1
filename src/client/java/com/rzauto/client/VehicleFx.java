@@ -33,6 +33,12 @@ final class VehicleFx {
 			BlockState st = mc.level.getBlockState(below), feet = mc.level.getBlockState(e.blockPosition());
 			String id = BuiltInRegistries.BLOCK.getKey(feet.getBlock()).getPath().equals("snow") ? "snow" : BuiltInRegistries.BLOCK.getKey(st.getBlock()).getPath();
 			Surface.Effect fxe = Surface.effect(id);
+			if (e.slipValue() > 0.3f) {
+				for (int side = -1; side <= 1; side += 2) {
+					double px = e.getX() - fx * back + (-fz) * halfW * side, pz = e.getZ() - fz * back + fx * halfW * side;
+					mc.level.addParticle(ParticleTypes.CAMPFIRE_COSY_SMOKE, px, e.getY() + 0.12, pz, (java.util.concurrent.ThreadLocalRandom.current().nextDouble() - 0.5) * 0.03, 0.03, (java.util.concurrent.ThreadLocalRandom.current().nextDouble() - 0.5) * 0.03);
+				}
+			}
 			if (fxe == null) continue;
 			boolean snow = id.equals("snow");
 			for (int side = -1; side <= 1; side += 2) {

@@ -2,21 +2,36 @@ package com.rzauto.client;
 
 import com.rzauto.VehicleRegistry;
 import com.rzauto.entity.VehicleEntity;
-import com.rzauto.logic.Access;
+import com.rzauto.logic.Fuel;
+import com.rzauto.logic.VehicleCatalog;
 import com.rzauto.logic.VehicleSpec;
 import com.rzauto.net.VehicleActionPayload;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
+import java.util.ArrayList;
+import java.util.List;
 
-/** Меню машины (клавиша I): двигатель, замок, ремонт, режим руля. Состояние берётся из синхронизированных данных сущности. */
+/**
+ * Меню машины (клавиша I): весь экран в зелёном стекле. Слева машина в 3D (наискосок, колесо довёрнуто) и её характеристики,
+ * справа минималистичные кнопки с иконками. Нажатия обрабатывают обычные невидимые Button, их вид перекрывается своей отрисовкой.
+ */
 final class VehicleMenuScreen extends net.minecraft.client.gui.screens.Screen {
 	private final VehicleEntity car;
 	private int sig = -1;
-	private static final int PW = 240;
-	private int ph = 220;
+
+	private static final int GLASS_TOP = 0xCC06291B, GLASS_BOT = 0xD9031A11, PANEL = 0x5522C77A, PANEL_EDGE = 0xAA4DE39A, SHEEN = 0x1CFFFFFF;
+	private static final int ROW = 0xE60B3A27, ROW_HOVER = 0xF0156B45, ROW_OFF = 0xCC0A2519, ACCENT = 0xFF3DDC84, TXT = 0xFFE9FFF3, TXT_DIM = 0xFF8FC7A8, WARN = 0xFFFF6B5E;
+
+	/** Один ряд правой колонки: иконка, подпись, состояние справа. */
+	private record Row(int icon, String label, String state, boolean enabled, boolean accent, int x, int y, int w, int h) {}
+	private final List<Row> rows = new ArrayList<>();
+	private int rx, ry, rw, rh, lx, ly, lw, lh;
 
 	VehicleMenuScreen(VehicleEntity car) {
 		super(Component.literal("Автомобиль"));
@@ -28,40 +43,51 @@ final class VehicleMenuScreen extends net.minecraft.client.gui.screens.Screen {
 			| (car.roofOn() ? 1 << 25 : 0) | (car.sirenOn() ? 32 : 0) | (car.gearsOn() ? 64 : 0) | (Math.round(car.sensValue() * 10) << 8) | (Math.round(car.hpValue()) << 16);
 	}
 
-	private void act(int action) { if (action == -1) { CamMode.toggle(); rebuildWidgets(); return; } ClientPlayNetworking.send(new VehicleActionPayload(car.getId(), action)); }
+	private void act(int action) { if (action == -3) { onClose(); return; } if (action == -2) return; if (action == -1) { CamMode.toggle(); rebuildWidgets(); return; } ClientPlayNetworking.send(new VehicleActionPayload(car.getId(), action)); }
 
-	private Button btn(String text, int action, int x, int y, int w, int h) {
-		Button b = Button.builder(Component.literal(text), bb -> act(action)).bounds(x, y, w, h).build();
+	/** Невидимая кнопка + запись для отрисовки. */
+	private void row(int icon, String label, String state, boolean enabled, boolean accent, int action, int x, int y, int w, int h) {
+		Button b = Button.builder(Component.empty(), bb -> act(action)).bounds(x, y, w, h).build();
+		b.active = enabled;
 		addRenderableWidget(b);
-		return b;
+		rows.add(new Row(icon, label, state, enabled, accent, x, y, w, h));
 	}
 
 	@Override
 	protected void init() {
 		sig = signature();
+		rows.clear();
 		VehicleSpec sp = VehicleRegistry.specOf(car.getType());
 		boolean jeepYj = sp != null && sp.bedrockId().startsWith("jeep:yj");
-		int rows = 9 + (sp != null && sp.hasSiren() ? 1 : 0) + (jeepYj ? 1 : 0);
-		ph = 66 + rows * 24 + 8;
-		int x = (width - PW) / 2 + 15, y = (height - ph) / 2 + 66, w = PW - 30, h = 20, step = h + 4;
-		int r = 0;
-		btn(car.isEngineOn() ? "Двигатель: ВКЛ  (заглушить)" : "Двигатель: ВЫКЛ  (завести)", VehicleEntity.ACT_ENGINE, x, y + step * r++, w, h);
-		btn(car.isLocked() ? "Замок: ЗАКРЫТО  (открыть)" : "Замок: ОТКРЫТО  (закрыть)", VehicleEntity.ACT_LOCK, x, y + step * r++, w, h);
-		btn(car.lightsOn() ? "Фары: ВКЛ  (выключить)" : "Фары: ВЫКЛ  (включить)", VehicleEntity.ACT_LIGHTS, x, y + step * r++, w, h);
-		if (sp != null && sp.hasSiren()) btn(car.sirenOn() ? "Сирена: ВКЛ  (выключить)" : "Сирена: ВЫКЛ  (включить)", VehicleEntity.ACT_SIREN, x, y + step * r++, w, h);
-		if (jeepYj) btn(car.roofOn() ? "Крыша / тент: ЕСТЬ  (снять)" : "Крыша / тент: СНЯТА  (поставить)", VehicleEntity.ACT_ROOF, x, y + step * r++, w, h);
-		btn("Пересесть на другое место", VehicleEntity.ACT_SEAT, x, y + step * r++, w, h);
-		btn(car.gearsOn() ? "Передачи: ВКЛ (Shift выше, Ctrl ниже, выход F)" : "Передачи: ВЫКЛ  (включить)", VehicleEntity.ACT_GEARS, x, y + step * r++, w, h);
-		btn(CamMode.gta ? "Камера: GTA (за машиной)  - сменить" : "Камера: свободная  - сменить", -1, x, y + step * r++, w, h);
-		int ry = y + step * r++;
-		btn("-", VehicleEntity.ACT_SENS_DOWN, x, ry, 24, h);
-		Button lab = Button.builder(Component.literal("Руль GTA 5, чувствительность: " + String.format("%.1f", car.sensValue())), b -> { }).bounds(x + 28, ry, w - 56, h).build();
-		lab.active = false;
-		addRenderableWidget(lab);
-		btn("+", VehicleEntity.ACT_SENS_UP, x + w - 24, ry, 24, h);
-		Button repair = btn(car.isBroken() || car.hpValue() < (sp == null ? 20 : sp.health()) - 0.01f ? "Починить (нужна шестерёнка)" : "Исправна", VehicleEntity.ACT_REPAIR, x, y + step * r++, w, h);
-		repair.active = car.isBroken() || car.hpValue() < (sp == null ? 20 : sp.health()) - 0.01f;
-		addRenderableWidget(Button.builder(Component.literal("Закрыть"), b -> onClose()).bounds(x, y + step * r++ + 4, w, h).build());
+		boolean siren = sp != null && sp.hasSiren();
+		int m = Math.max(10, Math.min(24, width / 40));
+		lx = m; ly = m; lh = height - 2 * m;
+		rw = Math.max(170, Math.min(260, width * 36 / 100)); rx = width - m - rw; ry = m; rh = height - 2 * m;
+		lw = rx - m - lx;
+
+		int n = 8 + (siren ? 1 : 0) + (jeepYj ? 1 : 0) + 2;   // + руль и «закрыть»
+		int pad = 10, top = ry + 28;
+		int avail = rh - 28 - pad - 4;
+		int gap = 4, h = Math.max(15, Math.min(26, (avail - gap * (n - 1)) / n));
+		int x = rx + pad, w = rw - 2 * pad, y = top;
+		boolean canRepair = car.isBroken() || car.hpValue() < (sp == null ? 20 : sp.health()) - 0.01f;
+
+		row(0, "Двигатель", car.isEngineOn() ? "ВКЛ" : "ВЫКЛ", true, car.isEngineOn(), VehicleEntity.ACT_ENGINE, x, y, w, h); y += h + gap;
+		row(1, "Замок", car.isLocked() ? "ЗАКРЫТО" : "ОТКРЫТО", true, !car.isLocked(), VehicleEntity.ACT_LOCK, x, y, w, h); y += h + gap;
+		row(2, "Фары", car.lightsOn() ? "ВКЛ" : "ВЫКЛ", true, car.lightsOn(), VehicleEntity.ACT_LIGHTS, x, y, w, h); y += h + gap;
+		if (siren) { row(3, "Сирена", car.sirenOn() ? "ВКЛ" : "ВЫКЛ", true, car.sirenOn(), VehicleEntity.ACT_SIREN, x, y, w, h); y += h + gap; }
+		if (jeepYj) { row(4, "Крыша / тент", car.roofOn() ? "ЕСТЬ" : "СНЯТА", true, car.roofOn(), VehicleEntity.ACT_ROOF, x, y, w, h); y += h + gap; }
+		row(5, "Пересесть", "", true, false, VehicleEntity.ACT_SEAT, x, y, w, h); y += h + gap;
+		row(6, "Передачи", car.gearsOn() ? "ВКЛ" : "ВЫКЛ", true, car.gearsOn(), VehicleEntity.ACT_GEARS, x, y, w, h); y += h + gap;
+		row(7, "Камера", CamMode.gta ? "GTA" : "СВОБОДНАЯ", true, false, -1, x, y, w, h); y += h + gap;
+		// руль: [-]  Чувствительность  [+]
+		int bw = Math.max(22, h + 4);
+		row(8, "Руль", String.format(java.util.Locale.ROOT, "%.1f", car.sensValue()), true, false, VehicleEntity.ACT_SENS_DOWN, x, y, bw, h);
+		rows.set(rows.size() - 1, new Row(10, "", "", true, false, x, y, bw, h));
+		row(8, "Руль GTA 5", String.format(java.util.Locale.ROOT, "чувств. %.1f", car.sensValue()), false, false, -2, x + bw + 3, y, w - 2 * bw - 6, h);
+		row(11, "", "", true, false, VehicleEntity.ACT_SENS_UP, x + w - bw, y, bw, h); y += h + gap;
+		row(9, "Починить", canRepair ? "нужна шестерёнка" : "исправна", canRepair, false, VehicleEntity.ACT_REPAIR, x, y, w, h); y += h + gap;
+		row(12, "Закрыть", "I", true, false, -3, x, y, w, h);
 	}
 
 	@Override
@@ -80,25 +106,96 @@ final class VehicleMenuScreen extends net.minecraft.client.gui.screens.Screen {
 	@Override
 	public boolean isPauseScreen() { return false; }
 
+	// ---- иконки 9x9 ----
+	private static final String[][] ICONS = {
+		{ "....#....", "....#....", ".##.#.##.", ".#..#..#.", "#...#...#", "#.......#", ".#.....#.", "..#####..", "........." },   // 0 двигатель (питание)
+		{ "..#####..", ".#.....#.", ".#.....#.", "#########", "#########", "####.####", "####.####", "#########", "........." },   // 1 замок
+		{ "..#####..", ".#######.", ".#######.", ".#######.", "..#####..", "..#####..", "...###...", "...###...", "....#...." },   // 2 фары
+		{ "....#....", ".#..#..#.", "..#####..", "..#####..", ".#######.", ".#######.", "#########", "#########", "........." },   // 3 сирена
+		{ ".........", "..#####..", ".#.....#.", "#########", "#.......#", "#########", ".##...##.", ".##...##.", "........." },   // 4 крыша
+		{ ".#.......", ".#.......", ".#.......", ".#.......", ".########", ".########", ".##....##", ".##....##", "........." },   // 5 место
+		{ "...#.#...", "..#####..", ".##...##.", "###...###", ".##...##.", "###...###", ".##...##.", "..#####..", "...#.#..." },   // 6 передачи
+		{ ".........", ".#######.", "#.......#", "#..###..#", "#..#.#..#", "#..###..#", "#.......#", ".#######.", "........." },   // 7 камера
+		{ "..#####..", ".#.....#.", "#..#.#..#", "#...#...#", "#.#####.#", "#...#...#", ".#..#..#.", "..#####..", "........." },   // 8 руль
+		{ "......##.", ".....###.", "....###..", "...###...", "..###....", ".###.....", "###......", "##.......", "........." },   // 9 ремонт
+		{ ".........", ".........", ".........", ".#######.", ".#######.", ".........", ".........", ".........", "........." },   // 10 минус
+		{ "....#....", "....#....", "....#....", ".#######.", ".#######.", "....#....", "....#....", "....#....", "........." },   // 11 плюс
+		{ "#.......#", ".#.....#.", "..#...#..", "...#.#...", "....#....", "...#.#...", "..#...#..", ".#.....#.", "#.......#" },   // 12 закрыть
+	};
+
+	private void icon(GuiGraphicsExtractor g, int id, int x, int y, int px, int color) {
+		String[] b = ICONS[id];
+		for (int j = 0; j < 9; j++) for (int i = 0; i < 9; i++) if (b[j].charAt(i) == '#') g.fill(x + i * px, y + j * px, x + i * px + px, y + j * px + px, color);
+	}
+
+	private void glass(GuiGraphicsExtractor g, int x, int y, int w, int h) {
+		g.fill(x, y, x + w, y + h, PANEL);
+		g.fillGradient(x, y, x + w, y + Math.max(8, h / 6), SHEEN, 0x00FFFFFF);   // блик стекла
+		g.outline(x, y, w, h, PANEL_EDGE);
+		g.fill(x + 1, y, x + w - 1, y + 1, 0xFFB5FFD6);
+	}
+
+	private void bar(GuiGraphicsExtractor g, int x, int y, int w, double f, int color) {
+		g.fill(x, y, x + w, y + 5, 0xAA06150E);
+		g.fill(x, y, x + (int) (w * Math.max(0, Math.min(1, f))), y + 5, color);
+		g.outline(x, y, w, 5, 0x884DE39A);
+	}
+
+	private void drawCar(GuiGraphicsExtractor g, int x0, int y0, int x1, int y1, VehicleSpec sp) {
+		Minecraft mc = Minecraft.getInstance();
+		var st = mc.getEntityRenderDispatcher().extractEntity(car, 1.0F);
+		if (!(st instanceof VehicleRenderer.State s)) return;
+		s.hide = false; s.yaw = 215f; s.steer = 75f; s.dist = 0f; s.pitch = 0f; s.roll = 0f; s.dy = 0f;
+		s.marks = null; s.wdy = null; s.siren = false; s.lights = car.lightsOn(); s.pop = car.lightsOn() ? 1f : 0f; s.lightCoords = 0xF000F0;
+		double[] dm = sp == null ? null : VehicleCatalog.dims(sp.bedrockId());
+		double len = dm == null ? 4.5 : dm[1], wid = dm == null ? 2.0 : dm[0];
+		float scale = (float) ((x1 - x0) * 0.78 / (0.72 * (len + wid)));
+		g.entity(st, scale, new Vector3f(0f, 0.7f, 0f), new Quaternionf().rotateZ((float) Math.PI), new Quaternionf(), x0, y0, x1, y1);
+	}
+
 	@Override
 	public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
-		int x = (width - PW) / 2, y = (height - ph) / 2;
-		g.fill(0, 0, width, height, 0x70000000);
-		g.fill(x, y, x + PW, y + ph, 0xF00C1A12);
-		g.fill(x, y, x + PW, y + 3, VehicleHud.EDGE);
-		g.outline(x, y, PW, ph, 0xFF1F4A33);
-		VehicleSpec s = VehicleRegistry.specOf(car.getType());
-		g.text(font, car.getName().getString(), x + 15, y + 12, VehicleHud.WHITE, true);
-		String lk = car.lockState() == Access.Lock.OPEN ? "открыта" : "закрыта";
-		g.text(font, "Меню автомобиля", x + 15, y + 25, VehicleHud.DIM, false);
-		double fuel = s == null ? 0 : car.fuelValue() / Math.max(s.maxFuel(), 0.01);
-		g.text(font, "ЛАВА", x + 15, y + 40, VehicleHud.DIM, false);
-		g.fill(x + 80, y + 41, x + PW - 15, y + 47, 0xFF1F4A33);
-		g.fill(x + 80, y + 41, x + 80 + (int) ((PW - 95) * Math.max(0, Math.min(1, fuel))), y + 47, 0xFF2ECC71);
-		double hpf = s == null ? 1 : car.hpValue() / Math.max(s.health(), 1);
-		g.text(font, "ПРОЧНОСТЬ", x + 15, y + 52, VehicleHud.DIM, false);
-		g.fill(x + 80, y + 53, x + PW - 15, y + 59, 0xFF1F4A33);
-		g.fill(x + 80, y + 53, x + 80 + (int) ((PW - 95) * Math.max(0, Math.min(1, hpf))), y + 59, hpf > 0.5 ? 0xFF3DDC84 : hpf > 0.25 ? 0xFFFFC233 : 0xFFFF4A3D);
+		g.fillGradient(0, 0, width, height, GLASS_TOP, GLASS_BOT);
+		glass(g, lx, ly, lw, lh);
+		glass(g, rx, ry, rw, rh);
+		VehicleSpec sp = VehicleRegistry.specOf(car.getType());
+
+		// левая панель: заголовок, машина, характеристики
+		g.text(font, car.getName().getString(), lx + 12, ly + 10, TXT, true);
+		String owner = car.ownerNick();
+		g.text(font, owner == null || owner.isEmpty() ? "Меню автомобиля" : "Владелец: " + owner, lx + 12, ly + 22, TXT_DIM, false);
+		int statH = 78;
+		int cy0 = ly + 36, cy1 = ly + lh - statH - 8;
+		if (cy1 - cy0 > 40) drawCar(g, lx + 8, cy0, lx + lw - 8, cy1, sp);
+
+		int sx = lx + 14, sy = ly + lh - statH, colW = (lw - 28) / 2;
+		double kmh = sp == null ? 0 : sp.topSpeed() * VehicleEntity.SPEED_SCALE * 20 * 3.6;
+		double fuel = car.fuelValue(), tank = sp == null ? Fuel.TANK_LITERS : Math.max(sp.maxFuel(), 0.01);
+		double hpf = sp == null ? 1 : car.hpValue() / Math.max(sp.health(), 1);
+		g.text(font, "Макс. скорость", sx, sy, TXT_DIM, false);
+		g.text(font, String.format(java.util.Locale.ROOT, "%.0f км/ч", kmh), sx, sy + 11, TXT, false);
+		g.text(font, "Пробег", sx + colW + 8, sy, TXT_DIM, false);
+		g.text(font, String.format(java.util.Locale.ROOT, "%.1f км", car.odoBlocks() / 1000.0), sx + colW + 8, sy + 11, TXT, false);
+		g.text(font, "Топливо (лава)", sx, sy + 28, TXT_DIM, false);
+		g.text(font, String.format(java.util.Locale.ROOT, "%.1f / %.0f л  (~%d бл.)", fuel, tank, Math.round(fuel / Fuel.LITERS_PER_BLOCK)), sx + 0, sy + 39, fuel < tank * 0.1 ? WARN : TXT, false);
+		bar(g, sx, sy + 51, lw - 28, fuel / tank, fuel < tank * 0.1 ? WARN : ACCENT);
+		g.text(font, "Прочность", sx, sy + 58, TXT_DIM, false);
+		bar(g, sx + 62, sy + 60, lw - 28 - 62, hpf, hpf > 0.5 ? ACCENT : hpf > 0.25 ? 0xFFFFC233 : WARN);
+
+		// правая панель: кнопки (невидимые Button принимают нажатия, вид рисуем здесь поверх)
+		g.text(font, "УПРАВЛЕНИЕ", rx + 12, ry + 10, TXT_DIM, false);
 		super.extractRenderState(g, mx, my, pt);
+		for (Row r : rows) {
+			boolean hov = mx >= r.x && mx < r.x + r.w && my >= r.y && my < r.y + r.h;
+			g.fill(r.x, r.y, r.x + r.w, r.y + r.h, !r.enabled ? ROW_OFF : hov ? ROW_HOVER : ROW);
+			g.outline(r.x, r.y, r.w, r.h, r.accent ? ACCENT : hov ? 0xFF4DE39A : 0x66348F63);
+			if (r.accent) g.fill(r.x, r.y + 2, r.x + 2, r.y + r.h - 2, ACCENT);
+			int px = r.h >= 22 ? 2 : 1, isz = 9 * px;
+			int ix = r.label.isEmpty() ? r.x + (r.w - isz) / 2 : r.x + 7, iy = r.y + (r.h - isz) / 2;
+			icon(g, r.icon, ix, iy, px, !r.enabled ? 0xFF3F6B55 : r.accent ? ACCENT : TXT);
+			int ty = r.y + (r.h - 8) / 2;
+			if (!r.label.isEmpty()) g.text(font, r.label, ix + isz + 7, ty, !r.enabled ? 0xFF5B8A74 : TXT, false);
+			if (!r.state.isEmpty()) g.text(font, r.state, r.x + r.w - 7 - font.width(r.state), ty, r.accent ? ACCENT : TXT_DIM, false);
+		}
 	}
 }

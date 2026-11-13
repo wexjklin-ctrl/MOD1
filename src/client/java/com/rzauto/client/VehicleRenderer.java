@@ -31,6 +31,9 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 		public GeoModel.Baked bake, bakeE, bakeBar, bakeBar2;
 		/** путь вперёд в блоках (по модулю 18, чтобы не терять точность) и скорость поворота (град/с) для колёс и руля */
 		public float dist, steer, pitch, roll, dy, pop;
+		/** следы шин: по 4 угла (x,y,z) на след, координаты уже относительно машины */
+		public float[] marks;
+		public double wx, wy, wz;
 		public Identifier tex, texE;
 		/** сдвиг каждого колеса по высоте (в единицах модели) по рельефу под ним */
 		public float[] wdy;
@@ -65,6 +68,7 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 		net.minecraft.core.BlockPos.MutableBlockPos mp = new net.minecraft.core.BlockPos.MutableBlockPos();
 		for (int by = top; by >= top - 4; by--) {
 			mp.set(bx, by, bz);
+			if (level.getBlockState(mp).is(net.minecraft.tags.BlockTags.LEAVES)) continue;
 			net.minecraft.world.phys.shapes.VoxelShape sh = level.getBlockState(mp).getCollisionShape(level, mp);
 			if (sh.isEmpty()) continue;
 			double h = by + sh.max(net.minecraft.core.Direction.Axis.Y);
@@ -182,6 +186,62 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 		s.steer = t.steer;
 	}
 
+	// ---- временные следы шин (только клиент) ----
+	private static final class MarkSet { final java.util.ArrayList<double[]> list = new java.util.ArrayList<>(); double lx, lz; boolean has; }
+	private static final java.util.Map<VehicleEntity, MarkSet> MARKS = new java.util.WeakHashMap<>();
+	private static final long MARK_LIFE_MS = 4500;
+
+	/** Добавляет следы под задними колёсами, пока шины скользят (занос, буксовка, торможение юзом), и собирает живые следы в массив вершин. */
+	private static float[] markQuads(VehicleEntity e, double wx, double wy, double wz) {
+		MarkSet ms = MARKS.computeIfAbsent(e, k -> new MarkSet());
+		long now = System.currentTimeMillis();
+		ms.list.removeIf(m -> now - (long) m[7] > MARK_LIFE_MS);
+		double x = e.getX(), z = e.getZ();
+		if (e.slipValue() > 0.3f && e.onGround() && !e.getPassengers().isEmpty()) {
+			if (!ms.has) { ms.lx = x; ms.lz = z; ms.has = true; }
+			double dx = x - ms.lx, dz = z - ms.lz, step = Math.hypot(dx, dz);
+			if (step > 0.35 && step < 4) {
+				VehicleSpec spec = VehicleRegistry.specOf(e.getType());
+				double[] dm = spec == null ? null : com.rzauto.logic.VehicleCatalog.dims(spec.bedrockId());
+				double halfW = dm == null ? 0.8 : dm[0] * 0.38, back = dm == null ? 1.6 : dm[1] * 0.33;
+				double yr = Math.toRadians(e.getYRot()), fx = -Math.sin(yr), fz = Math.cos(yr);
+				double ux = dx / step, uz = dz / step;
+				for (int side = -1; side <= 1; side += 2) {
+					double px = x - fx * back + (-fz) * halfW * side, pz = z - fz * back + fx * halfW * side;
+					ms.list.add(new double[] { px, e.getY() + 0.03, pz, ux, uz, step + 0.12, e.slipValue(), now });
+				}
+				if (ms.list.size() > 160) ms.list.subList(0, ms.list.size() - 160).clear();
+				ms.lx = x; ms.lz = z;
+			} else if (step >= 4) { ms.lx = x; ms.lz = z; }
+		} else ms.has = false;
+		if (ms.list.isEmpty()) return null;
+		float[] out = new float[ms.list.size() * 12];
+		int o = 0;
+		for (double[] m : ms.list) {
+			double age = (now - (long) m[7]) / (double) MARK_LIFE_MS;
+			double w = 0.11 * (age > 0.7 ? Math.max(0.0, (1.0 - age) / 0.3) : 1.0);   // к концу жизни след сужается и исчезает
+			double hl = m[5] / 2, ux = m[3], uz = m[4], vx = -uz, vz = ux;
+			double cx = m[0] - wx, cy = m[1] - wy, cz = m[2] - wz;
+			double[][] c = { { -hl, -w }, { hl, -w }, { hl, w }, { -hl, w } };
+			for (double[] k : c) { out[o++] = (float) (cx + ux * k[0] + vx * k[1]); out[o++] = (float) cy; out[o++] = (float) (cz + uz * k[0] + vz * k[1]); }
+		}
+		return out;
+	}
+
+	private static void drawMarks(float[] q, PoseStack.Pose pp, VertexConsumer vc, int light) {
+		int n = q.length / 12;
+		for (int i = 0; i < n; i++) {
+			int o = i * 12;
+			for (int pass = 0; pass < 2; pass++) {
+				for (int k = 0; k < 4; k++) {
+					int kk = pass == 0 ? k : 3 - k, a = o + kk * 3;
+					vc.addVertex(pp, q[a], q[a + 1], q[a + 2]).setColor(0xFF1A1A1A).setUv(kk == 1 || kk == 2 ? 1f : 0f, kk >= 2 ? 1f : 0f)
+						.setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pp, 0f, pass == 0 ? 1f : -1f, 0f);
+				}
+			}
+		}
+	}
+
 	/** Тангаж и крен кузова, как он сейчас нарисован: по ним двигается сиденье. null, если машина ещё не рисовалась. */
 	public static float[] poseOf(VehicleEntity e) {
 		Track t = TRACKS.get(e);
@@ -197,6 +257,8 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 		s.yaw = e.getYRot(partial);
 		s.lights = e.lightsOn(); s.siren = e.sirenOn();
 		track(e, s, partial);
+		s.wx = e.getX(partial); s.wy = e.getY(partial); s.wz = e.getZ(partial);
+		s.marks = markQuads(e, s.wx, s.wy, s.wz);
 		net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
 		// Камера от первого лица внутри коробки: не рисуем её для самого водителя/пассажира
 		s.hide = mc.player != null && mc.player.getVehicle() == e && mc.options.getCameraType().isFirstPerson();
@@ -224,6 +286,10 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 
 	@Override
 	public void submit(State s, PoseStack pose, SubmitNodeCollector collector, CameraRenderState camera) {
+		if (s.marks != null) {
+			final float[] mk = s.marks; final int ml = s.lightCoords;
+			collector.submitCustomGeometry(pose, RenderTypes.entityCutout(Identifier.fromNamespaceAndPath("minecraft", "textures/block/white_concrete.png")), (p, vc) -> drawMarks(mk, p, vc, ml));
+		}
 		if (s.model != null && s.tex != null) {
 			pose.pushPose();
 			pose.mulPose(new Matrix4f().rotationY((float) Math.toRadians(-s.yaw)));

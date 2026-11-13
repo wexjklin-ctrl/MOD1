@@ -102,6 +102,9 @@ public class VehicleEntity extends Entity {
 	public static final EntityDataAccessor<Float> DATA_SLIP = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.FLOAT);
 	/** 0..1: насколько сильно сейчас скользят шины (занос, буксовка, торможение юзом). Нужно клиенту для следов и дыма. */
 	public float slipValue() { return entityData.get(DATA_SLIP); }
+	public static final EntityDataAccessor<Float> DATA_ODO = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.FLOAT);
+	/** Пробег в блоках (для меню; округлён до 10 блоков, чтобы не слать пакеты каждый тик). */
+	public float odoBlocks() { return entityData.get(DATA_ODO); }
 	public float syncedSpeed() { return entityData.get(DATA_SPEED); }
 	public Access.Lock lockState() { int i = entityData.get(DATA_LOCK); Access.Lock[] v = Access.Lock.values(); return v[Math.max(0, Math.min(v.length - 1, i))]; }
 	public boolean isLocked() { return lockState() != Access.Lock.OPEN; }
@@ -395,6 +398,7 @@ public class VehicleEntity extends Entity {
 		builder.define(DATA_BROKEN, false);
 		builder.define(DATA_SPEED, 0f);
 		builder.define(DATA_SLIP, 0f);
+		builder.define(DATA_ODO, 0f);
 		builder.define(DATA_OWNER, "");
 		builder.define(DATA_OWNER_NAME, "");
 		builder.define(DATA_LIGHTS, true);
@@ -488,6 +492,7 @@ public class VehicleEntity extends Entity {
 		entityData.set(DATA_HP, hp < 0 ? maxHp() : hp);
 		entityData.set(DATA_OWNER, owner == null ? "" : owner.toString());
 		entityData.set(DATA_SPEED, (float) (Math.round(st.speed * 50) / 50.0));
+		entityData.set(DATA_ODO, (float) (Math.round(vs.wear.mileage / 10.0) * 10.0));
 		entityData.set(DATA_SLIP, st.sliding ? (float) (Math.round(Math.min(1.0, 0.4 + Math.abs(st.lat) * 1.5) * 10) / 10.0) : 0f);
 	}
 
