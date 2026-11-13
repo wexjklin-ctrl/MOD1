@@ -10,47 +10,34 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
-import net.minecraft.world.item.ItemStack;
 
 /**
- * Паспортный стол. Вкладки: ПАСПОРТ (страна и герб), НАРУШЕНИЕ (ник вручную или из списка онлайн, текст вручную, печать),
- * УДАЛЕНИЕ (нарушения выбранного игрока, удалять можно только свои). Печать справа (SEAL_*) не заходит на поля и кнопки слева (они кончаются на FIELD_W).
+ * Паспортный стол (только для админа сервера; остальные видят пояснение). Задники и язычки из pasport.zip (PassportUi).
+ * Вкладки: ПАСПОРТ (админ вписывает игроку страну и герб; их показывают все паспорта игрока), НАРУШЕНИЕ (ник вручную или из «Онлайн», текст вручную,
+ * печать выбирается независимо от герба в паспорте), УДАЛЕНИЕ (любое нарушение выбранного игрока).
+ * Слева, в тёмной панели картинки, показывается печать/герб, всё остальное справа в рабочей области, поэтому ничего не пересекается.
  */
 final class DeskScreen extends net.minecraft.client.gui.screens.Screen {
-	private static final int PW = 300, PH = 190;
-	/** Левая колонка полей/кнопок: x0 + LX .. x0 + LX + FIELD_W. */
-	private static final int LX = 16, FIELD_W = 180;
-	/** Печать: справа от колонки полей, не пересекается с ней. */
-	private static final int SEAL_SZ = 72, SEAL_X = PW - 16 - SEAL_SZ, SEAL_Y = 40;
-	private static final int ROWS = 4;
+	private static final String[] TABS = { "ПАСПОРТ", "НАРУШЕНИЕ", "УДАЛЕНИЕ" };
+	private static final int GROUP = 37;
 	private final BlockPos pos;
-	private int tab = 0, seal = -1, page = 0, seenVer = -1, onlineIdx = -1;
-	private boolean stamped;
-	private String country, target = "", text = "";
+	private final PassportUi ui = new PassportUi();
+	private final int ver0 = PassportClient.deskVer;
+	private int tab = 0, seal = 0, vSeal = 0, page = 0, seenVer = -1, onlineIdx = -1;
+	private String country = "", target = "", text = "", filledFor = "";
 
 	DeskScreen(BlockPos pos) {
 		super(Component.literal("Паспортный стол"));
 		this.pos = pos;
 	}
 
-	private ItemStack myPassport() {
-		if (minecraft == null || minecraft.player == null) return ItemStack.EMPTY;
-		var inv = minecraft.player.getInventory();
-		String me = minecraft.player.getUUID().toString();
-		for (int i = 0; i < inv.getContainerSize(); i++) {
-			ItemStack st = inv.getItem(i);
-			if (Passport.signed(st) && Passport.ownerUuid(st).equals(me)) return st;
-		}
-		return ItemStack.EMPTY;
-	}
-
-	private int x0() { return (width - PW) / 2; }
-	private int y0() { return (height - PH) / 2; }
-	private String me() { return minecraft != null && minecraft.player != null ? minecraft.player.getName().getString() : ""; }
+	private boolean loaded() { return PassportClient.deskVer > ver0; }
+	private boolean admin() { return loaded() && PassportClient.deskAdmin; }
+	private boolean targetMatches() { return !target.isEmpty() && PassportClient.deskTarget.equalsIgnoreCase(target); }
+	private String[] targetProfile() { return targetMatches() ? PassportClient.deskProfile : new String[0]; }
+	private List<String[]> targetViol() { return targetMatches() ? PassportClient.deskViol : List.of(); }
 
 	private void query() { ClientPlayNetworking.send(new DeskActionPayload(pos.asLong(), 0, target, 0, "")); }
 
@@ -60,58 +47,70 @@ final class DeskScreen extends net.minecraft.client.gui.screens.Screen {
 		if (on.isEmpty()) { query(); return; }
 		onlineIdx = (onlineIdx + 1) % on.size();
 		target = on.get(onlineIdx);
-		if (tab == 2) { page = 0; query(); }
+		page = 0;
+		query();
 		rebuildWidgets();
 	}
 
-	private void nickRow(int x0, int y0, int boxW) {
-		EditBox t1 = new EditBox(font, x0 + LX, y0 + 44, boxW, 18, Component.literal("Игрок"));
+	private int lx() { return ui.ax() + 4; }
+	private int fw() { return ui.aw() - 8; }
+	private int y0() { return ui.ay() + 34; }
+
+	private void nickRow(int y) {
+		int boxW = fw() - 136;
+		EditBox t1 = new EditBox(font, lx(), y + 11, boxW, 18, Component.literal("Игрок"));
 		t1.setMaxLength(16); t1.setValue(target); t1.setResponder(s -> target = s);
 		addRenderableWidget(t1);
-		addRenderableWidget(Button.builder(Component.literal("Онлайн"), b -> nextOnline()).bounds(x0 + LX + boxW + 4, y0 + 44, FIELD_W - boxW - 4, 18).build());
+		addRenderableWidget(Button.builder(Component.literal("Онлайн"), b -> nextOnline()).bounds(lx() + boxW + 4, y + 11, 64, 18).build());
+		addRenderableWidget(Button.builder(Component.literal("Найти"), b -> { page = 0; query(); }).bounds(lx() + boxW + 72, y + 11, 64, 18).build());
 	}
+
+	/** Строка выбора печати: < имя > (под подписью на y). */
+	private void sealRow(int y, boolean forViolation) {
+		int n = Passport.SEALS.length;
+		addRenderableWidget(Button.builder(Component.literal("<"), b -> { if (forViolation) vSeal = (vSeal + n - 1) % n; else seal = (seal + n - 1) % n; }).bounds(lx(), y + 11, 22, 18).build());
+		addRenderableWidget(Button.builder(Component.literal(">"), b -> { if (forViolation) vSeal = (vSeal + 1) % n; else seal = (seal + 1) % n; }).bounds(lx() + fw() - 22, y + 11, 22, 18).build());
+	}
+
+	private int rows() { return Math.max(2, Math.min(6, (ui.ay() + ui.ah() - (y0() + 44) - 26) / 20)); }
 
 	@Override
 	protected void init() {
-		ItemStack pass = myPassport();
-		if (country == null) country = Passport.country(pass);
-		if (seal < 0) seal = Passport.sealIndex(pass);
+		ui.layout(width, height);
 		if (seenVer < 0) { seenVer = PassportClient.deskVer; query(); }
-		int x0 = x0(), y0 = y0();
-		if (pass.isEmpty()) return;
-		int n = Passport.SEALS.length;
+		if (!admin()) return;
+		int y0 = y0();
 		if (tab == 0) {
-			EditBox eb = new EditBox(font, x0 + LX, y0 + 44, FIELD_W, 18, Component.literal("Страна"));
-			eb.setMaxLength(32);
-			eb.setValue(country);
-			eb.setResponder(s -> country = s);
+			nickRow(y0);
+			EditBox eb = new EditBox(font, lx(), y0 + GROUP + 11, fw(), 18, Component.literal("Страна"));
+			eb.setMaxLength(32); eb.setValue(country); eb.setResponder(s -> country = s);
 			addRenderableWidget(eb);
-			addRenderableWidget(Button.builder(Component.literal("<"), b -> { seal = (seal + n - 1) % n; }).bounds(x0 + LX, y0 + 88, 20, 18).build());
-			addRenderableWidget(Button.builder(Component.literal(">"), b -> { seal = (seal + 1) % n; }).bounds(x0 + LX + FIELD_W - 20, y0 + 88, 20, 18).build());
-			addRenderableWidget(Button.builder(Component.literal("Сохранить в паспорт"), b -> ClientPlayNetworking.send(new DeskEditPayload(pos.asLong(), country, seal))).bounds(x0 + LX, y0 + 130, FIELD_W, 20).build());
+			sealRow(y0 + GROUP * 2, false);
+			boolean can = !targetProfile().isEmpty() && !country.trim().isEmpty();
+			addRenderableWidget(Button.builder(Component.literal("Вписать страну и герб в паспорт"), b -> ClientPlayNetworking.send(new DeskEditPayload(pos.asLong(), target, country, seal))).bounds(lx(), y0 + GROUP * 3 + 2, fw(), 20).build()).active = can;
 		} else if (tab == 1) {
-			nickRow(x0, y0, 116);
-			EditBox t2 = new EditBox(font, x0 + LX, y0 + 80, FIELD_W, 18, Component.literal("Нарушение"));
+			nickRow(y0);
+			EditBox t2 = new EditBox(font, lx(), y0 + GROUP + 11, fw(), 18, Component.literal("Нарушение"));
 			t2.setMaxLength(80); t2.setValue(text); t2.setResponder(s -> text = s);
 			addRenderableWidget(t2);
-			addRenderableWidget(Button.builder(Component.literal(stamped ? "Печать приложена" : "Приложить печать"), b -> { stamped = !stamped; rebuildWidgets(); }).bounds(x0 + LX, y0 + 106, FIELD_W, 18).build());
-			addRenderableWidget(Button.builder(Component.literal("Отправить нарушение"), b -> { ClientPlayNetworking.send(new DeskViolationPayload(pos.asLong(), target, text)); text = ""; stamped = false; rebuildWidgets(); }).bounds(x0 + LX, y0 + 130, FIELD_W, 20).build()).active = stamped;
+			sealRow(y0 + GROUP * 2, true);
+			boolean can = !target.trim().isEmpty() && !text.trim().isEmpty();
+			addRenderableWidget(Button.builder(Component.literal("Выдать нарушение"), b -> { ClientPlayNetworking.send(new DeskViolationPayload(pos.asLong(), target, text, vSeal)); text = ""; rebuildWidgets(); }).bounds(lx(), y0 + GROUP * 3 + 2, fw(), 20).build()).active = can;
 		} else {
-			nickRow(x0, y0, 116);
-			addRenderableWidget(Button.builder(Component.literal("Показать"), b -> { page = 0; query(); }).bounds(x0 + LX + FIELD_W + 4, y0 + 44, PW - LX * 2 - FIELD_W - 4, 18).build());
-			List<String[]> v = PassportClient.deskTarget.equalsIgnoreCase(target) ? PassportClient.deskViol : List.of();
-			int pages = Math.max(1, (v.size() + ROWS - 1) / ROWS);
+			nickRow(y0);
+			List<String[]> v = targetViol();
+			int rows = rows();
+			int pages = Math.max(1, (v.size() + rows - 1) / rows);
 			page = Math.max(0, Math.min(page, pages - 1));
-			for (int r = 0; r < ROWS; r++) {
-				int idx = page * ROWS + r;
+			for (int r = 0; r < rows; r++) {
+				int idx = page * rows + r;
 				if (idx >= v.size()) break;
-				String[] row = v.get(idx);
-				boolean mine = row.length > 4 && row[4].equalsIgnoreCase(me());
-				final int fi = idx; final String ft = row[0];
-				addRenderableWidget(Button.builder(Component.literal("X"), b -> ClientPlayNetworking.send(new DeskActionPayload(pos.asLong(), 1, target, fi, ft))).bounds(x0 + PW - LX - 20, y0 + 70 + r * 20, 20, 18).build()).active = mine;
+				final int fi = idx; final String ft = v.get(idx)[0];
+				addRenderableWidget(Button.builder(Component.literal("X"), b -> ClientPlayNetworking.send(new DeskActionPayload(pos.asLong(), 1, target, fi, ft))).bounds(lx() + fw() - 22, y0 + 44 + r * 20, 22, 18).build());
 			}
-			addRenderableWidget(Button.builder(Component.literal("<"), b -> { page--; rebuildWidgets(); }).bounds(x0 + LX, y0 + 160, 20, 18).build()).active = page > 0;
-			addRenderableWidget(Button.builder(Component.literal(">"), b -> { page++; rebuildWidgets(); }).bounds(x0 + LX + 24, y0 + 160, 20, 18).build()).active = page < pages - 1;
+			int by = ui.ay() + ui.ah() - 22;
+			addRenderableWidget(Button.builder(Component.literal("<"), b -> { page--; rebuildWidgets(); }).bounds(lx(), by, 22, 18).build()).active = page > 0;
+			addRenderableWidget(Button.builder(Component.literal(">"), b -> { page++; rebuildWidgets(); }).bounds(lx() + 26, by, 22, 18).build()).active = page < pages - 1;
 		}
 	}
 
@@ -119,16 +118,25 @@ final class DeskScreen extends net.minecraft.client.gui.screens.Screen {
 	public void tick() {
 		super.tick();
 		if (minecraft.player == null || minecraft.player.distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5) > 64) { onClose(); return; }
-		if (seenVer != PassportClient.deskVer) { seenVer = PassportClient.deskVer; if (tab == 2) rebuildWidgets(); }
+		if (seenVer != PassportClient.deskVer) {
+			seenVer = PassportClient.deskVer;
+			// пришли данные игрока: подставить его страну и герб в поля (один раз для каждого ника)
+			String[] pr = targetProfile();
+			if (!pr.isEmpty() && !filledFor.equalsIgnoreCase(target)) {
+				filledFor = target;
+				country = PassportClient.country(pr);
+				seal = Math.max(0, PassportClient.seal(pr));
+			}
+			rebuildWidgets();
+		}
 	}
-
-	private int tabX(int i) { return x0() + PW - 8 - (3 - i) * 96; }
 
 	@Override
 	public boolean mouseClicked(MouseButtonEvent e, boolean dbl) {
-		for (int i = 0; i < 3; i++) {
-			int tx = tabX(i);
-			if (e.x() >= tx && e.x() < tx + 92 && e.y() >= y0() - 14 && e.y() < y0() + 4) { if (tab != i) { tab = i; page = 0; rebuildWidgets(); } return true; }
+		if (admin()) {
+			for (int i = 0; i < 3; i++) {
+				if (ui.tabHit(e.x(), e.y(), i, false)) { if (tab != i) { tab = i; page = 0; rebuildWidgets(); } return true; }
+			}
 		}
 		return super.mouseClicked(e, dbl);
 	}
@@ -136,63 +144,63 @@ final class DeskScreen extends net.minecraft.client.gui.screens.Screen {
 	@Override
 	public boolean isPauseScreen() { return false; }
 
+	private void label(GuiGraphicsExtractor g, String s, int y) { g.text(font, s, lx(), y, PassportUi.INK2, false); }
+
 	@Override
 	public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
-		int x0 = x0(), y0 = y0();
 		g.fillGradient(0, 0, width, height, 0xB004100A, 0xD006180F);
-		String[] names = { "ПАСПОРТ", "НАРУШЕНИЕ", "УДАЛЕНИЕ" };
-		int[] cols = { 0xFF9BDB8A, 0xFFE0583A, 0xFFE8B84A };
-		for (int i = 0; i < 3; i++) {
-			int tx = tabX(i), top = tab == i ? y0 - 14 : y0 - 10;
-			g.fill(tx, top, tx + 92, y0 + 4, 0xFF2E6BC8);
-			g.fill(tx + 1, top + 1, tx + 91, y0 + 4, cols[i]);
-			g.centeredText(font, names[i], tx + 46, top + 5, 0xFF202020);
+		ui.layout(width, height);
+		boolean adm = admin();
+		ui.background(g, adm ? tab : PassportUi.BEIGE);
+		ui.tabLabels(g, font, TABS, adm ? tab : -1, !adm);
+		int ax = lx(), ay = ui.ay();
+		PassportUi.big(g, font, "ПАСПОРТНЫЙ СТОЛ", ax, ay + 6, 2f, PassportUi.INK);
+		if (!adm) {
+			if (!loaded()) g.text(font, "Загрузка...", ax, ay + 40, PassportUi.INK2, false);
+			else {
+				g.text(font, "Только администратор сервера может:", ax, ay + 40, PassportUi.WARN, false);
+				g.text(font, "- вписывать игроку страну и герб,", ax, ay + 54, PassportUi.INK, false);
+				g.text(font, "- выдавать нарушения,", ax, ay + 66, PassportUi.INK, false);
+				g.text(font, "- отменять нарушения.", ax, ay + 78, PassportUi.INK, false);
+				g.text(font, "Свой паспорт: клавиша I с паспортом в руке.", ax, ay + 98, PassportUi.INK2, false);
+			}
+			super.extractRenderState(g, mx, my, pt);
+			return;
 		}
-		for (int k = 3; k >= 1; k--) { g.fill(x0 + k * 4, y0 + k * 4, x0 + PW + k * 4, y0 + PH + k * 4, 0xFF2E6BC8); g.fill(x0 + k * 4 + 1, y0 + k * 4 + 1, x0 + PW + k * 4 - 1, y0 + PH + k * 4 - 1, 0xFFD8CCA6); }
-		g.fill(x0, y0, x0 + PW, y0 + PH, 0xFFEADFBE);
-		g.fill(x0 + 4, y0 + 4, x0 + PW - 4, y0 + 6, 0xFF2E6BC8);
-		g.fill(x0 + 4, y0 + PH - 6, x0 + PW - 4, y0 + PH - 4, 0xFF2E6BC8);
-		g.fill(x0 + 4, y0 + 4, x0 + 6, y0 + PH - 4, 0xFF2E6BC8);
-		g.fill(x0 + PW - 6, y0 + 4, x0 + PW - 4, y0 + PH - 4, 0xFF2E6BC8);
-		g.text(font, "ПАСПОРТНЫЙ СТОЛ", x0 + 12, y0 + 10, 0xFF1D4F9E, false);
-		ItemStack pass = myPassport();
-		if (pass.isEmpty()) { g.text(font, "Нужен ваш подписанный паспорт", x0 + LX, y0 + 70, 0xFF8A2A2A, false); super.extractRenderState(g, mx, my, pt); return; }
-		int c = 0xFF6A5F3E;
-		if (tab != 2) {
-			int sx = x0 + SEAL_X, sy = y0 + SEAL_Y;
-			g.fill(sx - 4, sy - 4, sx + SEAL_SZ + 4, sy + SEAL_SZ + 4, 0xFFD3C79F);
-			int shown = tab == 0 ? seal : Passport.sealIndex(pass);
-			if (tab == 0 || stamped) g.blit(RenderPipelines.GUI_TEXTURED, Identifier.fromNamespaceAndPath("rz_auto", "textures/gui/" + Passport.sealPath(shown) + ".png"), sx, sy, 0f, 0f, SEAL_SZ, SEAL_SZ, 256, 256, 256, 256);
-			else g.centeredText(font, "место для печати", sx + SEAL_SZ / 2, sy + SEAL_SZ / 2 - 4, 0xFF9A8E68);
-		}
+		int y0 = y0();
+		int pw = ui.len(PassportUi.PHOTO_W), ph = ui.len(PassportUi.PHOTO_H);
+		int pcx = ui.x(PassportUi.PHOTO_X) + pw / 2, pcy = ui.y(PassportUi.PHOTO_Y) + ph / 2;
+		int big = Math.min(pw, ph) - 16;
+		label(g, "Игрок (ник вручную или «Онлайн»)", y0);
 		if (tab == 0) {
-			g.text(font, "Название страны", x0 + LX, y0 + 32, c, false);
-			g.text(font, "Герб", x0 + LX, y0 + 76, c, false);
-			g.centeredText(font, Passport.SEAL_NAMES[Math.floorMod(seal, Passport.SEALS.length)], x0 + LX + FIELD_W / 2, y0 + 93, 0xFF1A1A1A);
+			label(g, "Название страны", y0 + GROUP);
+			label(g, "Герб", y0 + GROUP * 2);
+			g.centeredText(font, Passport.SEAL_NAMES[Math.floorMod(seal, Passport.SEALS.length)], lx() + fw() / 2, y0 + GROUP * 2 + 16, PassportUi.INK);
+			PassportUi.seal(g, seal, pcx - big / 2, pcy - big / 2, big);
+			String st = target.isEmpty() ? "Введите ник или нажмите «Онлайн»" : !targetMatches() ? "Нажмите «Найти», чтобы загрузить паспорт игрока" : targetProfile().isEmpty() ? "У игрока нет паспорта" : "Паспорт найден: регистрация " + PassportClient.date(targetProfile());
+			g.text(font, PassportUi.clip(font, st, fw()), lx(), y0 + GROUP * 3 + 28, targetProfile().isEmpty() && targetMatches() ? PassportUi.WARN : PassportUi.INK2, false);
 		} else if (tab == 1) {
-			g.text(font, "Игрок (ник вручную или «Онлайн»)", x0 + LX, y0 + 32, c, false);
-			g.text(font, "Нарушение (текст вручную)", x0 + LX, y0 + 68, c, false);
-			g.text(font, clip(Passport.country(pass), FIELD_W), x0 + LX, y0 + 158, 0xFF4A6FA8, false);
+			label(g, "Текст нарушения (вручную)", y0 + GROUP);
+			label(g, "Печать (не зависит от герба в паспорте)", y0 + GROUP * 2);
+			g.centeredText(font, Passport.SEAL_NAMES[Math.floorMod(vSeal, Passport.SEALS.length)], lx() + fw() / 2, y0 + GROUP * 2 + 16, PassportUi.INK);
+			g.centeredText(font, "так будет выглядеть", pcx, ui.y(PassportUi.PHOTO_Y) + 6, PassportUi.INK2);
+			PassportUi.stamp(g, vSeal, pcx, pcy, big, 20260);
 		} else {
-			g.text(font, "Игрок", x0 + LX, y0 + 32, c, false);
-			List<String[]> v = PassportClient.deskTarget.equalsIgnoreCase(target) ? PassportClient.deskViol : List.of();
-			if (target.isEmpty()) g.text(font, "Введите ник или нажмите «Онлайн»", x0 + LX, y0 + 74, 0xFF9A8E68, false);
-			else if (v.isEmpty()) g.text(font, "Нарушений нет (нажмите «Показать»)", x0 + LX, y0 + 74, 0xFF9A8E68, false);
-			for (int r = 0; r < ROWS; r++) {
-				int idx = page * ROWS + r;
+			List<String[]> v = targetViol();
+			int rows = rows();
+			if (target.isEmpty()) g.text(font, "Введите ник или нажмите «Онлайн»", lx(), y0 + 48, PassportUi.INK2, false);
+			else if (!targetMatches()) g.text(font, "Нажмите «Найти»", lx(), y0 + 48, PassportUi.INK2, false);
+			else if (v.isEmpty()) g.text(font, "Нарушений нет", lx(), y0 + 48, PassportUi.INK2, false);
+			for (int r = 0; r < rows; r++) {
+				int idx = page * rows + r;
 				if (idx >= v.size()) break;
 				String[] row = v.get(idx);
-				boolean mine = row.length > 4 && row[4].equalsIgnoreCase(me());
-				g.text(font, clip((row.length > 1 ? row[1] + "  " : "") + row[0], PW - LX * 2 - 26), x0 + LX, y0 + 75 + r * 20, mine ? 0xFF1A1A1A : 0xFF8A8268, false);
+				g.text(font, PassportUi.clip(font, (row.length > 1 ? row[1] + "  " : "") + row[0], fw() - 28), lx(), y0 + 49 + r * 20, PassportUi.INK, false);
 			}
-			g.text(font, "Удалять можно только свои нарушения", x0 + LX + 52, y0 + 165, c, false);
+			g.text(font, "Любое нарушение удаляется кнопкой X", lx() + 56, ui.ay() + ui.ah() - 17, PassportUi.INK2, false);
+			g.centeredText(font, "Нарушений:", pcx, pcy - 10, PassportUi.INK);
+			g.centeredText(font, targetMatches() ? String.valueOf(v.size()) : "-", pcx, pcy + 4, PassportUi.INK);
 		}
 		super.extractRenderState(g, mx, my, pt);
-	}
-
-	private String clip(String s, int w) {
-		if (font.width(s) <= w) return s;
-		while (s.length() > 3 && font.width(s + "...") > w) s = s.substring(0, s.length() - 1);
-		return s + "...";
 	}
 }
