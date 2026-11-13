@@ -44,6 +44,8 @@ final class VehicleMenuScreen extends net.minecraft.client.gui.screens.Screen {
 	}
 
 	private void act(int action) { if (action == -3) { onClose(); return; } if (action == -2) return; if (action == -1) { CamMode.toggle(); rebuildWidgets(); return; }
+		if (action == -10) { CamMode.addDist(-0.2f); rebuildWidgets(); return; }
+		if (action == -11) { CamMode.addDist(0.2f); rebuildWidgets(); return; }
 		if (action == -8) { RadioClient.addVolume(-0.1f); rebuildWidgets(); return; }
 		if (action == -9) { RadioClient.addVolume(0.1f); rebuildWidgets(); return; }
 		if (action == -4) { RadioClient.setEnabled(!RadioClient.enabled); rebuildWidgets(); return; }
@@ -72,7 +74,7 @@ final class VehicleMenuScreen extends net.minecraft.client.gui.screens.Screen {
 		lw = rx - m - lx;
 
 		boolean rider = net.minecraft.client.Minecraft.getInstance().player != null && net.minecraft.client.Minecraft.getInstance().player.getVehicle() == car;
-		int n = 6 + (siren ? 1 : 0) + (jeepYj ? 1 : 0) + 1 + 2 + (rider ? 2 : 0) + 1;   // основные + руль + приём/громкость + радио в машине + починить
+		int n = 6 + (siren ? 1 : 0) + (jeepYj ? 1 : 0) + 1 + 1 + 2 + (rider ? 2 : 0) + 1;   // основные + руль + приём/громкость + радио в машине + починить
 		int pad = 10, top = ry + 28;
 		int avail = rh - 28 - pad - 4;
 		int gap = 3, h = Math.max(12, Math.min(26, (avail - gap * (n - 1)) / n));
@@ -87,6 +89,11 @@ final class VehicleMenuScreen extends net.minecraft.client.gui.screens.Screen {
 		row(5, "Пересесть", "", true, false, VehicleEntity.ACT_SEAT, x, y, w, h); y += h + gap;
 		row(6, "Передачи", car.gearsOn() ? "ВКЛ" : "ВЫКЛ", true, car.gearsOn(), VehicleEntity.ACT_GEARS, x, y, w, h); y += h + gap;
 		row(7, "Камера", CamMode.gta ? "GTA" : "СВОБОДНАЯ", true, false, -1, x, y, w, h); y += h + gap;
+		int bw0 = Math.max(22, h + 4);
+		row(7, "", "", true, false, -10, x, y, bw0, h);
+		rows.set(rows.size() - 1, new Row(10, "", "", true, false, x, y, bw0, h));
+		row(7, "Дистанция камеры: " + Math.round(CamMode.dist * 100) + "%", "", false, false, -2, x + bw0 + 3, y, w - 2 * bw0 - 6, h);
+		row(11, "", "", true, false, -11, x + w - bw0, y, bw0, h); y += h + gap;
 		// руль: [-]  Чувствительность  [+]
 		int bw = Math.max(22, h + 4);
 		row(8, "Руль", String.format(java.util.Locale.ROOT, "%.1f", car.sensValue()), true, false, VehicleEntity.ACT_SENS_DOWN, x, y, bw, h);

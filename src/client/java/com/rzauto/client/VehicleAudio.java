@@ -97,7 +97,7 @@ final class VehicleAudio {
 			double v = s.init ? Math.hypot(dx, dz) : 0;   // блоков за тик = внутренняя скорость
 			s.speed += (v - s.speed) * 0.5; s.x = e.getX(); s.z = e.getZ(); s.init = true;
 			boolean engineOn = !e.getPassengers().isEmpty();
-			String surface = BuiltInRegistries.BLOCK.getKey(mc.level.getBlockState(e.blockPosition().below()).getBlock()).toString();
+			String surface = "minecraft:" + com.rzauto.entity.Terrain.supportId(mc.level, e);
 			s.mixer.update(spec, engineOn, s.speed, spec.topSpeed(), e.onGround(), surface, false, 0, master);
 			if (s.mixer.silent(engineOn, s.speed)) { it.remove(); continue; }
 			Sound.Profile pr = Sound.profile(spec.bedrockId());

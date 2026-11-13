@@ -24,6 +24,27 @@ public final class Terrain {
 		return Double.NaN;
 	}
 
+	/**
+	 * Блок, на котором реально стоит сущность. На плите/полублоке (дорога из полублоков) blockPosition().below() давало траву под дорогой,
+	 * поэтому берём getOnPos() (учитывает высоту опоры), пропускаем воздух, листву и блоки без коллизии; слой снега в ногах считается покрытием.
+	 */
+	public static BlockPos supportPos(Level level, net.minecraft.world.entity.Entity e) {
+		BlockPos feet = e.blockPosition();
+		if (level.getBlockState(feet).is(net.minecraft.world.level.block.Blocks.SNOW)) return feet;
+		BlockPos p = e.getOnPos();
+		for (int i = 0; i < 3; i++) {
+			var st = level.getBlockState(p);
+			if (!st.isAir() && !st.is(net.minecraft.tags.BlockTags.LEAVES) && !st.getCollisionShape(level, p).isEmpty()) return p;
+			p = p.below();
+		}
+		return e.getOnPos();
+	}
+
+	/** Путь id блока опоры без пространства имён (например «grass_block», «smooth_stone_slab»). */
+	public static String supportId(Level level, net.minecraft.world.entity.Entity e) {
+		return net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(level.getBlockState(supportPos(level, e)).getBlock()).getPath();
+	}
+
 	/** {тангаж в градусах (+ = нос вниз), смещение кузова вниз (<= 0)}. */
 	public static float[] pitchAndDy(Level level, double x, double y, double z, float yaw, double halfL) {
 		double yr = Math.toRadians(yaw), fx = -Math.sin(yr), fz = Math.cos(yr);

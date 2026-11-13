@@ -31,7 +31,7 @@ final class VehicleFx {
 			double yr = Math.toRadians(e.getYRot()), fx = -Math.sin(yr), fz = Math.cos(yr);
 			BlockPos below = e.blockPosition().below();
 			BlockState st = mc.level.getBlockState(below), feet = mc.level.getBlockState(e.blockPosition());
-			String id = BuiltInRegistries.BLOCK.getKey(feet.getBlock()).getPath().equals("snow") ? "snow" : BuiltInRegistries.BLOCK.getKey(st.getBlock()).getPath();
+			String id = com.rzauto.entity.Terrain.supportId(mc.level, e);
 			Surface.Effect fxe = Surface.effect(id);
 			if (e.slipValue() > 0.3f) {
 				for (int side = -1; side <= 1; side += 2) {

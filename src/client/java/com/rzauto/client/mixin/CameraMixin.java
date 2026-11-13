@@ -38,7 +38,7 @@ public abstract class CameraMixin {
 		rzYaw += Mth.wrapDegrees(carYaw - rzYaw) * (1f - (float) Math.exp(-step / 0.25f));
 		var box = ve.getBoundingBox();
 		double len = Math.max(box.getXsize(), box.getZsize());
-		float want = (float) Mth.clamp(len * 1.15 + 2.2, 5.0, 9.5);
+		float want = (float) Mth.clamp(len * 1.15 + 2.2, 5.0, 9.5) * com.rzauto.client.CamModeAccess.dist();
 		rzDist += (want - rzDist) * (1f - (float) Math.exp(-step / 0.3f));
 		Vec3 base = ve.getPosition(pt).add(0, ve.getBbHeight() * 0.75, 0);
 		double yr = Math.toRadians(rzYaw);

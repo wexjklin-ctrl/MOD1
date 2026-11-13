@@ -291,12 +291,11 @@ public class VehicleEntity extends Entity {
 		// 1-я передача (режим передач включён): «ползёт» без штрафов покрытия, буксовки и склона, чтобы выбраться с травы и холма
 		boolean crawl = vs.gears.mode && vs.gears.gear(s) == 1;
 		if (!crawl && !(s.offroadExempt() || s.hasSiren() || s.bedrockId().startsWith("jeep:"))) {
-			var fx = com.rzauto.logic.Surface.effect(net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(level().getBlockState(blockPosition().below()).getBlock()).getPath());
+			var fx = com.rzauto.logic.Surface.effect(Terrain.supportId(level(), this));
 			if (fx != null) max *= OFFROAD_MULT;   // земля, песок, грязь: -40% (джипы и полиция не страдают)
 		}
 		if (vs.gta) {
-			String under = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(level().getBlockState(blockPosition().below()).getBlock()).getPath();
-			if (under.equals("air")) under = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(level().getBlockState(blockPosition()).getBlock()).getPath();
+			String under = Terrain.supportId(level(), this);
 			double slope = Math.max(-0.5, Math.min(0.5, -Math.sin(Math.toRadians(tiltPitch))));
 			Physics.Env env = com.rzauto.logic.Surface.env(under, slope);
 			if (crawl) env = new Physics.Env(env.grip(), 1.0, 0.0);
