@@ -80,7 +80,10 @@ public class VehicleEntity extends Entity {
 	public static final EntityDataAccessor<Integer> DATA_SEATS = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.INT);
 
 	/** Действия из меню / клавиши F (пакет VehicleActionPayload). */
-	public static final int ACT_ENTER = 0, ACT_ENGINE = 1, ACT_LOCK = 2, ACT_REPAIR = 3, ACT_LIGHTS = 4, ACT_SIREN = 5, ACT_SEAT = 6, ACT_SENS_DOWN = 7, ACT_SENS_UP = 8, ACT_GEARS = 9, ACT_EXIT = 10, ACT_ROOF = 11;
+	public static final int ACT_ENTER = 0, ACT_ENGINE = 1, ACT_LOCK = 2, ACT_REPAIR = 3, ACT_LIGHTS = 4, ACT_SIREN = 5, ACT_SEAT = 6, ACT_SENS_DOWN = 7, ACT_SENS_UP = 8, ACT_GEARS = 9, ACT_EXIT = 10, ACT_ROOF = 11, ACT_RADIO_OFF = 99, ACT_RADIO_BASE = 100, RADIO_MAX = 32;
+	/** Радио: 0 = выключено, n = станция n-1 из клиентского списка. Сервер хранит и рассылает одно число, звук считают клиенты сами. */
+	public static final EntityDataAccessor<Integer> DATA_RADIO = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.INT);
+	public int radioValue() { return entityData.get(DATA_RADIO); }
 	public static final EntityDataAccessor<Boolean> DATA_ROOF = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.BOOLEAN);
 	private boolean roof = true;
 	public boolean roofOn() { return entityData.get(DATA_ROOF); }
@@ -285,7 +288,9 @@ public class VehicleEntity extends Entity {
 		double max = canDrive ? Physics.currentMax(s, vs.gears.speedPercent(s, vs.speedPercent), vs.wear.broken, vs.fuel, vs.engineOn) : s.topSpeed();
 		max *= SPEED_SCALE;   // скорость Bedrock делим на 1.5
 		if (isInWater()) max *= 0.1;   // по воде только 10% скорости
-		if (!(s.offroadExempt() || s.hasSiren() || s.bedrockId().startsWith("jeep:"))) {
+		// 1-я передача (режим передач включён): «ползёт» без штрафов покрытия, буксовки и склона, чтобы выбраться с травы и холма
+		boolean crawl = vs.gears.mode && vs.gears.gear(s) == 1;
+		if (!crawl && !(s.offroadExempt() || s.hasSiren() || s.bedrockId().startsWith("jeep:"))) {
 			var fx = com.rzauto.logic.Surface.effect(net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(level().getBlockState(blockPosition().below()).getBlock()).getPath());
 			if (fx != null) max *= OFFROAD_MULT;   // земля, песок, грязь: -40% (джипы и полиция не страдают)
 		}
@@ -293,7 +298,9 @@ public class VehicleEntity extends Entity {
 			String under = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(level().getBlockState(blockPosition().below()).getBlock()).getPath();
 			if (under.equals("air")) under = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(level().getBlockState(blockPosition()).getBlock()).getPath();
 			double slope = Math.max(-0.5, Math.min(0.5, -Math.sin(Math.toRadians(tiltPitch))));
-			Physics.tickGta(s, st, new Physics.Input(x, y), max, sens, com.rzauto.logic.Surface.env(under, slope));
+			Physics.Env env = com.rzauto.logic.Surface.env(under, slope);
+			if (crawl) env = new Physics.Env(env.grip(), 1.0, 0.0);
+			Physics.tickGta(s, st, new Physics.Input(x, y), max, sens, env);
 		}
 		else Physics.tick(s, st, new Physics.Input(x, y), max, false, TURN_STRENGTH);
 		if (canDrive && driver != null) {
@@ -399,6 +406,7 @@ public class VehicleEntity extends Entity {
 		builder.define(DATA_SPEED, 0f);
 		builder.define(DATA_SLIP, 0f);
 		builder.define(DATA_ODO, 0f);
+		builder.define(DATA_RADIO, 0);
 		builder.define(DATA_OWNER, "");
 		builder.define(DATA_OWNER_NAME, "");
 		builder.define(DATA_LIGHTS, true);
@@ -525,6 +533,8 @@ public class VehicleEntity extends Entity {
 		if (action == ACT_EXIT && rider) { p.stopRiding(); return; }
 		if (action == ACT_LIGHTS && rider) { lights = !lights; syncState(); return; }
 		if (action == ACT_SIREN && rider) { if (s.hasSiren()) siren = !siren; syncState(); return; }
+		if (action == ACT_RADIO_OFF && rider) { entityData.set(DATA_RADIO, 0); return; }
+		if (action >= ACT_RADIO_BASE && action < ACT_RADIO_BASE + RADIO_MAX && rider) { entityData.set(DATA_RADIO, action - ACT_RADIO_BASE + 1); return; }
 		if (action == ACT_SEAT && rider) { changeSeat(p); return; }
 		if (action == ACT_ROOF && isOwnedBy(p.getUUID()) && s.bedrockId().startsWith("jeep:yj")) { roof = !roof; syncState(); return; }
 		if (owner == null) setOwner(p.getUUID());

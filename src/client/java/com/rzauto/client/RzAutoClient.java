@@ -26,8 +26,12 @@ public class RzAutoClient implements ClientModInitializer {
 	/** H: сирена (только полицейские машины). */
 	static final KeyMapping SIREN = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.rz_auto.siren", InputConstants.KEY_H, CATEGORY));
 
+	/** R: радио в машине вкл/выкл (слышат только игроки, у которых включён «Приём радио»). */
+	static final KeyMapping RADIO = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.rz_auto.radio", InputConstants.KEY_R, CATEGORY));
+
 	@Override
 	public void onInitializeClient() {
+		RadioClient.load();
 		for (VehicleRegistry.Entry e : VehicleRegistry.entries()) {
 			EntityRendererRegistry.register(e.type(), VehicleRenderer::new);
 		}
@@ -35,7 +39,7 @@ public class RzAutoClient implements ClientModInitializer {
 		CamMode.load();
 		com.rzauto.block.BenchBlock.CLIENT_OPEN = pos -> Minecraft.getInstance().setScreenAndShow(new BenchScreen(pos));
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("rz_auto", "vehicle_hud"), new VehicleHud());
-		net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(mc -> { VehicleAudio.tick(mc); keys(mc); });
+		net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(mc -> { VehicleAudio.tick(mc); keys(mc); RadioClient.tick(mc); });
 	}
 
 	/** Режим GTA: персонаж всегда смотрит по ходу машины (на поворотах не остаётся в старом направлении). */
@@ -64,6 +68,7 @@ public class RzAutoClient implements ClientModInitializer {
 			if (!ve.isUnclaimed() && !ve.isOwnedBy(mc.player.getUUID())) { mc.gui.hud.setOverlayMessage(net.minecraft.network.chat.Component.literal("Меню доступно только владельцу машины."), false); continue; }
 			mc.setScreenAndShow(new VehicleMenuScreen(ve));
 		}
+		while (RADIO.consumeClick()) { VehicleEntity ve = VehicleHud.riding(mc); if (ve != null) RadioClient.toggle(mc, ve); }
 		while (LIGHTS.consumeClick()) { VehicleEntity ve = VehicleHud.riding(mc); if (ve != null) ClientPlayNetworking.send(new VehicleActionPayload(ve.getId(), VehicleEntity.ACT_LIGHTS)); }
 		while (SIREN.consumeClick()) { VehicleEntity ve = VehicleHud.riding(mc); if (ve != null) ClientPlayNetworking.send(new VehicleActionPayload(ve.getId(), VehicleEntity.ACT_SIREN)); }
 	}

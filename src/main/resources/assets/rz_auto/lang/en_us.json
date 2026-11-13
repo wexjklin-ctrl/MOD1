@@ -623,5 +623,6 @@
  "key.rz_auto.gear_up": "Передача выше",
  "key.rz_auto.gear_down": "Передача ниже",
  "block.rz_auto.bench": "Верстак автомобилей",
- "item.rz_auto.bench": "Верстак автомобилей"
+ "item.rz_auto.bench": "Верстак автомобилей",
+ "key.rz_auto.radio": "Радио в машине вкл/выкл"
 }

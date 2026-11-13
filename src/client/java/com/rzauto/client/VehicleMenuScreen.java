@@ -40,10 +40,14 @@ final class VehicleMenuScreen extends net.minecraft.client.gui.screens.Screen {
 
 	private int signature() {
 		return (CamMode.gta ? 1 << 24 : 0) | (car.isEngineOn() ? 1 : 0) | (car.isBroken() ? 2 : 0) | (car.lockState().ordinal() << 2) | (car.lightsOn() ? 16 : 0)
-			| (car.roofOn() ? 1 << 25 : 0) | (car.sirenOn() ? 32 : 0) | (car.gearsOn() ? 64 : 0) | (Math.round(car.sensValue() * 10) << 8) | (Math.round(car.hpValue()) << 16);
+			| (car.roofOn() ? 1 << 25 : 0) | (car.sirenOn() ? 32 : 0) | (car.gearsOn() ? 64 : 0) | (car.radioValue() << 26) | (RadioClient.enabled ? 1 << 31 : 0) | (Math.round(car.sensValue() * 10) << 8) | (Math.round(car.hpValue()) << 16);
 	}
 
-	private void act(int action) { if (action == -3) { onClose(); return; } if (action == -2) return; if (action == -1) { CamMode.toggle(); rebuildWidgets(); return; } ClientPlayNetworking.send(new VehicleActionPayload(car.getId(), action)); }
+	private void act(int action) { if (action == -3) { onClose(); return; } if (action == -2) return; if (action == -1) { CamMode.toggle(); rebuildWidgets(); return; }
+		if (action == -4) { RadioClient.setEnabled(!RadioClient.enabled); rebuildWidgets(); return; }
+		if (action == -5) { RadioClient.toggle(net.minecraft.client.Minecraft.getInstance(), car); return; }
+		if (action == -6) { RadioClient.step(net.minecraft.client.Minecraft.getInstance(), car, -1); return; }
+		if (action == -7) { RadioClient.step(net.minecraft.client.Minecraft.getInstance(), car, 1); return; } ClientPlayNetworking.send(new VehicleActionPayload(car.getId(), action)); }
 
 	/** Невидимая кнопка + запись для отрисовки. */
 	private void row(int icon, String label, String state, boolean enabled, boolean accent, int action, int x, int y, int w, int h) {
@@ -65,7 +69,8 @@ final class VehicleMenuScreen extends net.minecraft.client.gui.screens.Screen {
 		rw = Math.max(170, Math.min(260, width * 36 / 100)); rx = width - m - rw; ry = m; rh = height - 2 * m;
 		lw = rx - m - lx;
 
-		int n = 8 + (siren ? 1 : 0) + (jeepYj ? 1 : 0) + 2;   // + руль и «закрыть»
+		boolean rider = net.minecraft.client.Minecraft.getInstance().player != null && net.minecraft.client.Minecraft.getInstance().player.getVehicle() == car;
+		int n = 8 + (siren ? 1 : 0) + (jeepYj ? 1 : 0) + 2 + 1 + (rider ? 2 : 0);   // + руль, «закрыть», приём радио, радио   // + руль и «закрыть»
 		int pad = 10, top = ry + 28;
 		int avail = rh - 28 - pad - 4;
 		int gap = 4, h = Math.max(15, Math.min(26, (avail - gap * (n - 1)) / n));
@@ -86,6 +91,14 @@ final class VehicleMenuScreen extends net.minecraft.client.gui.screens.Screen {
 		rows.set(rows.size() - 1, new Row(10, "", "", true, false, x, y, bw, h));
 		row(8, "Руль GTA 5", String.format(java.util.Locale.ROOT, "чувств. %.1f", car.sensValue()), false, false, -2, x + bw + 3, y, w - 2 * bw - 6, h);
 		row(11, "", "", true, false, VehicleEntity.ACT_SENS_UP, x + w - bw, y, bw, h); y += h + gap;
+		row(13, "Приём радио", RadioClient.enabled ? "ВКЛ" : "ВЫКЛ", true, RadioClient.enabled, -4, x, y, w, h); y += h + gap;
+		if (rider) {
+			int rv = car.radioValue();
+			row(13, "Радио", rv > 0 ? "ИГРАЕТ" : "ВЫКЛ", true, rv > 0, -5, x, y, w, h); y += h + gap;
+			row(10, "", "", true, false, -6, x, y, bw, h);
+			row(13, RadioClient.stationName(rv > 0 ? rv - 1 : RadioClient.lastIdx), RadioClient.status, false, false, -2, x + bw + 3, y, w - 2 * bw - 6, h);
+			row(11, "", "", true, false, -7, x + w - bw, y, bw, h); y += h + gap;
+		}
 		row(9, "Починить", canRepair ? "нужна шестерёнка" : "исправна", canRepair, false, VehicleEntity.ACT_REPAIR, x, y, w, h); y += h + gap;
 		row(12, "Закрыть", "I", true, false, -3, x, y, w, h);
 	}
@@ -121,6 +134,7 @@ final class VehicleMenuScreen extends net.minecraft.client.gui.screens.Screen {
 		{ ".........", ".........", ".........", ".#######.", ".#######.", ".........", ".........", ".........", "........." },   // 10 минус
 		{ "....#....", "....#....", "....#....", ".#######.", ".#######.", "....#....", "....#....", "....#....", "........." },   // 11 плюс
 		{ "#.......#", ".#.....#.", "..#...#..", "...#.#...", "....#....", "...#.#...", "..#...#..", ".#.....#.", "#.......#" },   // 12 закрыть
+		{ "......#..", ".....#...", "#######..", "#.....#..", "#.###.#..", "#.###.#..", "#.....#..", "#######..", "........." },   // 13 радио
 	};
 
 	private void icon(GuiGraphicsExtractor g, int id, int x, int y, int px, int color) {
