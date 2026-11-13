@@ -62,6 +62,8 @@ public final class BenchRecipes {
 				Recipe rc = new Recipe(o.get("id").getAsString(), res, cnt, group, need, grid);
 				ALL.add(rc); BY_ID.put(rc.id(), rc);
 			}
+			// Предметы без марки (паспортный стол, паспорт, шестерёнка) идут первыми, а не в конце списка машин.
+			ALL.sort(Comparator.comparing(r -> !r.group().isEmpty()));
 		} catch (Throwable t) { com.rzauto.RzAutoMod.LOG.error("recipes.json верстака не прочитался", t); }
 		return ALL;
 	}

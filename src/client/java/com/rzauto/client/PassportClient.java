@@ -12,6 +12,19 @@ final class PassportClient {
 	/** name, x, y, z */
 	static List<String[]> cars = new ArrayList<>();
 
+	/** Паспортный стол: ники онлайн, выбранный игрок и его нарушения (text, date, country, seal, issuer), deskVer растёт при каждом ответе. */
+	static List<String> deskOnline = new ArrayList<>();
+	static String deskTarget = "";
+	static List<String[]> deskViol = new ArrayList<>();
+	static int deskVer;
+
+	static void receiveDesk(com.rzauto.net.DeskDataPayload p) {
+		deskOnline = p.online().isEmpty() ? new ArrayList<>() : new ArrayList<>(Arrays.asList(p.online().split("\u0002", -1)));
+		deskTarget = p.target();
+		deskViol = parse(p.violations());
+		deskVer++;
+	}
+
 	private static List<String[]> parse(String s) {
 		List<String[]> out = new ArrayList<>();
 		if (s.isEmpty()) return out;

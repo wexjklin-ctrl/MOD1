@@ -24,7 +24,10 @@ public final class PassportNet {
 		PayloadTypeRegistry.serverboundPlay().register(PassportRequestPayload.TYPE, PassportRequestPayload.CODEC);
 		PayloadTypeRegistry.serverboundPlay().register(DeskEditPayload.TYPE, DeskEditPayload.CODEC);
 		PayloadTypeRegistry.serverboundPlay().register(DeskViolationPayload.TYPE, DeskViolationPayload.CODEC);
+		PayloadTypeRegistry.serverboundPlay().register(DeskActionPayload.TYPE, DeskActionPayload.CODEC);
 		PayloadTypeRegistry.clientboundPlay().register(PassportInfoPayload.TYPE, PassportInfoPayload.CODEC);
+		PayloadTypeRegistry.clientboundPlay().register(DeskDataPayload.TYPE, DeskDataPayload.CODEC);
+		ServerPlayNetworking.registerGlobalReceiver(DeskActionPayload.TYPE, (pl, ctx) -> action(ctx.server(), ctx.player(), pl));
 		ServerPlayNetworking.registerGlobalReceiver(PassportRequestPayload.TYPE, (pl, ctx) -> request(ctx.player(), pl));
 		ServerPlayNetworking.registerGlobalReceiver(DeskEditPayload.TYPE, (pl, ctx) -> edit(ctx.player(), pl));
 		ServerPlayNetworking.registerGlobalReceiver(DeskViolationPayload.TYPE, (pl, ctx) -> violation(ctx.server(), ctx.player(), pl));
@@ -91,5 +94,43 @@ public final class PassportNet {
 		PassportStore.addViolation(tu, new PassportStore.Violation(text, Passport.today(), Passport.country(mine), Passport.sealIndex(mine), p.getName().getString()));
 		if (online != null) online.sendSystemMessage(Component.literal("§cВам выписано нарушение: " + text), false);
 		say(p, "§aНарушение отправлено: " + name);
+	}
+
+	private static UUID resolve(MinecraftServer server, String name) {
+		for (ServerPlayer o : server.getPlayerList().getPlayers()) if (o.getName().getString().equalsIgnoreCase(name)) return o.getUUID();
+		return PassportStore.byName(name);
+	}
+
+	private static void sendDesk(MinecraftServer server, ServerPlayer p, String target) {
+		StringBuilder on = new StringBuilder();
+		for (ServerPlayer o : server.getPlayerList().getPlayers()) {
+			if (on.length() > 0) on.append('\u0002');
+			on.append(PassportStore.clean(o.getName().getString()));
+		}
+		String viol = "";
+		if (!target.isEmpty()) {
+			UUID tu = resolve(server, target);
+			if (tu != null) viol = PassportStore.encodeViolations(tu);
+		}
+		ServerPlayNetworking.send(p, new DeskDataPayload(on.toString(), target, viol));
+	}
+
+	/** Действия паспортного стола: 0 = данные для списков, 1 = удалить нарушение (только то, что выписал сам игрок). */
+	private static void action(MinecraftServer server, ServerPlayer p, DeskActionPayload pl) {
+		if (!nearDesk(p, pl.pos())) return;
+		String target = Passport.clean(pl.target(), 32);
+		if (pl.action() == 1) {
+			Container inv = p.getInventory();
+			boolean has = false;
+			for (int i = 0; i < inv.getContainerSize() && !has; i++) has = own(inv.getItem(i), p);
+			if (!has) { say(p, "§cНужен ваш подписанный паспорт в инвентаре."); return; }
+			UUID tu = target.isEmpty() ? null : resolve(server, target);
+			if (tu == null) { say(p, "§cИгрок не найден: " + target); return; }
+			PassportStore.Violation v = PassportStore.violationAt(tu, pl.index());
+			if (v == null || !PassportStore.clean(v.text()).equals(pl.text())) { say(p, "§cСписок изменился, откройте его заново."); }
+			else if (!v.issuer().equalsIgnoreCase(p.getName().getString())) say(p, "§cУдалять можно только нарушения, выписанные вами.");
+			else if (PassportStore.removeViolationAt(tu, pl.index())) say(p, "§aНарушение удалено.");
+		}
+		sendDesk(server, p, target);
 	}
 }

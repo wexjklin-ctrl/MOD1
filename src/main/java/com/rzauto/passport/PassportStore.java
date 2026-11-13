@@ -33,6 +33,23 @@ public final class PassportStore {
 		save();
 	}
 	public static List<Violation> violations(UUID id) { return VIOL.getOrDefault(id, List.of()); }
+	/** Нарушение по номеру в списке «новые первыми» (как в encodeViolations) или null. */
+	public static Violation violationAt(UUID id, int shown) {
+		List<Violation> l = VIOL.get(id);
+		if (l == null || shown < 0) return null;
+		int i = l.size() - 1 - shown;
+		return i >= 0 && i < l.size() ? l.get(i) : null;
+	}
+	public static boolean removeViolationAt(UUID id, int shown) {
+		List<Violation> l = VIOL.get(id);
+		if (l == null || shown < 0) return false;
+		int i = l.size() - 1 - shown;
+		if (i < 0 || i >= l.size()) return false;
+		l.remove(i);
+		dirty = true;
+		save();
+		return true;
+	}
 
 	public static void touchCar(VehicleEntity v) {
 		UUID o = v.getOwner();
@@ -48,7 +65,7 @@ public final class PassportStore {
 	}
 	public static List<CarRec> cars(UUID owner) { return new ArrayList<>(CARS.getOrDefault(owner, Map.of()).values()); }
 
-	private static String clean(String s) { return s.replace('\u0001', ' ').replace('\u0002', ' '); }
+	public static String clean(String s) { return s.replace('\u0001', ' ').replace('\u0002', ' '); }
 
 	/** Поля через \u0001, записи через \u0002; новые нарушения первыми. */
 	public static String encodeViolations(UUID id) {

@@ -41,6 +41,7 @@ public class RzAutoClient implements ClientModInitializer {
 		com.rzauto.block.BenchBlock.CLIENT_OPEN = pos -> Minecraft.getInstance().setScreenAndShow(new BenchScreen(pos));
 		com.rzauto.block.PassportDeskBlock.CLIENT_OPEN = pos -> Minecraft.getInstance().setScreenAndShow(new DeskScreen(pos));
 		ClientPlayNetworking.registerGlobalReceiver(com.rzauto.net.PassportInfoPayload.TYPE, (payload, ctx) -> Minecraft.getInstance().execute(() -> PassportClient.receive(payload)));
+		ClientPlayNetworking.registerGlobalReceiver(com.rzauto.net.DeskDataPayload.TYPE, (payload, ctx) -> Minecraft.getInstance().execute(() -> PassportClient.receiveDesk(payload)));
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("rz_auto", "vehicle_hud"), new VehicleHud());
 		net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(mc -> { VehicleAudio.tick(mc); keys(mc); RadioClient.tick(mc); });
 	}
