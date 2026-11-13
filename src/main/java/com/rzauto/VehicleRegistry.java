@@ -68,11 +68,11 @@ public final class VehicleRegistry {
 
 			ResourceKey<EntityType<?>> typeKey = ResourceKey.create(Registries.ENTITY_TYPE, id);
 			float k = RzConfig.renderScale;
-			// хитбокс по размерам модели (в Minecraft он квадратный в плане): ширина кузова, но не меньше половины длины
+			// хитбокс (в Minecraft он квадратный в плане и не поворачивается): 70% ширины модели, 1.3..2.2 блока; раньше был до 3.2 и цеплялся за воздух
 			double[] dm = VehicleCatalog.dims(spec.bedrockId());
 			float w = (spec.motorcycle() ? 0.9f : 2.0f) * k, h = (spec.motorcycle() ? 1.4f : 1.5f) * k;
 			if (dm != null) {
-				w = (float) Math.max(spec.motorcycle() ? 0.7 : 1.4, Math.min(3.2, Math.max(dm[0], 0.5 * dm[1]))) * k;
+				w = (float) (spec.motorcycle() ? Math.max(0.7, Math.min(1.1, dm[0] * 0.7)) : Math.max(1.3, Math.min(2.2, dm[0] * 0.7))) * k;   // уже кузова: лучше проехать впритык, чем цепляться за воздух
 				h = (float) Math.max(1.0, Math.min(2.4, dm[2])) * k;
 			}
 			double[][] sd = VehicleCatalog.seats(spec.bedrockId());
