@@ -23,6 +23,17 @@ public abstract class CameraMixin {
 	private static long rzNs;
 	private static int rzId = -1;
 
+	/** Есть ли вокруг точки (радиус 0.3) сплошной блок (листва не считается: машины проезжают сквозь неё). */
+	private static boolean rz$blocked(net.minecraft.world.level.Level lv, Vec3 p) {
+		double r = 0.3;
+		for (int i = 0; i < 8; i++) {
+			var bp = new net.minecraft.core.BlockPos(Mth.floor(p.x + ((i & 1) * 2 - 1) * r), Mth.floor(p.y + (((i >> 1) & 1) * 2 - 1) * r), Mth.floor(p.z + (((i >> 2) & 1) * 2 - 1) * r));
+			var st = lv.getBlockState(bp);
+			if (st.canOcclude() && !st.is(net.minecraft.tags.BlockTags.LEAVES)) return true;
+		}
+		return false;
+	}
+
 	@Inject(method = "update", at = @At("TAIL"))
 	private void rz$chase(DeltaTracker dt, CallbackInfo ci) {
 		Camera self = (Camera) (Object) this;
@@ -45,16 +56,22 @@ public abstract class CameraMixin {
 		Vec3 back = new Vec3(Math.sin(yr), 0, -Math.cos(yr));
 		float pitch = 11f;
 		Vec3 dir = back.scale(Math.cos(Math.toRadians(pitch))).add(0, Math.sin(Math.toRadians(pitch)), 0).normalize();
-		// луч от машины к желаемой точке: 8 лучей со смещением, чтобы край экрана тоже не заходил в блоки
+		// защита от «иксрея»: 8 лучей от машины к желаемой точке с запасом 0.35 по краям и отступом 0.4 от стены
 		double dist = rzDist;
 		for (int i = 0; i < 8; i++) {
-			double ox = ((i & 1) * 2 - 1) * 0.2, oy = (((i >> 1) & 1) * 2 - 1) * 0.2, oz = (((i >> 2) & 1) * 2 - 1) * 0.2;
+			double ox = ((i & 1) * 2 - 1) * 0.35, oy = (((i >> 1) & 1) * 2 - 1) * 0.35, oz = (((i >> 2) & 1) * 2 - 1) * 0.35;
 			Vec3 from = base.add(ox, oy, oz), to = base.add(dir.scale(rzDist)).add(ox, oy, oz);
 			var hit = mc.level.clip(new ClipContext(from, to, ClipContext.Block.VISUAL, ClipContext.Fluid.NONE, mc.player));
-			if (hit.getType() != HitResult.Type.MISS) dist = Math.min(dist, hit.getLocation().distanceTo(from) - 0.25);
+			if (hit.getType() != HitResult.Type.MISS) dist = Math.min(dist, hit.getLocation().distanceTo(from) - 0.4);
 		}
 		dist = Math.max(0.6, dist);
-		setPosition(base.add(dir.scale(dist)));
+		// финальная проверка: сама камера и точки вокруг неё не внутри сплошных блоков (тоннели, углы); если внутри, подтягиваем к машине
+		Vec3 pos = base.add(dir.scale(dist));
+		for (int k = 0; k < 24 && dist > 0.6 && rz$blocked(mc.level, pos); k++) {
+			dist = Math.max(0.6, dist - 0.3);
+			pos = base.add(dir.scale(dist));
+		}
+		setPosition(pos);
 		setRotation(rzYaw, pitch);
 	}
 }
