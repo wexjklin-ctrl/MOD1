@@ -37,6 +37,8 @@ final class DeskScreen extends net.minecraft.client.gui.screens.Screen {
 	private boolean admin() { return loaded() && PassportClient.deskAdmin; }
 	private boolean targetMatches() { return !target.isEmpty() && PassportClient.deskTarget.equalsIgnoreCase(target); }
 	private String[] targetProfile() { return targetMatches() ? PassportClient.deskProfile : new String[0]; }
+	/** Профиль выбранного игрока найден (у игрока есть паспорт). */
+	private boolean hasProfile() { return targetProfile().length > 0; }
 	private List<String[]> targetViol() { return targetMatches() ? PassportClient.deskViol : List.of(); }
 
 	private void query() { ClientPlayNetworking.send(new DeskActionPayload(pos.asLong(), 0, target, 0, "")); }
@@ -86,7 +88,7 @@ final class DeskScreen extends net.minecraft.client.gui.screens.Screen {
 			eb.setMaxLength(32); eb.setValue(country); eb.setResponder(s -> country = s);
 			addRenderableWidget(eb);
 			sealRow(y0 + GROUP * 2, false);
-			boolean can = !targetProfile().isEmpty() && !country.trim().isEmpty();
+			boolean can = hasProfile() && !country.trim().isEmpty();
 			addRenderableWidget(Button.builder(Component.literal("Вписать страну и герб в паспорт"), b -> ClientPlayNetworking.send(new DeskEditPayload(pos.asLong(), target, country, seal))).bounds(lx(), y0 + GROUP * 3 + 2, fw(), 20).build()).active = can;
 		} else if (tab == 1) {
 			nickRow(y0);
@@ -122,7 +124,7 @@ final class DeskScreen extends net.minecraft.client.gui.screens.Screen {
 			seenVer = PassportClient.deskVer;
 			// пришли данные игрока: подставить его страну и герб в поля (один раз для каждого ника)
 			String[] pr = targetProfile();
-			if (!pr.isEmpty() && !filledFor.equalsIgnoreCase(target)) {
+			if (pr.length > 0 && !filledFor.equalsIgnoreCase(target)) {
 				filledFor = target;
 				country = PassportClient.country(pr);
 				seal = Math.max(0, PassportClient.seal(pr));
@@ -177,8 +179,8 @@ final class DeskScreen extends net.minecraft.client.gui.screens.Screen {
 			label(g, "Герб", y0 + GROUP * 2);
 			g.centeredText(font, Passport.SEAL_NAMES[Math.floorMod(seal, Passport.SEALS.length)], lx() + fw() / 2, y0 + GROUP * 2 + 16, PassportUi.INK);
 			PassportUi.seal(g, seal, pcx - big / 2, pcy - big / 2, big);
-			String st = target.isEmpty() ? "Введите ник или нажмите «Онлайн»" : !targetMatches() ? "Нажмите «Найти», чтобы загрузить паспорт игрока" : targetProfile().isEmpty() ? "У игрока нет паспорта" : "Паспорт найден: регистрация " + PassportClient.date(targetProfile());
-			g.text(font, PassportUi.clip(font, st, fw()), lx(), y0 + GROUP * 3 + 28, targetProfile().isEmpty() && targetMatches() ? PassportUi.WARN : PassportUi.INK2, false);
+			String st = target.isEmpty() ? "Введите ник или нажмите «Онлайн»" : !targetMatches() ? "Нажмите «Найти», чтобы загрузить паспорт игрока" : !hasProfile() ? "У игрока нет паспорта" : "Паспорт найден: регистрация " + PassportClient.date(targetProfile());
+			g.text(font, PassportUi.clip(font, st, fw()), lx(), y0 + GROUP * 3 + 28, !hasProfile() && targetMatches() ? PassportUi.WARN : PassportUi.INK2, false);
 		} else if (tab == 1) {
 			label(g, "Текст нарушения (вручную)", y0 + GROUP);
 			label(g, "Печать (не зависит от герба в паспорте)", y0 + GROUP * 2);

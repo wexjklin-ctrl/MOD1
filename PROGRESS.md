@@ -27,3 +27,4 @@
 ## Статус (обновляется)
 - [x] Сервер: Passport.java (профиль вместо NBT), PassportStore (Profile, seed, миграция), payload-ы (PassportInfoPayload+profile, DeskDataPayload+profile+admin, DeskEditPayload+target, DeskViolationPayload+seal), PassportNet (только админ, удаление любых нарушений, миграция старых паспортов).
 - [ ] Клиент: PassportClient (profile, deskProfile, deskAdmin), новый PassportUi (задники, язычки, печать с наклоном), DocumentScreen, DeskScreen — переписать под новый API. До этого ветка НЕ собирается; WIP лежит в ветке `wip-session17`, `main` не трогать, пока клиент не готов.
+- [x] Клиент написан и запушен (816c9c7). Первая сборка: ошибки только `String[].isEmpty()` в DeskScreen, правится (следующий коммит). Сервер и остальной клиент компилируются.
