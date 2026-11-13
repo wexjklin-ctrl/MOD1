@@ -36,6 +36,22 @@ final class RadioClient {
 
 	/** Прямой MP3-поток Маруся ФМ (дал владелец). */
 	static final String MARUSYA_URL = "http://radio-holding.ru:9000/marusya_default";
+	/** Станции по умолчанию (после Маруси ФМ). Порядок менять нельзя: в машине хранится номер станции; новые добавлять только в конец.
+	 * Ссылки помеченные (?) не проверялись из песочницы: если станция молчит, поправьте url в config/rz_auto_radio.json. */
+	static final String[][] DEFAULTS = {
+		{ "Европа Плюс", "https://europaplus.hostingradio.ru:8030/ep128" },
+		{ "Русское Радио", "https://rusradio.hostingradio.ru/rusradio128.mp3" },
+		{ "Радио Рекорд", "http://air.radiorecord.ru:8101/rr_320" },                       // (?)
+		{ "Record Супердискотека 90-х", "http://online.radiorecord.ru:8102/sd90_128" },
+		{ "Маяк", "http://icecast.vgtrk.cdnvideo.ru/mayakfm_mp3_192kbps" },               // (?)
+		{ "Вести ФМ", "http://icecast.vgtrk.cdnvideo.ru/vestifm_mp3_128kbps" },
+		{ "Радио России", "http://icecast.vgtrk.cdnvideo.ru/rr_mp3_192kbps" },            // (?)
+		{ "Радио Культура", "http://icecast.vgtrk.cdnvideo.ru/kulturafm_mp3_192kbps" },   // (?)
+		{ "Коммерсантъ FM", "http://kommersant77.hostingradio.ru:8016/kommersant128.mp3" }, // (?)
+		{ "Комсомольская Правда", "http://kpradio.hostingradio.ru:8000/128" },            // (?)
+		{ "Хайп FM", "https://hfm.amgradio.ru/HypeFM" } };
+	/** Ступени громкости: у нуля мелкий шаг, чтобы можно было сделать почти беззвучно или выключить совсем. */
+	static final float[] VOL_STEPS = { 0f, 0.01f, 0.02f, 0.04f, 0.06f, 0.08f, 0.1f, 0.15f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f, 0.8f, 0.9f, 1f };
 	static final double RADIUS = 40.0;
 	static boolean enabled;
 	static float volume = 0.8f;
@@ -52,7 +68,7 @@ final class RadioClient {
 			if (Files.exists(FILE)) {
 				JsonObject o = JsonParser.parseString(Files.readString(FILE)).getAsJsonObject();
 				if (o.has("radioEnabled")) enabled = o.get("radioEnabled").getAsBoolean();
-				if (o.has("radioVolume")) volume = Math.max(0.1f, Math.min(1f, o.get("radioVolume").getAsFloat()));
+				if (o.has("radioVolume")) volume = Math.max(0f, Math.min(1f, o.get("radioVolume").getAsFloat()));
 				if (o.has("stations")) for (var e : o.getAsJsonArray("stations")) {
 					JsonObject s = e.getAsJsonObject();
 					stations.add(new Station(s.has("name") ? s.get("name").getAsString() : "Станция", s.has("url") ? s.get("url").getAsString().trim() : ""));
@@ -60,6 +76,12 @@ final class RadioClient {
 			}
 		} catch (Exception ex) { RzAutoMod.LOG.warn("rz_auto_radio.json не прочитался: {}", ex.toString()); }
 		if (stations.isEmpty()) stations.add(new Station("Маруся ФМ", MARUSYA_URL));
+		// добавить станции по умолчанию, которых ещё нет (по названию); порядок существующих не меняется
+		for (String[] d : DEFAULTS) {
+			boolean has = false;
+			for (Station st : stations) if (st.name().equalsIgnoreCase(d[0])) { has = true; break; }
+			if (!has) stations.add(new Station(d[0], d[1]));
+		}
 		// старый конфиг с пустой ссылкой у Маруси ФМ: подставляем поток
 		for (int i = 0; i < stations.size(); i++) {
 			Station st = stations.get(i);
@@ -71,9 +93,9 @@ final class RadioClient {
 	static void save() {
 		try {
 			JsonObject o = new JsonObject();
-			o.addProperty("_help", "radioEnabled: принимать радио из машин (true/false). radioVolume: 0.1..1.0. stations: name и url ПРЯМОГО MP3-потока (не страницы сайта). Порядок станций лучше держать одинаковым у всех игроков сервера: в машине хранится номер станции.");
+			o.addProperty("_help", "radioEnabled: принимать радио из машин (true/false). radioVolume: 0.0..1.0 (0 = тишина). stations: name и url ПРЯМОГО MP3-потока (не страницы сайта). Порядок станций лучше держать одинаковым у всех игроков сервера: в машине хранится номер станции.");
 			o.addProperty("radioEnabled", enabled);
-			o.addProperty("radioVolume", Math.round(volume * 10) / 10.0);
+			o.addProperty("radioVolume", Math.round(volume * 100) / 100.0);
 			JsonArray a = new JsonArray();
 			for (Station s : stations) { JsonObject so = new JsonObject(); so.addProperty("name", s.name()); so.addProperty("url", s.url()); a.add(so); }
 			o.add("stations", a);
@@ -81,7 +103,14 @@ final class RadioClient {
 		} catch (Exception ignored) { }
 	}
 
-	static void addVolume(float d) { volume = Math.max(0.1f, Math.min(1f, Math.round((volume + d) * 10f) / 10f)); save(); }
+	static void addVolume(float d) {
+		int cur = 0;
+		for (int i = 0; i < VOL_STEPS.length; i++) if (Math.abs(VOL_STEPS[i] - volume) < Math.abs(VOL_STEPS[cur] - volume)) cur = i;
+		if (d > 0 && VOL_STEPS[cur] <= volume + 1e-4f) cur++;
+		else if (d < 0 && VOL_STEPS[cur] >= volume - 1e-4f) cur--;
+		volume = VOL_STEPS[Math.max(0, Math.min(VOL_STEPS.length - 1, cur))];
+		save();
+	}
 
 	static void setEnabled(boolean v) { enabled = v; if (!v) stop(); save(); }
 
