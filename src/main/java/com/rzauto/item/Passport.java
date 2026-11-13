@@ -37,6 +37,12 @@ public final class Passport {
 		s.set(DataComponents.CUSTOM_DATA, CustomData.of(t));
 		return n;
 	}
+	/** Установить печать по индексу (только сервер). */
+	public static void setSeal(ItemStack s, int idx) {
+		CompoundTag t = tag(s);
+		t.putInt("rz_seal", Math.floorMod(idx, SEALS.length));
+		s.set(DataComponents.CUSTOM_DATA, CustomData.of(t));
+	}
 	public static boolean signed(ItemStack s) { return !ownerUuid(s).isEmpty(); }
 
 	/** Присвоить документ игроку (только сервер). */
