@@ -37,7 +37,7 @@ final class VehicleFx {
 			boolean snow = id.equals("snow");
 			for (int side = -1; side <= 1; side += 2) {
 				double px = e.getX() - fx * back + (-fz) * halfW * side, pz = e.getZ() - fz * back + fx * halfW * side;
-				double dx = -fx * v * 0.4 + (mc.level.random.nextDouble() - 0.5) * 0.06, dz = -fz * v * 0.4 + (mc.level.random.nextDouble() - 0.5) * 0.06;
+				double dx = -fx * v * 0.4 + (java.util.concurrent.ThreadLocalRandom.current().nextDouble() - 0.5) * 0.06, dz = -fz * v * 0.4 + (java.util.concurrent.ThreadLocalRandom.current().nextDouble() - 0.5) * 0.06;
 				if (snow) {
 					mc.level.addParticle(ParticleTypes.CLOUD, px, e.getY() + 0.15, pz, dx, 0.05, dz);
 					mc.level.addParticle(ParticleTypes.SNOWFLAKE, px, e.getY() + 0.2, pz, dx, 0.08, dz);
@@ -45,7 +45,7 @@ final class VehicleFx {
 					BlockState src = feet.isAir() ? st : st;
 					int n = id.contains("sand") ? 3 : 2;
 					for (int i = 0; i < n; i++)
-						mc.level.addParticle(new BlockParticleOption(ParticleTypes.BLOCK, src), px, e.getY() + 0.1, pz, dx, 0.12 + mc.level.random.nextDouble() * 0.1, dz);
+						mc.level.addParticle(new BlockParticleOption(ParticleTypes.BLOCK, src), px, e.getY() + 0.1, pz, dx, 0.12 + java.util.concurrent.ThreadLocalRandom.current().nextDouble() * 0.1, dz);
 					if (id.contains("sand") || id.equals("dirt") || id.equals("coarse_dirt")) mc.level.addParticle(ParticleTypes.CAMPFIRE_COSY_SMOKE, px, e.getY() + 0.2, pz, dx * 0.5, 0.02, dz * 0.5);
 				}
 			}
