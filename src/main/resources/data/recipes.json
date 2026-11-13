@@ -6475,5 +6475,28 @@
     "count": 4
    }
   ]
+ },
+ {
+  "id": "rz_auto:craft_passport_desk",
+  "type": "shapeless",
+  "station": "rz_auto:bench",
+  "result": {
+   "item": "rz_auto:passport_desk",
+   "count": 1
+  },
+  "ingredients": [
+   {
+    "item": "minecraft:iron_ingot",
+    "count": 6
+   },
+   {
+    "item": "minecraft:diamond",
+    "count": 1
+   },
+   {
+    "item": "minecraft:paper",
+    "count": 4
+   }
+  ]
  }
 ]

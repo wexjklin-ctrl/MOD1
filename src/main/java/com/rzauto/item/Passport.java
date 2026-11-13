@@ -29,20 +29,33 @@ public final class Passport {
 	public static final String[] SEAL_NAMES = { "Орёл RZ", "Красная печать", "Сакура", "Синяя печать" };
 	public static int sealIndex(ItemStack s) { return isDoc(s) ? Math.floorMod(tag(s).getIntOr("rz_seal", 0), SEALS.length) : 0; }
 	public static String seal(ItemStack s) { return SEALS[sealIndex(s)]; }
-	/** Следующая печать по кругу (только сервер). */
-	public static int nextSeal(ItemStack s) {
-		CompoundTag t = tag(s);
-		int n = (sealIndex(s) + 1) % SEALS.length;
-		t.putInt("rz_seal", n);
-		s.set(DataComponents.CUSTOM_DATA, CustomData.of(t));
-		return n;
-	}
 	/** Установить печать по индексу (только сервер). */
 	public static void setSeal(ItemStack s, int idx) {
 		CompoundTag t = tag(s);
 		t.putInt("rz_seal", Math.floorMod(idx, SEALS.length));
 		s.set(DataComponents.CUSTOM_DATA, CustomData.of(t));
 	}
+	public static final String DEFAULT_COUNTRY = "RZ Федеративное объединение";
+	/** Название страны из паспортного стола (по умолчанию RZ Федеративное объединение). */
+	public static String country(ItemStack s) {
+		String c = isDoc(s) ? tag(s).getStringOr("rz_country", "") : "";
+		return c.isEmpty() ? DEFAULT_COUNTRY : c;
+	}
+	public static void setCountry(ItemStack s, String c) {
+		CompoundTag t = tag(s);
+		t.putString("rz_country", c);
+		s.set(DataComponents.CUSTOM_DATA, CustomData.of(t));
+	}
+	public static String sealPath(int idx) { return SEALS[Math.floorMod(idx, SEALS.length)]; }
+	/** Убрать управляющие символы и §, обрезать пробелы и длину. */
+	public static String clean(String s, int max) {
+		if (s == null) return "";
+		StringBuilder sb = new StringBuilder();
+		for (char ch : s.toCharArray()) if (ch >= 32 && ch != 127 && ch != '\u00a7') sb.append(ch);
+		String r = sb.toString().trim();
+		return r.length() > max ? r.substring(0, max).trim() : r;
+	}
+	public static String today() { return LocalDate.now().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")); }
 	public static boolean signed(ItemStack s) { return !ownerUuid(s).isEmpty(); }
 
 	/** Присвоить документ игроку (только сервер). */
@@ -50,7 +63,8 @@ public final class Passport {
 		CompoundTag t = tag(s);
 		t.putString("rz_owner", p.getUUID().toString());
 		t.putString("rz_name", p.getName().getString());
-		t.putString("rz_date", LocalDate.now().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
+		t.putString("rz_date", today());
 		s.set(DataComponents.CUSTOM_DATA, CustomData.of(t));
+		com.rzauto.passport.PassportStore.rememberName(p.getUUID(), p.getName().getString());
 	}
 }

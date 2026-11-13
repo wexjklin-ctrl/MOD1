@@ -624,5 +624,7 @@
  "key.rz_auto.gear_down": "Передача ниже",
  "block.rz_auto.bench": "Верстак автомобилей",
  "item.rz_auto.bench": "Верстак автомобилей",
- "key.rz_auto.radio": "Радио в машине вкл/выкл"
+ "key.rz_auto.radio": "Радио в машине вкл/выкл",
+ "block.rz_auto.passport_desk": "Паспортный стол",
+ "item.rz_auto.passport_desk": "Паспортный стол"
 }

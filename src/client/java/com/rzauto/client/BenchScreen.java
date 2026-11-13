@@ -19,10 +19,6 @@ final class BenchScreen extends net.minecraft.client.gui.screens.Screen {
 	private final List<String> groups = new ArrayList<>();
 	private int group, page, sel;
 	private boolean onlyCraftable;
-	private boolean desk;
-	private int deskPage, carPage;
-	private static final String[] DESK = { "Паспорт", "Машины", "Нарушения", "Территории", "Информация об игроке" };
-	private static final int CARS = 6;
 	private List<BenchRecipes.Recipe> shown = new ArrayList<>();
 
 	BenchScreen(BlockPos pos) {
@@ -80,8 +76,6 @@ final class BenchScreen extends net.minecraft.client.gui.screens.Screen {
 	protected void init() {
 		refilter();
 		int x0 = x0(), y0 = y0();
-		addRenderableWidget(Button.builder(Component.literal(desk ? "Верстак" : "Паспортный стол"), b -> { desk = !desk; rebuildWidgets(); }).bounds(x0 + PW - 118, y0 + 3, 110, 14).build());
-		if (desk) { initDesk(x0, y0); return; }
 		Map<String, Integer> have = inventory();
 		addRenderableWidget(Button.builder(Component.literal("<"), b -> { group = (group + groups.size() - 1) % groups.size(); page = 0; sel = 0; rebuildWidgets(); }).bounds(x0 + 8, y0 + 18, 20, 18).build());
 		addRenderableWidget(Button.builder(Component.literal(">"), b -> { group = (group + 1) % groups.size(); page = 0; sel = 0; rebuildWidgets(); }).bounds(x0 + 130, y0 + 18, 20, 18).build());
@@ -102,91 +96,6 @@ final class BenchScreen extends net.minecraft.client.gui.screens.Screen {
 			addRenderableWidget(cb);
 		}
 		addRenderableWidget(Button.builder(Component.literal("Закрыть"), b -> onClose()).bounds(x0 + 166, y0 + 40 + 3 * 18 + 70, 66, 20).build());
-	}
-
-	private net.minecraft.world.item.ItemStack myPassport() {
-		if (minecraft == null || minecraft.player == null) return ItemStack.EMPTY;
-		var inv = minecraft.player.getInventory();
-		String me = minecraft.player.getUUID().toString();
-		for (int i = 0; i < inv.getContainerSize(); i++) {
-			ItemStack st = inv.getItem(i);
-			if (com.rzauto.item.Passport.signed(st) && com.rzauto.item.Passport.ownerUuid(st).equals(me)) return st;
-		}
-		return ItemStack.EMPTY;
-	}
-
-	/** Машины игрока, загруженные на клиенте (в пределах 128 блоков). */
-	private List<com.rzauto.entity.VehicleEntity> myCars() {
-		List<com.rzauto.entity.VehicleEntity> out = new ArrayList<>();
-		if (minecraft == null || minecraft.player == null || minecraft.level == null) return out;
-		var pl = minecraft.player;
-		for (var v : minecraft.level.getEntitiesOfClass(com.rzauto.entity.VehicleEntity.class, pl.getBoundingBox().inflate(128))) if (v.isOwnedBy(pl.getUUID())) out.add(v);
-		out.sort(Comparator.comparingDouble(pl::distanceToSqr));
-		return out;
-	}
-
-	private void initDesk(int x0, int y0) {
-		for (int i = 0; i < DESK.length; i++) {
-			final int fi = i;
-			Button b = Button.builder(Component.literal(DESK[i]), bb -> { deskPage = fi; rebuildWidgets(); }).bounds(x0 + 8, y0 + 24 + i * 22, 112, 20).build();
-			b.active = deskPage != i;
-			addRenderableWidget(b);
-		}
-		if (deskPage == 0 && !myPassport().isEmpty()) {
-			int cur = com.rzauto.item.Passport.sealIndex(myPassport());
-			int n = com.rzauto.item.Passport.SEALS.length;
-			addRenderableWidget(Button.builder(Component.literal("<"), b -> { ClientPlayNetworking.send(new com.rzauto.net.PassportSealPayload(pos.asLong(), (cur + n - 1) % n)); onClose(); }).bounds(x0 + 136, y0 + 120, 24, 18).build());
-			addRenderableWidget(Button.builder(Component.literal(">"), b -> { ClientPlayNetworking.send(new com.rzauto.net.PassportSealPayload(pos.asLong(), (cur + 1) % n)); onClose(); }).bounds(x0 + 290, y0 + 120, 24, 18).build());
-		}
-		if (deskPage == 1) {
-			int total = myCars().size();
-			carPage = Math.max(0, Math.min(carPage, Math.max(0, (total - 1) / CARS)));
-			addRenderableWidget(Button.builder(Component.literal("Назад"), b -> { carPage--; rebuildWidgets(); }).bounds(x0 + 136, y0 + PH - 50, 70, 18).build()).active = carPage > 0;
-			addRenderableWidget(Button.builder(Component.literal("Далее"), b -> { carPage++; rebuildWidgets(); }).bounds(x0 + 210, y0 + PH - 50, 70, 18).build()).active = (carPage + 1) * CARS < total;
-		}
-		addRenderableWidget(Button.builder(Component.literal("Закрыть"), b -> onClose()).bounds(x0 + 8, y0 + PH - 50, 112, 20).build());
-	}
-
-	private void extractDesk(GuiGraphicsExtractor g, int x0, int y0) {
-		int tx = x0 + 136, ty = y0 + 24, c = 0xFF404040;
-		g.text(font, "Паспортный стол  -  " + DESK[deskPage], x0 + 8, y0 + 6, c, false);
-		var pl = minecraft.player;
-		ItemStack pass = myPassport();
-		switch (deskPage) {
-			case 0 -> {
-				if (pass.isEmpty()) { g.text(font, "У вас нет подписанного паспорта.", tx, ty, 0xFFA02020, false); g.text(font, "Сделайте паспорт на верстаке и подпишите", tx, ty + 12, c, false); g.text(font, "его (Shift + ПКМ).", tx, ty + 24, c, false); break; }
-				g.text(font, "Владелец: " + com.rzauto.item.Passport.ownerName(pass), tx, ty, c, false);
-				g.text(font, "Дата подписи: " + com.rzauto.item.Passport.date(pass), tx, ty + 12, c, false);
-				int idx = com.rzauto.item.Passport.sealIndex(pass);
-				g.text(font, "Печать: " + com.rzauto.item.Passport.SEAL_NAMES[idx], tx, ty + 30, c, false);
-				g.text(font, "Выберите печать стрелками:", tx, ty + 48, c, false);
-				g.text(font, com.rzauto.item.Passport.SEAL_NAMES[idx], tx + 36, y0 + 125, c, false);
-			}
-			case 1 -> {
-				List<com.rzauto.entity.VehicleEntity> cars = myCars();
-				g.text(font, "Ваши машины рядом (до 128 блоков): " + cars.size(), tx, ty, c, false);
-				g.text(font, (carPage + 1) + "/" + Math.max(1, (cars.size() + CARS - 1) / CARS), tx + 150, ty + 12, c, false);
-				if (cars.isEmpty()) g.text(font, "Машин нет.", tx, ty + 14, c, false);
-				for (int i = 0; i < CARS; i++) {
-					int idx = carPage * CARS + i;
-					if (idx >= cars.size()) break;
-					var v = cars.get(idx);
-					String line = clip(v.getName().getString(), 110) + "  " + (int) v.getX() + " " + (int) v.getY() + " " + (int) v.getZ() + "  (" + (int) Math.sqrt(pl.distanceToSqr(v)) + " м)";
-					g.text(font, clip(line, 196), tx, ty + 26 + i * 12, c, false);
-				}
-			}
-			case 2 -> g.text(font, "Нарушений нет.", tx, ty, c, false);
-			case 3 -> {
-				g.text(font, "Территории пока не заданы.", tx, ty, c, false);
-				g.text(font, "Вы сейчас: " + (int) pl.getX() + " " + (int) pl.getY() + " " + (int) pl.getZ(), tx, ty + 14, c, false);
-			}
-			case 4 -> {
-				g.text(font, "Игрок: " + pl.getName().getString(), tx, ty, c, false);
-				g.text(font, "Паспорт: " + (pass.isEmpty() ? "нет" : "есть, подписан " + com.rzauto.item.Passport.date(pass)), tx, ty + 12, c, false);
-				g.text(font, "Машин рядом: " + myCars().size(), tx, ty + 24, c, false);
-				g.text(font, "Нарушений: 0", tx, ty + 36, c, false);
-			}
-		}
 	}
 
 	private String clip(String s, int w) {
@@ -224,7 +133,6 @@ final class BenchScreen extends net.minecraft.client.gui.screens.Screen {
 		int x0 = x0(), y0 = y0();
 		g.fill(0, 0, width, height, 0x60000000);
 		panel(g, x0, y0, PW, PH);
-		if (desk) { extractDesk(g, x0, y0); super.extractRenderState(g, mx, my, pt); return; }
 		String gk = groups.get(group);
 		g.text(font, "Верстак  -  " + (gk.isEmpty() ? "все марки" : gk), x0 + 8, y0 + 6, 0xFF404040, false);
 		g.text(font, (page + 1) + "/" + Math.max(1, (shown.size() + ROWS - 1) / ROWS), x0 + 66, y0 + 22, 0xFF404040, false);

@@ -43,6 +43,17 @@ public final class VehicleRegistry {
 
 	public static net.minecraft.world.level.block.Block BENCH;
 	public static Item BENCH_ITEM;
+	public static net.minecraft.world.level.block.Block PASSPORT_DESK;
+	public static Item PASSPORT_DESK_ITEM;
+
+	private static void registerPassportDesk() {
+		Identifier id = Identifier.fromNamespaceAndPath(RzAutoMod.MOD_ID, "passport_desk");
+		ResourceKey<net.minecraft.world.level.block.Block> bk = ResourceKey.create(Registries.BLOCK, id);
+		PASSPORT_DESK = Registry.register(BuiltInRegistries.BLOCK, bk, new com.rzauto.block.PassportDeskBlock(
+			net.minecraft.world.level.block.state.BlockBehaviour.Properties.of().setId(bk).strength(2.5f).sound(net.minecraft.world.level.block.SoundType.WOOD)));
+		ResourceKey<Item> ik = ResourceKey.create(Registries.ITEM, id);
+		PASSPORT_DESK_ITEM = Registry.register(BuiltInRegistries.ITEM, ik, new net.minecraft.world.item.BlockItem(PASSPORT_DESK, new Item.Properties().setId(ik)));
+	}
 
 	private static void registerBench() {
 		Identifier id = Identifier.fromNamespaceAndPath(RzAutoMod.MOD_ID, "bench");
@@ -60,6 +71,7 @@ public final class VehicleRegistry {
 
 	public static void registerAll() {
 		registerBench();
+		registerPassportDesk();
 		GEAR = simple("gear");
 		{
 			ResourceKey<Item> lk = ResourceKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath(RzAutoMod.MOD_ID, "driver_license"));

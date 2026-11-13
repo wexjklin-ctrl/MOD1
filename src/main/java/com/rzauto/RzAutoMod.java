@@ -23,7 +23,7 @@ public class RzAutoMod implements ModInitializer {
 		LOG.info("RZ Auto: зарегистрировано сущностей и предметов: {}", VehicleRegistry.entries().size());
 		// яйца призыва: ключи всех машин во вкладке творческого режима «Spawn Eggs»
 		net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents.modifyOutputEvent(net.minecraft.world.item.CreativeModeTabs.SPAWN_EGGS)
-				.register(entries -> { entries.accept(VehicleRegistry.BENCH_ITEM); entries.accept(VehicleRegistry.GEAR); entries.accept(VehicleRegistry.LICENSE); for (VehicleRegistry.Entry e : VehicleRegistry.entries()) entries.accept(e.item()); });
+				.register(entries -> { entries.accept(VehicleRegistry.BENCH_ITEM); entries.accept(VehicleRegistry.PASSPORT_DESK_ITEM); entries.accept(VehicleRegistry.GEAR); entries.accept(VehicleRegistry.LICENSE); for (VehicleRegistry.Entry e : VehicleRegistry.entries()) entries.accept(e.item()); });
 		net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry.serverboundPlay().register(com.rzauto.net.VehicleActionPayload.TYPE, com.rzauto.net.VehicleActionPayload.CODEC);
 		net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.registerGlobalReceiver(com.rzauto.net.VehicleActionPayload.TYPE, (payload, ctx) -> {
 			net.minecraft.world.entity.Entity ent = ctx.player().level().getEntity(payload.entityId());
@@ -31,8 +31,7 @@ public class RzAutoMod implements ModInitializer {
 		});
 		net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry.serverboundPlay().register(com.rzauto.net.BenchCraftPayload.TYPE, com.rzauto.net.BenchCraftPayload.CODEC);
 		net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.registerGlobalReceiver(com.rzauto.net.BenchCraftPayload.TYPE, (payload, ctx) -> benchCraft(ctx.player(), payload));
-		net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry.serverboundPlay().register(com.rzauto.net.PassportSealPayload.TYPE, com.rzauto.net.PassportSealPayload.CODEC);
-		net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.registerGlobalReceiver(com.rzauto.net.PassportSealPayload.TYPE, (payload, ctx) -> deskSeal(ctx.player(), payload));
+		com.rzauto.passport.PassportNet.register();
 		if (System.getProperty("rz.smoke") != null) installSmokeTest();
 	}
 
@@ -64,23 +63,6 @@ public class RzAutoMod implements ModInitializer {
 		if (!p.getInventory().add(give)) p.spawnAtLocation(p.level(), give);
 		inv.setChanged();
 		p.sendSystemMessage(net.minecraft.network.chat.Component.literal("§aСоздано: " + give.getHoverName().getString()), true);
-	}
-
-	/** Паспортный стол: смена печати своего паспорта (в руке или в инвентаре), только рядом с верстаком. */
-	private static void deskSeal(net.minecraft.server.level.ServerPlayer p, com.rzauto.net.PassportSealPayload pl) {
-		net.minecraft.core.BlockPos pos = net.minecraft.core.BlockPos.of(pl.pos());
-		if (p.distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5) > 64 || !p.level().getBlockState(pos).is(VehicleRegistry.BENCH)) return;
-		net.minecraft.world.Container inv = p.getInventory();
-		for (int i = 0; i < inv.getContainerSize(); i++) {
-			net.minecraft.world.item.ItemStack st = inv.getItem(i);
-			if (com.rzauto.item.Passport.signed(st) && com.rzauto.item.Passport.ownerUuid(st).equals(p.getUUID().toString())) {
-				com.rzauto.item.Passport.setSeal(st, pl.seal());
-				inv.setChanged();
-				p.sendSystemMessage(net.minecraft.network.chat.Component.literal("§aПечать: " + com.rzauto.item.Passport.SEAL_NAMES[com.rzauto.item.Passport.sealIndex(st)]), true);
-				return;
-			}
-		}
-		p.sendSystemMessage(net.minecraft.network.chat.Component.literal("§cНет вашего подписанного паспорта."), true);
 	}
 
 	/** Проверка в CI: сервер стартует, все 307 сущностей создаются, затем сервер останавливается. */

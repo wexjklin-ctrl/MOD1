@@ -79,18 +79,5 @@ final class GloveboxScreen extends net.minecraft.client.gui.screens.Screen {
 			g.pose().popMatrix();
 		}
 		g.text(font, "Бардачок", ix + 10, iy + 8, 0xFFEFFFF5, true);
-		String status;
-		int col = 0xFFB5FFD6;
-		if (st.isEmpty()) status = "Пусто. Нажмите на ячейку: положить предмет из руки";
-		else if (Passport.isDoc(st)) {
-			boolean mine = false;
-			try { mine = car.isOwnedBy(java.util.UUID.fromString(Passport.ownerUuid(st))); } catch (Exception ignored) { }
-			if (!Passport.signed(st)) { status = "Паспорт не подписан (присядьте и ПКМ с ним в руке)"; col = 0xFFFFC233; }
-			else if (mine) status = "Паспорт владельца " + Passport.ownerName(st) + ": машина поедет у любого водителя";
-			else { status = "Чужой паспорт (" + Passport.ownerName(st) + "): машина не поедет"; col = 0xFFFF6B6B; }
-			status += ". Нажмите на ячейку: забрать";
-		} else status = st.getHoverName().getString() + ". Нажмите на ячейку: забрать";
-		g.centeredText(font, status, width / 2, iy + ih + 6, col);
-		g.centeredText(font, "Esc: назад в меню   I: закрыть", width / 2, iy + ih + 18, 0xFF8FB9A3);
 	}
 }

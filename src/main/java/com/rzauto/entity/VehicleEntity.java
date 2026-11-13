@@ -273,6 +273,7 @@ public class VehicleEntity extends Entity {
 		VehicleSpec s = spec();
 		if (s == null) return;
 		initFuel();
+		if (owner != null && tickCount % 200 == 11) com.rzauto.passport.PassportStore.touchCar(this);
 		if (owner != null && tickCount % 40 == 0 && (ownerName.isEmpty() || !ownerName.equals(entityData.get(DATA_OWNER_NAME)))) refreshOwnerName();
 		if (hp >= 0 && hp < maxHp() && tickCount - lastHitTick > 100 && tickCount % 10 == 0) { hp = Math.min(maxHp(), hp + maxHp() * 0.01f); syncState(); }
 
@@ -301,7 +302,6 @@ public class VehicleEntity extends Entity {
 		if (gloveDirty) { gloveOk = computeGloveOk(); gloveDirty = false; }
 		DriveGate gate = DriveGate.check(vs, true, !com.rzauto.RzConfig.requireLicense || (driver != null && gloveOk));
 		boolean canDrive = gate.canDrive();
-		if (driver != null && !canDrive && gateMsgCooldown-- <= 0) { gateMsgCooldown = 40; if (gate.message != null) driver.sendSystemMessage(Component.literal(gate == DriveGate.NO_LICENSE ? licenseHint() : gate.message), true); }
 		if (!canDrive) { x = 0; y = 0; }
 
 		st.yawDeg = getYRot();
@@ -352,7 +352,7 @@ public class VehicleEntity extends Entity {
 			double d = Math.abs(st.speed);
 			vs.fuel = Fuel.consume(s, vs.fuel, d, 1.0);
 			Wear.track(s, vs.wear, d, 1.0, rnd);
-			if (vs.fuel <= 0) { vs.engineOn = false; driver.sendSystemMessage(Component.literal(DriveGate.OUT_OF_FUEL_MSG), true); }
+			if (vs.fuel <= 0) { vs.engineOn = false; }
 		}
 		syncState();
 
@@ -403,11 +403,6 @@ public class VehicleEntity extends Entity {
 	}
 
 	/** Что не так с документом, одной фразой для водителя. */
-	private String licenseHint() {
-		if (glove.isEmpty() || !com.rzauto.item.Passport.isDoc(glove)) return "§eПоложите подписанный паспорт владельца в бардачок (меню I)";
-		if (!com.rzauto.item.Passport.signed(glove)) return "§eПаспорт в бардачке не подписан: присядьте и нажмите ПКМ с ним в руке";
-		return "§cЧужой паспорт не подходит: нужен паспорт владельца машины";
-	}
 
 	private void setGlove(ItemStack st) {
 		glove = st;
@@ -459,6 +454,7 @@ public class VehicleEntity extends Entity {
 
 	private void destroy(boolean drop) {
 		if (level() instanceof ServerLevel sl) {
+			com.rzauto.passport.PassportStore.removeCar(owner, getUUID());
 			if (drop) { net.minecraft.world.item.Item it = VehicleRegistry.itemOf(getType()); if (it != null) spawnAtLocation(sl, new ItemStack(it)); }
 			if (!glove.isEmpty()) { spawnAtLocation(sl, glove); glove = ItemStack.EMPTY; }
 			ejectPassengers();
@@ -494,7 +490,7 @@ public class VehicleEntity extends Entity {
 		else { var pl = level().getPlayerByUUID(owner); if (pl != null) ownerName = pl.getName().getString(); }
 		entityData.set(DATA_OWNER_NAME, ownerName);
 	}
-	public void setOwner(UUID owner) { this.owner = owner; gloveDirty = true; if (!level().isClientSide()) { entityData.set(DATA_OWNER, owner == null ? "" : owner.toString()); refreshOwnerName(); } }
+	public void setOwner(UUID owner) { this.owner = owner; gloveDirty = true; if (!level().isClientSide()) { entityData.set(DATA_OWNER, owner == null ? "" : owner.toString()); refreshOwnerName(); if (owner != null) com.rzauto.passport.PassportStore.touchCar(this); } }
 
 	@Override
 	protected void defineSynchedData(SynchedEntityData.Builder builder) {
