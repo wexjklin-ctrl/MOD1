@@ -280,7 +280,7 @@ final class GeoModel {
 	/** Геометрия для текстуры (файл PNG берётся из ресурсов; если не прочитался, рисуются все грани). */
 	synchronized Baked baked(net.minecraft.resources.Identifier tex) { return baked(tex, 0); }
 
-	/** mode: 0 = все кости, 1 = только мигалки (кость lightbar и её дети), 2 = всё кроме мигалок */
+	/** mode: 0 = все кости, 1/3 = мигалки (кость lights/lightbar и дети), левая/правая половина, 2 = всё кроме мигалок */
 	synchronized Baked baked(net.minecraft.resources.Identifier tex, int mode) {
 		String key = tex.toString() + "#" + mode;
 		Baked b = bakedCache.get(key);
@@ -321,7 +321,7 @@ final class GeoModel {
 
 	private boolean underBar(int i) {
 		for (int g = 0; i >= 0 && g < 64; g++) {
-			if (bones[i].name.equalsIgnoreCase("lightbar")) return true;
+			if (bones[i].name.equalsIgnoreCase("lights") || bones[i].name.equalsIgnoreCase("lightbar")) return true;
 			int p = bones[i].parent;
 			if (p == i) return false;
 			i = p;
@@ -339,7 +339,11 @@ final class GeoModel {
 		for (int i = 0; i < bones.length; i++) {
 			Bone b = bones[i];
 			if (b.cubes.isEmpty()) continue;
-			if (mode != 0 && underBar(i) != (mode == 1)) continue;
+			if (mode != 0) {
+				boolean sir = underBar(i);
+				if (mode == 2 ? sir : !sir) continue;
+				if (mode != 2 && (mode == 1) != (b.px <= 0f)) continue;   // 1 = левая половина мигалок, 3 = правая: мигают по очереди
+			}
 			boolean d = isDyn(i);
 			Matrix4f m = d ? null : world(i, memo, 0f, 0f);
 			for (Cube c : b.cubes) for (int face = 0; face < 6; face++) {

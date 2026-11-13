@@ -12,12 +12,12 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import java.util.*;
 
-/** Верстак: список рецептов (по маркам), кнопка «Создать», материалы берутся из инвентаря на сервере. */
+/** Верстак в стиле ванильного: серая панель, слоты 3x3 с рецептом, слот результата, список машин по маркам слева. */
 final class BenchScreen extends net.minecraft.client.gui.screens.Screen {
-	private static final int PW = 330, ROWS = 7, RH = 30;
+	private static final int PW = 340, PH = 214, ROWS = 7, RH = 22;
 	private final BlockPos pos;
 	private final List<String> groups = new ArrayList<>();
-	private int group, page;
+	private int group, page, sel;
 	private boolean onlyCraftable;
 	private List<BenchRecipes.Recipe> shown = new ArrayList<>();
 
@@ -30,16 +30,20 @@ final class BenchScreen extends net.minecraft.client.gui.screens.Screen {
 		groups.addAll(g);
 	}
 
-	private static String itemName(String id) {
+	private static ItemStack stack(String id, int n) {
 		var item = BuiltInRegistries.ITEM.getValue(Identifier.parse(id));
-		return item == null ? id : new ItemStack(item).getHoverName().getString();
+		return item == null || id.isEmpty() ? ItemStack.EMPTY : new ItemStack(item, n);
+	}
+
+	private static String itemName(String id) {
+		ItemStack st = stack(id, 1);
+		return st.isEmpty() ? id : st.getHoverName().getString();
 	}
 
 	private Map<String, Integer> inventory() {
 		Map<String, Integer> have = new HashMap<>();
-		var pl = minecraft.player;
-		if (pl == null) return have;
-		var inv = pl.getInventory();
+		if (minecraft == null || minecraft.player == null) return have;
+		var inv = minecraft.player.getInventory();
 		for (int i = 0; i < inv.getContainerSize(); i++) {
 			ItemStack st = inv.getItem(i);
 			if (!st.isEmpty()) have.merge(BuiltInRegistries.ITEM.getKey(st.getItem()).toString(), st.getCount(), Integer::sum);
@@ -57,37 +61,47 @@ final class BenchScreen extends net.minecraft.client.gui.screens.Screen {
 		String key = groups.get(group);
 		shown = new ArrayList<>();
 		for (BenchRecipes.Recipe r : BenchRecipes.all()) {
-			boolean other = r.group().isEmpty();
-			if (!key.isEmpty() ? !r.group().equals(key) : false) continue;
+			if (!key.isEmpty() && !r.group().equals(key)) continue;
 			if (onlyCraftable && !can(r, have)) continue;
-			if (key.isEmpty() && !other && false) continue;
 			shown.add(r);
 		}
-		int pages = Math.max(1, (shown.size() + ROWS - 1) / ROWS);
-		page = Math.max(0, Math.min(page, pages - 1));
+		page = Math.max(0, Math.min(page, Math.max(0, (shown.size() - 1) / ROWS)));
+		sel = Math.max(0, Math.min(sel, Math.max(0, shown.size() - 1)));
 	}
+
+	private int x0() { return (width - PW) / 2; }
+	private int y0() { return (height - PH) / 2; }
 
 	@Override
 	protected void init() {
 		refilter();
-		int ph = 70 + ROWS * RH + 40, x0 = (width - PW) / 2, y0 = (height - ph) / 2;
+		int x0 = x0(), y0 = y0();
 		Map<String, Integer> have = inventory();
-		addRenderableWidget(Button.builder(Component.literal("<"), b -> { group = (group + groups.size() - 1) % groups.size(); page = 0; rebuildWidgets(); }).bounds(x0 + 12, y0 + 28, 20, 20).build());
-		addRenderableWidget(Button.builder(Component.literal(">"), b -> { group = (group + 1) % groups.size(); page = 0; rebuildWidgets(); }).bounds(x0 + 36, y0 + 28, 20, 20).build());
-		addRenderableWidget(Button.builder(Component.literal(onlyCraftable ? "Только доступные: ДА" : "Только доступные: НЕТ"), b -> { onlyCraftable = !onlyCraftable; page = 0; rebuildWidgets(); }).bounds(x0 + PW - 162, y0 + 28, 150, 20).build());
-		int top = y0 + 54;
+		addRenderableWidget(Button.builder(Component.literal("<"), b -> { group = (group + groups.size() - 1) % groups.size(); page = 0; sel = 0; rebuildWidgets(); }).bounds(x0 + 8, y0 + 18, 20, 18).build());
+		addRenderableWidget(Button.builder(Component.literal(">"), b -> { group = (group + 1) % groups.size(); page = 0; sel = 0; rebuildWidgets(); }).bounds(x0 + 130, y0 + 18, 20, 18).build());
 		for (int i = 0; i < ROWS; i++) {
 			int idx = page * ROWS + i;
 			if (idx >= shown.size()) break;
-			BenchRecipes.Recipe r = shown.get(idx);
-			Button cb = Button.builder(Component.literal("Создать"), b -> ClientPlayNetworking.send(new BenchCraftPayload(pos.asLong(), r.id()))).bounds(x0 + PW - 82, top + i * RH + 4, 70, 20).build();
+			final int fi = idx;
+			addRenderableWidget(Button.builder(Component.literal(clip(itemName(shown.get(idx).result()), 112)), b -> { sel = fi; rebuildWidgets(); }).bounds(x0 + 30, y0 + 40 + i * RH, 120, 20).build());
+		}
+		int by = y0 + 40 + ROWS * RH + 2;
+		addRenderableWidget(Button.builder(Component.literal("Назад"), b -> { page--; rebuildWidgets(); }).bounds(x0 + 8, by, 70, 18).build()).active = page > 0;
+		addRenderableWidget(Button.builder(Component.literal("Далее"), b -> { page++; rebuildWidgets(); }).bounds(x0 + 80, by, 70, 18).build()).active = (page + 1) * ROWS < shown.size();
+		addRenderableWidget(Button.builder(Component.literal(onlyCraftable ? "Только доступные: ДА" : "Только доступные: НЕТ"), b -> { onlyCraftable = !onlyCraftable; page = 0; sel = 0; rebuildWidgets(); }).bounds(x0 + 166, y0 + 18, 166, 18).build());
+		if (!shown.isEmpty()) {
+			BenchRecipes.Recipe r = shown.get(sel);
+			Button cb = Button.builder(Component.literal("Создать"), b -> ClientPlayNetworking.send(new BenchCraftPayload(pos.asLong(), r.id()))).bounds(x0 + 166 + 70, y0 + 40 + 3 * 18 + 70, 96, 20).build();
 			cb.active = can(r, have);
 			addRenderableWidget(cb);
 		}
-		int by = y0 + 54 + ROWS * RH + 6;
-		addRenderableWidget(Button.builder(Component.literal("Назад"), b -> { page--; rebuildWidgets(); }).bounds(x0 + 12, by, 60, 20).build()).active = page > 0;
-		addRenderableWidget(Button.builder(Component.literal("Далее"), b -> { page++; rebuildWidgets(); }).bounds(x0 + 78, by, 60, 20).build()).active = (page + 1) * ROWS < shown.size();
-		addRenderableWidget(Button.builder(Component.literal("Закрыть"), b -> onClose()).bounds(x0 + PW - 82, by, 70, 20).build());
+		addRenderableWidget(Button.builder(Component.literal("Закрыть"), b -> onClose()).bounds(x0 + 166, y0 + 40 + 3 * 18 + 70, 66, 20).build());
+	}
+
+	private String clip(String s, int w) {
+		if (font.width(s) <= w) return s;
+		while (s.length() > 3 && font.width(s + "...") > w) s = s.substring(0, s.length() - 1);
+		return s + "...";
 	}
 
 	@Override
@@ -99,34 +113,63 @@ final class BenchScreen extends net.minecraft.client.gui.screens.Screen {
 	@Override
 	public boolean isPauseScreen() { return false; }
 
+	private static void panel(GuiGraphicsExtractor g, int x, int y, int w, int h) {
+		g.fill(x, y, x + w, y + h, 0xFF000000);
+		g.fill(x + 1, y + 1, x + w - 1, y + h - 1, 0xFFFFFFFF);
+		g.fill(x + 3, y + 3, x + w - 1, y + h - 1, 0xFF555555);
+		g.fill(x + 3, y + 3, x + w - 3, y + h - 3, 0xFFC6C6C6);
+	}
+
+	private static void slot(GuiGraphicsExtractor g, int x, int y) {
+		g.fill(x, y, x + 18, y + 18, 0xFF8B8B8B);
+		g.fill(x, y, x + 17, y + 1, 0xFF373737);
+		g.fill(x, y, x + 1, y + 17, 0xFF373737);
+		g.fill(x + 1, y + 17, x + 18, y + 18, 0xFFFFFFFF);
+		g.fill(x + 17, y + 1, x + 18, y + 18, 0xFFFFFFFF);
+	}
+
 	@Override
 	public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
-		int ph = 70 + ROWS * RH + 40, x0 = (width - PW) / 2, y0 = (height - ph) / 2;
-		g.fill(0, 0, width, height, 0x70000000);
-		g.fill(x0, y0, x0 + PW, y0 + ph, 0xF0121418);
-		g.fill(x0, y0, x0 + PW, y0 + 3, VehicleHud.EDGE);
-		g.outline(x0, y0, PW, ph, 0xFF2A2E35);
+		int x0 = x0(), y0 = y0();
+		g.fill(0, 0, width, height, 0x60000000);
+		panel(g, x0, y0, PW, PH);
 		String gk = groups.get(group);
-		g.text(font, "Верстак автомобилей  -  " + (gk.isEmpty() ? "все" : gk), x0 + 12, y0 + 12, VehicleHud.WHITE, true);
-		int pages = Math.max(1, (shown.size() + ROWS - 1) / ROWS);
-		g.text(font, (page + 1) + "/" + pages, x0 + 150, y0 + 54 + ROWS * RH + 12, VehicleHud.DIM, false);
+		g.text(font, "Верстак  -  " + (gk.isEmpty() ? "все марки" : gk), x0 + 8, y0 + 6, 0xFF404040, false);
+		g.text(font, (page + 1) + "/" + Math.max(1, (shown.size() + ROWS - 1) / ROWS), x0 + 66, y0 + 22, 0xFF404040, false);
 		Map<String, Integer> have = inventory();
-		int top = y0 + 54;
 		for (int i = 0; i < ROWS; i++) {
 			int idx = page * ROWS + i;
 			if (idx >= shown.size()) break;
-			BenchRecipes.Recipe r = shown.get(idx);
-			int ry = top + i * RH;
-			g.fill(x0 + 8, ry, x0 + PW - 8, ry + RH - 2, 0xFF1B1F26);
-			g.text(font, itemName(r.result()) + (r.count() > 1 ? " x" + r.count() : ""), x0 + 12, ry + 3, can(r, have) ? VehicleHud.WHITE : VehicleHud.DIM, false);
-			StringBuilder sb = new StringBuilder();
-			for (var n : r.need().entrySet()) {
-				if (sb.length() > 0) sb.append(", ");
-				sb.append(itemName(n.getKey())).append(" ").append(have.getOrDefault(n.getKey(), 0)).append('/').append(n.getValue());
-			}
-			String s = sb.toString();
-			if (font.width(s) > PW - 110) { while (s.length() > 4 && font.width(s + "...") > PW - 110) s = s.substring(0, s.length() - 1); s += "..."; }
-			g.text(font, s, x0 + 12, ry + 15, 0xFF8A93A0, false);
+			int ry = y0 + 40 + i * RH;
+			slot(g, x0 + 9, ry + 1);
+			g.item(stack(shown.get(idx).result(), 1), x0 + 10, ry + 2);
+			if (idx == sel) g.outline(x0 + 29, ry - 1, 122, 22, 0xFF2ECC71);
+		}
+		if (shown.isEmpty()) return;
+		BenchRecipes.Recipe r = shown.get(sel);
+		int gx = x0 + 176, gy = y0 + 44;
+		for (int row = 0; row < 3; row++) for (int col = 0; col < 3; col++) {
+			int sx = gx + col * 18, sy = gy + row * 18;
+			slot(g, sx, sy);
+			String it = r.grid()[row * 3 + col];
+			if (!it.isEmpty()) g.item(stack(it, 1), sx + 1, sy + 1);
+		}
+		// стрелка и слот результата
+		int ax = gx + 3 * 18 + 8, ay = gy + 22;
+		g.fill(ax, ay + 3, ax + 16, ay + 7, 0xFF8B8B8B);
+		g.fill(ax + 12, ay, ax + 14, ay + 10, 0xFF8B8B8B);
+		g.fill(ax + 14, ay + 2, ax + 16, ay + 8, 0xFF8B8B8B);
+		int rx = ax + 26, ry2 = gy + 18;
+		g.fill(rx - 4, ry2 - 4, rx + 26, ry2 + 26, 0xFF8B8B8B);
+		slot(g, rx, ry2);
+		g.item(stack(r.result(), r.count()), rx + 1, ry2 + 1);
+		g.text(font, clip(itemName(r.result()) + (r.count() > 1 ? " x" + r.count() : ""), 150), gx, gy + 60, 0xFF404040, false);
+		int ty = gy + 72;
+		for (var n : r.need().entrySet()) {
+			int h = have.getOrDefault(n.getKey(), 0);
+			g.text(font, clip(itemName(n.getKey()), 110) + "  " + h + "/" + n.getValue(), gx, ty, h >= n.getValue() ? 0xFF1E7A3C : 0xFFA02020, false);
+			ty += 10;
+			if (ty > y0 + PH - 52) break;
 		}
 		super.extractRenderState(g, mx, my, pt);
 	}

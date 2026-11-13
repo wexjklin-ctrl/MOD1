@@ -11,7 +11,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 /** Подсказка «F — сесть» у машины и панель приборов (скорость, топливо-лава, двигатель, замок) для водителя. */
 final class VehicleHud implements HudElement {
-	static final int BG = 0xD0121418, EDGE = 0xFFFF8A00, DIM = 0xFF8A8F98, WHITE = 0xFFFFFFFF;
+	static final int BG = 0xD00D1A12, EDGE = 0xFF2ECC71, DIM = 0xFF86A894, WHITE = 0xFFFFFFFF;
 
 	/** Машина под прицелом в пределах руки (или null). */
 	static VehicleEntity looked(Minecraft mc) {
@@ -40,7 +40,10 @@ final class VehicleHud implements HudElement {
 		String line = "Сесть в машину";
 		boolean locked = ve.isLocked();
 		int w = Math.max(mc.font.width(name), mc.font.width(line) + 26) + 24, h = locked ? 50 : 38;
-		int cx = g.guiWidth() / 2, x = cx - w / 2, y = g.guiHeight() / 2 + 28;
+		g.pose().pushMatrix();
+		g.pose().translate(g.guiWidth() / 2f, g.guiHeight() / 2f + 28);
+		g.pose().scale(0.75f, 0.75f);
+		int x = -w / 2, y = 0;
 		g.fill(x, y, x + w, y + h, BG);
 		g.fill(x, y, x + 3, y + h, EDGE);
 		g.fill(x, y, x + w, y + 1, 0x40FFFFFF);
@@ -48,9 +51,10 @@ final class VehicleHud implements HudElement {
 		// «кнопка» клавиши
 		int kw = Math.max(16, mc.font.width(key) + 8);
 		g.fill(x + 10, y + 17, x + 10 + kw, y + 31, EDGE);
-		g.text(mc.font, key, x + 10 + (kw - mc.font.width(key)) / 2, y + 20, 0xFF101010, false);
+		g.text(mc.font, key, x + 10 + (kw - mc.font.width(key)) / 2, y + 20, 0xFF06150C, false);
 		g.text(mc.font, line, x + 16 + kw, y + 20, WHITE, true);
 		if (locked) g.text(mc.font, "Закрыта владельцем", x + 10, y + 36, 0xFFFF6A5A, false);
+		g.pose().popMatrix();
 	}
 
 	private static void disc(GuiGraphicsExtractor g, int cx, int cy, int r, int color) {
@@ -67,11 +71,11 @@ final class VehicleHud implements HudElement {
 		final int R = 40;
 		int cx = g.guiWidth() - R - 12, cy = g.guiHeight() - R - 34;
 		double kmh = Math.abs(ve.syncedSpeed()) * 72.0;
-		double topKmh = s.topSpeed() * 72.0;
+		double topKmh = s.topSpeed() * 72.0 * com.rzauto.entity.VehicleEntity.SPEED_SCALE;
 		int max = (int) Math.max(120, Math.ceil(topKmh * 1.05 / 40.0) * 40);
 		int labelStep = max <= 240 ? 20 : 40;
-		disc(g, cx, cy, R + 2, 0xFF2A2E35);
-		disc(g, cx, cy, R, 0xFF050607);
+		disc(g, cx, cy, R + 2, 0xFF1F3A2B);
+		disc(g, cx, cy, R, 0xFF040A06);
 		final double START = -135, SWEEP = 270;
 		int minor = labelStep / 2;
 		for (int v = 0; v <= max; v += minor) {
@@ -96,7 +100,7 @@ final class VehicleHud implements HudElement {
 		// цифровое табло
 		String num = Long.toString(Math.round(kmh));
 		g.fill(cx - 14, cy + 14, cx + 14, cy + 25, 0xFF1A1C20);
-		g.text(mc.font, num, cx - mc.font.width(num) / 2, cy + 15, 0xFFFFA030, false);
+		g.text(mc.font, num, cx - mc.font.width(num) / 2, cy + 15, 0xFF6BFF9A, false);
 		g.pose().pushMatrix();
 		g.pose().translate(cx + 15, cy + 19);
 		g.pose().scale(0.5f, 0.5f);
@@ -107,15 +111,15 @@ final class VehicleHud implements HudElement {
 		g.pose().pushMatrix();
 		g.pose().translate(cx, cy);
 		g.pose().rotate((float) na);
-		g.fill(-1, -R + 6, 1, 6, 0xFFE02020);
+		g.fill(-1, -R + 6, 1, 6, 0xFF8CFF6A);
 		g.pose().popMatrix();
 		disc(g, cx, cy, 4, 0xFF303338);
 		// топливо (лава) и статус под циферблатом
 		double fuel = ve.fuelValue() / Math.max(s.maxFuel(), 0.01);
 		int bx = cx - R, by = cy + R + 6, bw = 2 * R;
-		g.fill(bx, by, bx + bw, by + 4, 0xFF2A2E35);
+		g.fill(bx, by, bx + bw, by + 4, 0xFF1F3A2B);
 		int fw = (int) Math.round(bw * Math.max(0, Math.min(1, fuel)));
-		if (fw > 0) g.fill(bx, by, bx + fw, by + 4, fuel < 0.15 ? 0xFFFF4A3D : 0xFFFF8A00);
+		if (fw > 0) g.fill(bx, by, bx + fw, by + 4, fuel < 0.15 ? 0xFFFF4A3D : 0xFF2ECC71);
 		String eng = ve.isBroken() ? "СЛОМАНА" : ve.isEngineOn() ? "ДВИГАТЕЛЬ" : "ЗАГЛУШЕН";
 		int ec = ve.isBroken() ? 0xFFFF4A3D : ve.isEngineOn() ? 0xFF3DDC84 : DIM;
 		g.pose().pushMatrix();
@@ -127,7 +131,7 @@ final class VehicleHud implements HudElement {
 	}
 
 	private static void bar(GuiGraphicsExtractor g, int x, int y, int w, int h, double frac, int c1, int c2, int c3) {
-		g.fill(x, y, x + w, y + h, 0xFF2A2E35);
+		g.fill(x, y, x + w, y + h, 0xFF1F3A2B);
 		int fw = (int) Math.round(w * Math.max(0, Math.min(1, frac)));
 		if (fw <= 0) return;
 		int c = frac < 0.6 ? c1 : frac < 0.85 ? c2 : c3;

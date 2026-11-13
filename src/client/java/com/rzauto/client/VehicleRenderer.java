@@ -28,7 +28,7 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 		public boolean moto;
 		public boolean hide, lights, siren;
 		public GeoModel model;
-		public GeoModel.Baked bake, bakeE, bakeBar;
+		public GeoModel.Baked bake, bakeE, bakeBar, bakeBar2;
 		/** путь вперёд в блоках (по модулю 18, чтобы не терять точность) и скорость поворота (град/с) для колёс и руля */
 		public float dist, steer, pitch, roll;
 		public Identifier tex, texE;
@@ -203,9 +203,11 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 			s.bake = s.tex != null ? s.model.baked(s.tex) : null;
 			s.bakeE = s.texE != null ? s.model.baked(s.texE, 2) : null;
 			s.bakeBar = s.texE != null ? s.model.baked(s.texE, 1) : null;
+			s.bakeBar2 = s.texE != null ? s.model.baked(s.texE, 3) : null;
 			if (s.bakeE != null && s.bakeE.quads() == 0) s.bakeE = null;
 			if (s.bakeBar != null && s.bakeBar.quads() == 0) s.bakeBar = null;
-			if (s.bakeE == null && s.bakeBar == null) s.texE = null;
+			if (s.bakeBar2 != null && s.bakeBar2.quads() == 0) s.bakeBar2 = null;
+			if (s.bakeE == null && s.bakeBar == null && s.bakeBar2 == null) s.texE = null;
 			wheelSurface(e, s, partial);
 		}
 	}
@@ -223,7 +225,11 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 			final GeoModel gm = s.model;
 			collector.submitCustomGeometry(pose, RenderTypes.entityCutout(s.tex), (p, vc) -> gm.render(s.bake, p, vc, lt, s.dist, s.steer, 0f, s.wdy));
 			if (s.texE != null && s.bakeE != null && s.lights) collector.submitCustomGeometry(pose, RenderTypes.eyes(s.texE), (p, vc) -> gm.render(s.bakeE, p, vc, 0xF000F0, s.dist, s.steer, 0.006f, s.wdy));
-			if (s.texE != null && s.bakeBar != null && s.siren && (System.currentTimeMillis() / 220 % 2 == 0)) collector.submitCustomGeometry(pose, RenderTypes.eyes(s.texE), (p, vc) -> gm.render(s.bakeBar, p, vc, 0xF000F0, s.dist, s.steer, 0.006f, s.wdy));
+			if (s.texE != null && s.siren) {
+				int ph = (int) (System.currentTimeMillis() / 120 % 8);   // красный-пауза-синий-пауза, дважды подряд
+				GeoModel.Baked side = (ph == 0 || ph == 1 || ph == 4) ? s.bakeBar : (ph == 2 || ph == 3 || ph == 6) ? s.bakeBar2 : null;
+				if (side != null) collector.submitCustomGeometry(pose, RenderTypes.eyes(s.texE), (p, vc) -> gm.render(side, p, vc, 0xF000F0, s.dist, s.steer, 0.006f, s.wdy));
+			}
 			pose.popPose();
 			super.submit(s, pose, collector, camera);
 			return;

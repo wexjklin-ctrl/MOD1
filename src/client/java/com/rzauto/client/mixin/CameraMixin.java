@@ -28,7 +28,7 @@ public abstract class CameraMixin {
 		Camera self = (Camera) (Object) this;
 		Minecraft mc = Minecraft.getInstance();
 		if (mc.level == null || mc.player == null || mc.options.getCameraType().isFirstPerson()) { rzId = -1; return; }
-		if (!(mc.player.getVehicle() instanceof VehicleEntity ve) || !self.isDetached()) { rzId = -1; return; }
+		if (!(mc.player.getVehicle() instanceof VehicleEntity ve) || !self.isDetached() || !com.rzauto.client.CamModeAccess.gta()) { rzId = -1; return; }
 		float pt = self.getCameraEntityPartialTicks(dt);
 		long now = System.nanoTime();
 		float step = rzNs == 0 ? 0.016f : Mth.clamp((now - rzNs) / 1.0e9f, 0.001f, 0.1f);

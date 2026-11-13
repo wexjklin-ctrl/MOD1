@@ -80,6 +80,8 @@ public class VehicleEntity extends Entity {
 
 	/** Действия из меню / клавиши F (пакет VehicleActionPayload). */
 	public static final int ACT_ENTER = 0, ACT_ENGINE = 1, ACT_LOCK = 2, ACT_REPAIR = 3, ACT_LIGHTS = 4, ACT_SIREN = 5, ACT_SEAT = 6, ACT_SENS_DOWN = 7, ACT_SENS_UP = 8, ACT_GEARS = 9, ACT_EXIT = 10;
+	public static final double SPEED_SCALE = 1.0 / 1.5, OFFROAD_MULT = 0.6;
+	private int lastHitTick = -1000;
 	public static final float SENS_MIN = 0.6f, SENS_MAX = 3.0f, SENS_STEP = 0.2f, SENS_DEFAULT = 1.4f;
 
 	private boolean fuelInit, hadDriver, lastSprint, lastSneak;
@@ -126,7 +128,7 @@ public class VehicleEntity extends Entity {
 	@Override
 	public float maxUpStep() {
 		VehicleSpec s = spec();
-		return s != null ? (float) s.stepHeight() : 0.6f;
+		return s != null ? Math.min(1.0f, (float) s.stepHeight()) : 0.6f;
 	}
 
 	/** Сервер авторитетен: клиент водителя не симулирует машину. */
@@ -205,27 +207,14 @@ public class VehicleEntity extends Entity {
 		msg(p, "§eСвободных мест нет.");
 	}
 
-	/** Хитбокс по форме машины: повёрнутый прямоугольник (ширина x длина модели), вписанный в осевой бокс. */
-	private void fitBox() {
-		VehicleSpec sp = spec();
-		double[] dm = sp == null ? null : VehicleCatalog.dims(sp.bedrockId());
-		if (dm == null) return;
-		double k = com.rzauto.RzConfig.renderScale;
-		double W = Math.max(sp.motorcycle() ? 0.7 : 1.4, Math.min(3.2, dm[0] * 0.95)) * k;
-		double L = Math.max(sp.motorcycle() ? 1.6 : 2.4, Math.min(6.5, dm[1] * 0.92)) * k;
-		double yr = Math.toRadians(getYRot()), c = Math.abs(Math.cos(yr)), sn = Math.abs(Math.sin(yr));
-		double hx = (W * c + L * sn) / 2, hz = (W * sn + L * c) / 2;
-		setBoundingBox(new net.minecraft.world.phys.AABB(getX() - hx, getY(), getZ() - hz, getX() + hx, getY() + getBbHeight(), getZ() + hz));
-	}
-
 	@Override
 	public void tick() {
 		super.tick();
-		fitBox();
 		if (level().isClientSide()) return;
 		VehicleSpec s = spec();
 		if (s == null) return;
 		initFuel();
+		if (hp >= 0 && hp < maxHp() && tickCount - lastHitTick > 100 && tickCount % 10 == 0) { hp = Math.min(maxHp(), hp + maxHp() * 0.01f); syncState(); }
 
 		ServerPlayer driver = null;
 		if (driverEntity() instanceof ServerPlayer p) driver = p;
@@ -256,6 +245,11 @@ public class VehicleEntity extends Entity {
 
 		st.yawDeg = getYRot();
 		double max = canDrive ? Physics.currentMax(s, vs.gears.speedPercent(s, vs.speedPercent), vs.wear.broken, vs.fuel, vs.engineOn) : s.topSpeed();
+		max *= SPEED_SCALE;   // скорость Bedrock делим на 1.5
+		if (!(s.offroadExempt() || s.hasSiren() || s.bedrockId().startsWith("jeep:"))) {
+			var fx = com.rzauto.logic.Surface.effect(net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(level().getBlockState(blockPosition().below()).getBlock()).getPath());
+			if (fx != null) max *= OFFROAD_MULT;   // земля, песок, грязь: -40% (джипы и полиция не страдают)
+		}
 		if (vs.gta) Physics.tickGta(s, st, new Physics.Input(x, y), max, sens);
 		else Physics.tick(s, st, new Physics.Input(x, y), max, false, TURN_STRENGTH);
 		if (canDrive && driver != null) {
@@ -277,7 +271,6 @@ public class VehicleEntity extends Entity {
 			st.speed = Physics.collisionBleed(st.speed, max);
 		}
 		setYRot((float) st.yawDeg);
-		fitBox();
 	}
 
 	/** Только для тестов CI. */
@@ -313,7 +306,7 @@ public class VehicleEntity extends Entity {
 	}
 
 	@Override
-	public boolean canBeCollidedWith(Entity other) { return other != null && other.getVehicle() != this; }
+	public boolean canBeCollidedWith(Entity other) { return false; }
 
 	private void destroy(boolean drop) {
 		if (level() instanceof ServerLevel sl) {
@@ -397,11 +390,16 @@ public class VehicleEntity extends Entity {
 
 	@Override
 	public boolean hurtServer(ServerLevel level, DamageSource source, float amount) {
-		// Окончательно ломается только взрывом или рукой (пустая рука, владелец / творческий режим)
 		if (source.is(DamageTypeTags.IS_EXPLOSION)) { destroy(true); return true; }
+		// Кулак (пустая рука): как удар по мобу, снимает часть HP; на нуле машина разбивается. Машина сама регенерирует HP.
 		if (source.getEntity() instanceof Player p && source.getDirectEntity() == p && p.getMainHandItem().isEmpty()) {
-			if (owner == null || owner.equals(p.getUUID()) || p.isCreative()) { destroy(!p.isCreative()); return true; }
-			msg(p, "§eЛомать чужую машину нельзя.");
+			if (hp < 0) hp = maxHp();
+			lastHitTick = tickCount;
+			hp -= Math.max(1f, amount) * 1.5f;
+			if (hp <= 0f) { destroy(!p.isCreative()); return true; }
+			syncState();
+			level.playSound(null, getX(), getY(), getZ(), net.minecraft.sounds.SoundEvents.ANVIL_LAND, net.minecraft.sounds.SoundSource.NEUTRAL, 0.4f, 1.6f);
+			return true;
 		}
 		return false;
 	}

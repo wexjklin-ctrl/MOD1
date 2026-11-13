@@ -31,13 +31,25 @@ public class RzAutoClient implements ClientModInitializer {
 		for (VehicleRegistry.Entry e : VehicleRegistry.entries()) {
 			EntityRendererRegistry.register(e.type(), VehicleRenderer::new);
 		}
+		CamMode.load();
 		com.rzauto.block.BenchBlock.CLIENT_OPEN = pos -> Minecraft.getInstance().setScreenAndShow(new BenchScreen(pos));
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("rz_auto", "vehicle_hud"), new VehicleHud());
 		net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(mc -> { VehicleAudio.tick(mc); keys(mc); });
 	}
 
+	/** Режим GTA: персонаж всегда смотрит по ходу машины (на поворотах не остаётся в старом направлении). */
+	private static void faceForward(Minecraft mc) {
+		VehicleEntity ve = VehicleHud.riding(mc);
+		if (ve == null || !CamMode.gta || mc.options.getCameraType().isFirstPerson()) return;
+		float yaw = ve.getYRot();
+		mc.player.setYRot(yaw); mc.player.yRotO = yaw;
+		mc.player.setYHeadRot(yaw); mc.player.setYBodyRot(yaw);
+	}
+
 	private static void keys(Minecraft mc) {
 		if (mc.player == null || mc.level == null) return;
+		faceForward(mc);
+		VehicleFx.tick(mc);
 		while (ENTER.consumeClick()) {
 			VehicleEntity rd = VehicleHud.riding(mc);
 			if (rd != null) { ClientPlayNetworking.send(new VehicleActionPayload(rd.getId(), VehicleEntity.ACT_EXIT)); continue; }

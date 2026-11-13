@@ -24,11 +24,11 @@ final class VehicleMenuScreen extends net.minecraft.client.gui.screens.Screen {
 	}
 
 	private int signature() {
-		return (car.isEngineOn() ? 1 : 0) | (car.isBroken() ? 2 : 0) | (car.lockState().ordinal() << 2) | (car.lightsOn() ? 16 : 0)
+		return (CamMode.gta ? 1 << 24 : 0) | (car.isEngineOn() ? 1 : 0) | (car.isBroken() ? 2 : 0) | (car.lockState().ordinal() << 2) | (car.lightsOn() ? 16 : 0)
 			| (car.sirenOn() ? 32 : 0) | (car.gearsOn() ? 64 : 0) | (Math.round(car.sensValue() * 10) << 8) | (Math.round(car.hpValue()) << 16);
 	}
 
-	private void act(int action) { ClientPlayNetworking.send(new VehicleActionPayload(car.getId(), action)); }
+	private void act(int action) { if (action == -1) { CamMode.toggle(); rebuildWidgets(); return; } ClientPlayNetworking.send(new VehicleActionPayload(car.getId(), action)); }
 
 	private Button btn(String text, int action, int x, int y, int w, int h) {
 		Button b = Button.builder(Component.literal(text), bb -> act(action)).bounds(x, y, w, h).build();
@@ -40,7 +40,7 @@ final class VehicleMenuScreen extends net.minecraft.client.gui.screens.Screen {
 	protected void init() {
 		sig = signature();
 		VehicleSpec sp = VehicleRegistry.specOf(car.getType());
-		int rows = 8 + (sp != null && sp.hasSiren() ? 1 : 0);
+		int rows = 9 + (sp != null && sp.hasSiren() ? 1 : 0);
 		ph = 66 + rows * 24 + 8;
 		int x = (width - PW) / 2 + 15, y = (height - ph) / 2 + 66, w = PW - 30, h = 20, step = h + 4;
 		int r = 0;
@@ -50,6 +50,7 @@ final class VehicleMenuScreen extends net.minecraft.client.gui.screens.Screen {
 		if (sp != null && sp.hasSiren()) btn(car.sirenOn() ? "Сирена: ВКЛ  (выключить)" : "Сирена: ВЫКЛ  (включить)", VehicleEntity.ACT_SIREN, x, y + step * r++, w, h);
 		btn("Пересесть на другое место", VehicleEntity.ACT_SEAT, x, y + step * r++, w, h);
 		btn(car.gearsOn() ? "Передачи: ВКЛ (Shift выше, Ctrl ниже, выход F)" : "Передачи: ВЫКЛ  (включить)", VehicleEntity.ACT_GEARS, x, y + step * r++, w, h);
+		btn(CamMode.gta ? "Камера: GTA (за машиной)  - сменить" : "Камера: свободная  - сменить", -1, x, y + step * r++, w, h);
 		int ry = y + step * r++;
 		btn("-", VehicleEntity.ACT_SENS_DOWN, x, ry, 24, h);
 		Button lab = Button.builder(Component.literal("Руль GTA 5, чувствительность: " + String.format("%.1f", car.sensValue())), b -> { }).bounds(x + 28, ry, w - 56, h).build();
@@ -81,20 +82,20 @@ final class VehicleMenuScreen extends net.minecraft.client.gui.screens.Screen {
 	public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
 		int x = (width - PW) / 2, y = (height - ph) / 2;
 		g.fill(0, 0, width, height, 0x70000000);
-		g.fill(x, y, x + PW, y + ph, 0xF0121418);
+		g.fill(x, y, x + PW, y + ph, 0xF00C1A12);
 		g.fill(x, y, x + PW, y + 3, VehicleHud.EDGE);
-		g.outline(x, y, PW, ph, 0xFF2A2E35);
+		g.outline(x, y, PW, ph, 0xFF1F4A33);
 		VehicleSpec s = VehicleRegistry.specOf(car.getType());
 		g.text(font, car.getName().getString(), x + 15, y + 12, VehicleHud.WHITE, true);
 		String lk = car.lockState() == Access.Lock.OPEN ? "открыта" : "закрыта";
 		g.text(font, "Меню автомобиля", x + 15, y + 25, VehicleHud.DIM, false);
 		double fuel = s == null ? 0 : car.fuelValue() / Math.max(s.maxFuel(), 0.01);
 		g.text(font, "ЛАВА", x + 15, y + 40, VehicleHud.DIM, false);
-		g.fill(x + 80, y + 41, x + PW - 15, y + 47, 0xFF2A2E35);
-		g.fill(x + 80, y + 41, x + 80 + (int) ((PW - 95) * Math.max(0, Math.min(1, fuel))), y + 47, 0xFFFF7A00);
+		g.fill(x + 80, y + 41, x + PW - 15, y + 47, 0xFF1F4A33);
+		g.fill(x + 80, y + 41, x + 80 + (int) ((PW - 95) * Math.max(0, Math.min(1, fuel))), y + 47, 0xFF2ECC71);
 		double hpf = s == null ? 1 : car.hpValue() / Math.max(s.health(), 1);
 		g.text(font, "ПРОЧНОСТЬ", x + 15, y + 52, VehicleHud.DIM, false);
-		g.fill(x + 80, y + 53, x + PW - 15, y + 59, 0xFF2A2E35);
+		g.fill(x + 80, y + 53, x + PW - 15, y + 59, 0xFF1F4A33);
 		g.fill(x + 80, y + 53, x + 80 + (int) ((PW - 95) * Math.max(0, Math.min(1, hpf))), y + 59, hpf > 0.5 ? 0xFF3DDC84 : hpf > 0.25 ? 0xFFFFC233 : 0xFFFF4A3D);
 		super.extractRenderState(g, mx, my, pt);
 	}
