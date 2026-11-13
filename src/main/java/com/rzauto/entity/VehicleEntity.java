@@ -359,9 +359,8 @@ public class VehicleEntity extends Entity {
 		Physics.horizontalVelocity(st.yawDeg, st.speed, st.lat, vel);
 		double vy;
 		if (isInWater()) {
-			// плавучесть: машина держится на поверхности (осадка ~половина), а не тонет и не застревает на дне
-			double fh = getFluidHeight(net.minecraft.tags.FluidTags.WATER);
-			vy = Math.max(-0.05, Math.min(0.06, (fh - 0.5) * 0.25));
+			// машина ТОНЕТ: плавучести нет, падение замедлено водой (терминальная скорость ~0.25 бл/тик) и до дна
+			vy = Math.max(-0.25, (getDeltaMovement().y - 0.04) * 0.9);
 		} else vy = onGround() ? -GRAVITY : (getDeltaMovement().y - GRAVITY) * 0.98;
 		// поворот от задней оси, как у настоящей машины: центр кузова смещается так, чтобы задние колёса не уезжали вбок
 		double[] dmv = VehicleCatalog.dims(s.bedrockId());
