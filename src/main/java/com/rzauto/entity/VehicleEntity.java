@@ -69,6 +69,7 @@ public class VehicleEntity extends Entity {
 	public static final EntityDataAccessor<Byte> DATA_LOCK = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.BYTE);
 	public static final EntityDataAccessor<Boolean> DATA_BROKEN = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.BOOLEAN);
 	public static final EntityDataAccessor<Float> DATA_SPEED = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.FLOAT);
+	public static final EntityDataAccessor<String> DATA_OWNER_NAME = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.STRING);
 	public static final EntityDataAccessor<String> DATA_OWNER = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.STRING);
 	public static final EntityDataAccessor<Boolean> DATA_LIGHTS = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.BOOLEAN);
 	public static final EntityDataAccessor<Boolean> DATA_SIREN = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.BOOLEAN);
@@ -79,7 +80,10 @@ public class VehicleEntity extends Entity {
 	public static final EntityDataAccessor<Integer> DATA_SEATS = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.INT);
 
 	/** Действия из меню / клавиши F (пакет VehicleActionPayload). */
-	public static final int ACT_ENTER = 0, ACT_ENGINE = 1, ACT_LOCK = 2, ACT_REPAIR = 3, ACT_LIGHTS = 4, ACT_SIREN = 5, ACT_SEAT = 6, ACT_SENS_DOWN = 7, ACT_SENS_UP = 8, ACT_GEARS = 9, ACT_EXIT = 10;
+	public static final int ACT_ENTER = 0, ACT_ENGINE = 1, ACT_LOCK = 2, ACT_REPAIR = 3, ACT_LIGHTS = 4, ACT_SIREN = 5, ACT_SEAT = 6, ACT_SENS_DOWN = 7, ACT_SENS_UP = 8, ACT_GEARS = 9, ACT_EXIT = 10, ACT_ROOF = 11;
+	public static final EntityDataAccessor<Boolean> DATA_ROOF = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.BOOLEAN);
+	private boolean roof = true;
+	public boolean roofOn() { return entityData.get(DATA_ROOF); }
 	public static final double SPEED_SCALE = 1.0 / 1.5, OFFROAD_MULT = 0.6;
 	private int lastHitTick = -1000;
 	public static final float SENS_MIN = 0.6f, SENS_MAX = 3.0f, SENS_STEP = 0.2f, SENS_DEFAULT = 1.4f;
@@ -183,13 +187,28 @@ public class VehicleEntity extends Entity {
 		setSeatAt(n, 15);
 	}
 
+	private float tiltPitch, tiltDy;
+	/** Сглаженный наклон и просадка кузова по рельефу (одинаково на сервере и клиенте): по ним смещаются сиденья. */
+	private void tiltTick() {
+		VehicleSpec sp = spec();
+		if (sp == null || getPassengers().isEmpty()) { tiltPitch *= 0.8f; tiltDy *= 0.8f; return; }
+		double[] dm = VehicleCatalog.dims(sp.bedrockId());
+		double halfL = dm == null ? 1.3 : Math.max(0.5, dm[1] * 0.33);
+		float[] t = Terrain.pitchAndDy(level(), getX(), getY(), getZ(), getYRot(), halfL);
+		tiltPitch += (t[0] - tiltPitch) * 0.3f;
+		tiltDy += (t[1] - tiltDy) * 0.3f;
+	}
+
 	@Override
 	protected Vec3 getPassengerAttachmentPoint(Entity passenger, EntityDimensions dims, float scale) {
 		double[][] sd = spec() == null ? null : VehicleCatalog.seats(spec().bedrockId());
 		if (sd == null || sd.length == 0) return super.getPassengerAttachmentPoint(passenger, dims, scale);
 		int seat = Math.max(0, Math.min(sd.length - 1, seatOf(passenger)));
 		double k = com.rzauto.RzConfig.renderScale;
-		Vec3 v = new Vec3(sd[seat][0] * k, sd[seat][1] * k + com.rzauto.RzConfig.seatYOffset, sd[seat][2] * k);
+		double sy = sd[seat][1] * k + com.rzauto.RzConfig.seatYOffset, sz = sd[seat][2] * k;
+		// сиденье едет вместе с кузовом: поворот вокруг точки (0; 0,4) по тангажу и просадка вниз
+		double th = Math.toRadians(tiltPitch), cy = 0.4 + (sy - 0.4) * Math.cos(th) - sz * Math.sin(th), cz = (sy - 0.4) * Math.sin(th) + sz * Math.cos(th);
+		Vec3 v = new Vec3(sd[seat][0] * k, cy + tiltDy, cz);
 		return v.yRot((float) (-getYRot() * Math.PI / 180.0));
 	}
 
@@ -210,10 +229,12 @@ public class VehicleEntity extends Entity {
 	@Override
 	public void tick() {
 		super.tick();
+		tiltTick();
 		if (level().isClientSide()) return;
 		VehicleSpec s = spec();
 		if (s == null) return;
 		initFuel();
+		if (owner != null && tickCount % 40 == 0 && (ownerName.isEmpty() || !ownerName.equals(entityData.get(DATA_OWNER_NAME)))) refreshOwnerName();
 		if (hp >= 0 && hp < maxHp() && tickCount - lastHitTick > 100 && tickCount % 10 == 0) { hp = Math.min(maxHp(), hp + maxHp() * 0.01f); syncState(); }
 
 		ServerPlayer driver = null;
@@ -246,6 +267,7 @@ public class VehicleEntity extends Entity {
 		st.yawDeg = getYRot();
 		double max = canDrive ? Physics.currentMax(s, vs.gears.speedPercent(s, vs.speedPercent), vs.wear.broken, vs.fuel, vs.engineOn) : s.topSpeed();
 		max *= SPEED_SCALE;   // скорость Bedrock делим на 1.5
+		if (isInWater()) max *= 0.1;   // по воде только 10% скорости
 		if (!(s.offroadExempt() || s.hasSiren() || s.bedrockId().startsWith("jeep:"))) {
 			var fx = com.rzauto.logic.Surface.effect(net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(level().getBlockState(blockPosition().below()).getBlock()).getPath());
 			if (fx != null) max *= OFFROAD_MULT;   // земля, песок, грязь: -40% (джипы и полиция не страдают)
@@ -337,7 +359,14 @@ public class VehicleEntity extends Entity {
 	}
 
 	public UUID getOwner() { return owner; }
-	public void setOwner(UUID owner) { this.owner = owner; if (!level().isClientSide()) entityData.set(DATA_OWNER, owner == null ? "" : owner.toString()); }
+	private String ownerName = "";
+	public String ownerNick() { return entityData.get(DATA_OWNER_NAME); }
+	private void refreshOwnerName() {
+		if (owner == null) { ownerName = ""; }
+		else { var pl = level().getPlayerByUUID(owner); if (pl != null) ownerName = pl.getName().getString(); }
+		entityData.set(DATA_OWNER_NAME, ownerName);
+	}
+	public void setOwner(UUID owner) { this.owner = owner; if (!level().isClientSide()) { entityData.set(DATA_OWNER, owner == null ? "" : owner.toString()); refreshOwnerName(); } }
 
 	@Override
 	protected void defineSynchedData(SynchedEntityData.Builder builder) {
@@ -347,7 +376,9 @@ public class VehicleEntity extends Entity {
 		builder.define(DATA_BROKEN, false);
 		builder.define(DATA_SPEED, 0f);
 		builder.define(DATA_OWNER, "");
+		builder.define(DATA_OWNER_NAME, "");
 		builder.define(DATA_LIGHTS, true);
+		builder.define(DATA_ROOF, true);
 		builder.define(DATA_SIREN, false);
 		builder.define(DATA_GEARS, false);
 		builder.define(DATA_SENS, SENS_DEFAULT);
@@ -359,6 +390,7 @@ public class VehicleEntity extends Entity {
 	protected void readAdditionalSaveData(ValueInput in) {
 		String s = in.getStringOr("owner", "");
 		try { owner = s.isEmpty() ? null : UUID.fromString(s); } catch (IllegalArgumentException e) { owner = null; }
+		ownerName = in.getStringOr("owner_name", "");
 		try {
 			if (!in.getStringOr("fuel", "").isEmpty()) { vs.fuel = Double.parseDouble(in.getStringOr("fuel", "0")); fuelInit = true; }
 			vs.engineOn = "1".equals(in.getStringOr("engine", "0"));
@@ -369,6 +401,7 @@ public class VehicleEntity extends Entity {
 			hp = Float.parseFloat(in.getStringOr("hp", "-1"));
 			sens = Float.parseFloat(in.getStringOr("sens", Float.toString(SENS_DEFAULT)));
 			lights = !"0".equals(in.getStringOr("lights", "1"));
+			roof = !"0".equals(in.getStringOr("roof", "1"));
 			vs.gears.mode = "1".equals(in.getStringOr("gears", "0"));
 		} catch (NumberFormatException e) { /* оставляем значения по умолчанию */ }
 	}
@@ -376,6 +409,7 @@ public class VehicleEntity extends Entity {
 	@Override
 	protected void addAdditionalSaveData(ValueOutput out) {
 		if (owner != null) out.putString("owner", owner.toString());
+		if (!ownerName.isEmpty()) out.putString("owner_name", ownerName);
 		out.putString("fuel", Double.toString(vs.fuel));
 		out.putString("engine", vs.engineOn ? "1" : "0");
 		out.putString("lock", vs.lock.key);
@@ -385,6 +419,7 @@ public class VehicleEntity extends Entity {
 		out.putString("hp", Float.toString(hp));
 		out.putString("sens", Float.toString(sens));
 		out.putString("lights", lights ? "1" : "0");
+		out.putString("roof", roof ? "1" : "0");
 		out.putString("gears", vs.gears.mode ? "1" : "0");
 	}
 
@@ -426,6 +461,7 @@ public class VehicleEntity extends Entity {
 		entityData.set(DATA_LOCK, (byte) vs.lock.ordinal());
 		entityData.set(DATA_BROKEN, vs.wear.broken);
 		entityData.set(DATA_LIGHTS, lights);
+		entityData.set(DATA_ROOF, roof);
 		entityData.set(DATA_SIREN, siren);
 		entityData.set(DATA_GEARS, vs.gears.mode);
 		entityData.set(DATA_SENS, sens);
@@ -464,6 +500,7 @@ public class VehicleEntity extends Entity {
 		if (action == ACT_LIGHTS && rider) { lights = !lights; syncState(); return; }
 		if (action == ACT_SIREN && rider) { if (s.hasSiren()) siren = !siren; syncState(); return; }
 		if (action == ACT_SEAT && rider) { changeSeat(p); return; }
+		if (action == ACT_ROOF && isOwnedBy(p.getUUID()) && s.bedrockId().startsWith("jeep:yj")) { roof = !roof; syncState(); return; }
 		if (owner == null) setOwner(p.getUUID());
 		if (!owner.equals(p.getUUID())) { msg(p, "§eМеню доступно только владельцу машины."); return; }
 		switch (action) {

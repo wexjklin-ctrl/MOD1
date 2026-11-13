@@ -37,23 +37,30 @@ final class VehicleHud implements HudElement {
 	private static void prompt(GuiGraphicsExtractor g, Minecraft mc, VehicleEntity ve) {
 		String name = ve.getName().getString();
 		String key = RzAutoClient.ENTER.getTranslatedKeyMessage().getString();
-		String line = "Сесть в машину";
-		boolean locked = ve.isLocked();
-		int w = Math.max(mc.font.width(name), mc.font.width(line) + 26) + 24, h = locked ? 50 : 38;
+		String nick = ve.ownerNick();
+		boolean mine = ve.isOwnedBy(mc.player.getUUID());
+		boolean denied = ve.isLocked() && !mine;
+		String line = denied ? (nick.isEmpty() ? "Владелец запретил садиться в машину" : nick + " запретил садиться в машину") : "Сесть в машину";
+		String own = mine ? "Владелец: вы" : nick.isEmpty() ? "Владелец: нет" : "Владелец: " + nick;
+		int kw = denied ? 0 : Math.max(16, mc.font.width(key) + 8);
+		int w = Math.max(Math.max(mc.font.width(name), mc.font.width(own)), mc.font.width(line) + (denied ? 0 : kw + 6)) + 24, h = 48;
 		g.pose().pushMatrix();
 		g.pose().translate(g.guiWidth() / 2f, g.guiHeight() / 2f + 28);
 		g.pose().scale(0.75f, 0.75f);
 		int x = -w / 2, y = 0;
 		g.fill(x, y, x + w, y + h, BG);
-		g.fill(x, y, x + 3, y + h, EDGE);
+		g.fill(x, y, x + 3, y + h, denied ? 0xFFFF4A3D : EDGE);
 		g.fill(x, y, x + w, y + 1, 0x40FFFFFF);
 		g.text(mc.font, name, x + 10, y + 5, DIM, false);
-		// «кнопка» клавиши
-		int kw = Math.max(16, mc.font.width(key) + 8);
-		g.fill(x + 10, y + 17, x + 10 + kw, y + 31, EDGE);
-		g.text(mc.font, key, x + 10 + (kw - mc.font.width(key)) / 2, y + 20, 0xFF06150C, false);
-		g.text(mc.font, line, x + 16 + kw, y + 20, WHITE, true);
-		if (locked) g.text(mc.font, "Закрыта владельцем", x + 10, y + 36, 0xFFFF6A5A, false);
+		if (denied) {
+			g.text(mc.font, line, x + 10, y + 20, 0xFFFF6A5A, true);
+		} else {
+			// «кнопка» клавиши
+			g.fill(x + 10, y + 17, x + 10 + kw, y + 31, EDGE);
+			g.text(mc.font, key, x + 10 + (kw - mc.font.width(key)) / 2, y + 20, 0xFF06150C, false);
+			g.text(mc.font, line, x + 16 + kw, y + 20, WHITE, true);
+		}
+		g.text(mc.font, own, x + 10, y + 35, DIM, false);
 		g.pose().popMatrix();
 	}
 

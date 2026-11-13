@@ -25,7 +25,7 @@ final class VehicleMenuScreen extends net.minecraft.client.gui.screens.Screen {
 
 	private int signature() {
 		return (CamMode.gta ? 1 << 24 : 0) | (car.isEngineOn() ? 1 : 0) | (car.isBroken() ? 2 : 0) | (car.lockState().ordinal() << 2) | (car.lightsOn() ? 16 : 0)
-			| (car.sirenOn() ? 32 : 0) | (car.gearsOn() ? 64 : 0) | (Math.round(car.sensValue() * 10) << 8) | (Math.round(car.hpValue()) << 16);
+			| (car.roofOn() ? 1 << 25 : 0) | (car.sirenOn() ? 32 : 0) | (car.gearsOn() ? 64 : 0) | (Math.round(car.sensValue() * 10) << 8) | (Math.round(car.hpValue()) << 16);
 	}
 
 	private void act(int action) { if (action == -1) { CamMode.toggle(); rebuildWidgets(); return; } ClientPlayNetworking.send(new VehicleActionPayload(car.getId(), action)); }
@@ -40,7 +40,8 @@ final class VehicleMenuScreen extends net.minecraft.client.gui.screens.Screen {
 	protected void init() {
 		sig = signature();
 		VehicleSpec sp = VehicleRegistry.specOf(car.getType());
-		int rows = 9 + (sp != null && sp.hasSiren() ? 1 : 0);
+		boolean jeepYj = sp != null && sp.bedrockId().startsWith("jeep:yj");
+		int rows = 9 + (sp != null && sp.hasSiren() ? 1 : 0) + (jeepYj ? 1 : 0);
 		ph = 66 + rows * 24 + 8;
 		int x = (width - PW) / 2 + 15, y = (height - ph) / 2 + 66, w = PW - 30, h = 20, step = h + 4;
 		int r = 0;
@@ -48,6 +49,7 @@ final class VehicleMenuScreen extends net.minecraft.client.gui.screens.Screen {
 		btn(car.isLocked() ? "Замок: ЗАКРЫТО  (открыть)" : "Замок: ОТКРЫТО  (закрыть)", VehicleEntity.ACT_LOCK, x, y + step * r++, w, h);
 		btn(car.lightsOn() ? "Фары: ВКЛ  (выключить)" : "Фары: ВЫКЛ  (включить)", VehicleEntity.ACT_LIGHTS, x, y + step * r++, w, h);
 		if (sp != null && sp.hasSiren()) btn(car.sirenOn() ? "Сирена: ВКЛ  (выключить)" : "Сирена: ВЫКЛ  (включить)", VehicleEntity.ACT_SIREN, x, y + step * r++, w, h);
+		if (jeepYj) btn(car.roofOn() ? "Крыша / тент: ЕСТЬ  (снять)" : "Крыша / тент: СНЯТА  (поставить)", VehicleEntity.ACT_ROOF, x, y + step * r++, w, h);
 		btn("Пересесть на другое место", VehicleEntity.ACT_SEAT, x, y + step * r++, w, h);
 		btn(car.gearsOn() ? "Передачи: ВКЛ (Shift выше, Ctrl ниже, выход F)" : "Передачи: ВЫКЛ  (включить)", VehicleEntity.ACT_GEARS, x, y + step * r++, w, h);
 		btn(CamMode.gta ? "Камера: GTA (за машиной)  - сменить" : "Камера: свободная  - сменить", -1, x, y + step * r++, w, h);

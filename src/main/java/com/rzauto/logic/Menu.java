@@ -29,7 +29,7 @@ public final class Menu {
 	public static Result refuel(VehicleSpec s, VehicleState v, boolean hasLavaBucket) {
 		if (!hasLavaBucket) return new Result(false, "§cУ вас нет ведра с лавой в инвентаре.");
 		v.fuel = Fuel.addBucket(s, v.fuel);
-		return new Result(true, "§aБак заправлен. Топливо: " + Math.round(v.fuel) + " / " + Math.round(s.maxFuel()) + " блоков.");
+		return new Result(true, "§aБак заправлен. Топливо: " + Math.round(v.fuel) + " / " + Math.round(s.maxFuel()) + " л.");
 	}
 
 	/** Замена шестерни: вызывать, когда у игрока есть предмет carworkshop:gear (списать 1). */
@@ -131,14 +131,14 @@ public final class Menu {
 	/** Тело главного меню «Управление автомобилем». */
 	public static String driveBody(VehicleSpec s, VehicleState v) {
 		String status = v.wear.broken ? "§cМашина сломана! Требуется замена шестерни."
-			: (s.breakdownChancesPct() != null && s.breakdownChancesPct().length > 0) ? "Пробег с последней шестерни: " + n(v.wear.mileage) + " блоков" : "";
-		return "Владелец: " + Access.ownerLabel(v.owner) + "\nДвигатель: " + (v.engineOn ? "§aзаведён" : "§7заглушен") + "§r\nТопливо: " + Math.round(v.fuel) + " / " + Math.round(s.maxFuel()) + " блоков"
+			: (s.breakdownChancesPct() != null && s.breakdownChancesPct().length > 0) ? "Пробег с последней шестерни: " + n(v.wear.mileage) + " л" : "";
+		return "Владелец: " + Access.ownerLabel(v.owner) + "\nДвигатель: " + (v.engineOn ? "§aзаведён" : "§7заглушен") + "§r\nТопливо: " + Math.round(v.fuel) + " / " + Math.round(s.maxFuel()) + " л"
 			+ (status.isEmpty() ? "" : "\n" + status) + gearModeNote(s, v);
 	}
 	public static String interactBody(VehicleSpec s, VehicleState v) {
-		return "Двигатель: " + (v.engineOn ? "§aзаведён" : "§7заглушен") + "§r\nТопливо: " + Math.round(v.fuel) + " / " + Math.round(s.maxFuel()) + " блоков";
+		return "Двигатель: " + (v.engineOn ? "§aзаведён" : "§7заглушен") + "§r\nТопливо: " + Math.round(v.fuel) + " / " + Math.round(s.maxFuel()) + " л";
 	}
-	public static String refuelButton(VehicleSpec s) { return "Заправить (1 ведро лавы = +" + n(s.fuelPerBucket()) + " блоков)"; }
+	public static String refuelButton(VehicleSpec s) { return "Заправить (1 ведро лавы = +" + n(s.fuelPerBucket()) + " л)"; }
 	public static String classicBody(VehicleSpec s, VehicleState v) { return "Скорость и сила поворота." + gearModeNote(s, v); }
 	public static String lockLabel(Access.Lock l) {
 		switch (l) { case OPEN: return "§aОткрыта"; case PASSENGERS: return "§bОткрыта для пассажиров (руль только у владельца)"; case LOCKED: return "§eЗакрыта (только владелец)"; default: return "§cПолностью закрыта"; }

@@ -319,6 +319,18 @@ final class GeoModel {
 		return false;
 	}
 
+	/** Крыша Jeep YJ: мягкий тент, его каркас и жёсткая крыша (снимаются в меню машины). */
+	private boolean underRoof(int i) {
+		for (int g = 0; i >= 0 && g < 64; g++) {
+			String n = bones[i].name;
+			if (n.equalsIgnoreCase("SoftTop") || n.equalsIgnoreCase("SoftFrame") || n.equalsIgnoreCase("Hardtop")) return true;
+			int p = bones[i].parent;
+			if (p == i) return false;
+			i = p;
+		}
+		return false;
+	}
+
 	private boolean underBar(int i) {
 		for (int g = 0; i >= 0 && g < 64; g++) {
 			if (bones[i].name.equalsIgnoreCase("lights") || bones[i].name.equalsIgnoreCase("lightbar")) return true;
@@ -336,10 +348,43 @@ final class GeoModel {
 		java.util.List<Cube> dynCubes = new ArrayList<>();
 		Matrix4f[] memo = new Matrix4f[bones.length];
 		Vector3f v = new Vector3f(), n = new Vector3f();
+		// кубы мигалок, целиком лежащие внутри обычного куба кузова (совпадающие грани): в основном слое их не рисуем, иначе грани «дерутся» с кузовом и рябят
+		java.util.Map<Cube, float[]> boxes = new java.util.IdentityHashMap<>();
+		for (int i = 0; i < bones.length; i++) {
+			if (bones[i].cubes.isEmpty() || isDyn(i)) continue;
+			Matrix4f wm = world(i, memo, 0f, 0f);
+			for (Cube c : bones[i].cubes) {
+				float[] bb = {1e9f, 1e9f, 1e9f, -1e9f, -1e9f, -1e9f};
+				for (int vi = 0; vi < 24; vi++) {
+					v.set(c.pos[vi * 3], c.pos[vi * 3 + 1], c.pos[vi * 3 + 2]);
+					wm.transformPosition(v);
+					bb[0] = Math.min(bb[0], v.x); bb[1] = Math.min(bb[1], v.y); bb[2] = Math.min(bb[2], v.z);
+					bb[3] = Math.max(bb[3], v.x); bb[4] = Math.max(bb[4], v.y); bb[5] = Math.max(bb[5], v.z);
+				}
+				boxes.put(c, bb);
+			}
+		}
+		java.util.Set<Cube> skip = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
 		for (int i = 0; i < bones.length; i++) {
 			Bone b = bones[i];
 			if (b.cubes.isEmpty()) continue;
-			if (mode != 0) {
+			if (mode == 4 && underRoof(i)) continue;
+			if ((mode == 0 || mode == 4) && underBar(i)) {
+				for (Cube c : b.cubes) {
+					float[] a = boxes.get(c);
+					boolean inside = false;
+					if (a != null) for (int j = 0; j < bones.length && !inside; j++) {
+						if (j == i || underBar(j)) continue;
+						for (Cube o : bones[j].cubes) {
+							float[] q2 = boxes.get(o);
+							if (q2 == null) continue;
+							if (a[0] >= q2[0] - 0.01f && a[1] >= q2[1] - 0.01f && a[2] >= q2[2] - 0.01f && a[3] <= q2[3] + 0.01f && a[4] <= q2[4] + 0.01f && a[5] <= q2[5] + 0.01f) { inside = true; break; }
+						}
+					}
+					if (inside) skip.add(c);
+				}
+			}
+			if (mode != 0 && mode != 4) {
 				boolean sir = underBar(i);
 				if (mode == 2 ? sir : !sir) continue;
 				if (mode != 2 && (mode == 1) != (b.px <= 0f)) continue;   // 1 = левая половина мигалок, 3 = правая: мигают по очереди
@@ -347,6 +392,7 @@ final class GeoModel {
 			boolean d = isDyn(i);
 			Matrix4f m = d ? null : world(i, memo, 0f, 0f);
 			for (Cube c : b.cubes) for (int face = 0; face < 6; face++) {
+				if (skip.contains(c)) continue;
 				if (!faceVisible(c, face, alpha, w, h)) continue;
 				if (d) { dynCubes.add(c); dyn.add(new int[] {i, face}); continue; }
 				float[] q = new float[23];

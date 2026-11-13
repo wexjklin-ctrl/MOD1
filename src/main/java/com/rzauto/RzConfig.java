@@ -17,7 +17,7 @@ public final class RzConfig {
 	/** Смещение высоты сидений Java относительно значений Bedrock (блоки). */
 	public static float seatYOffset = 0.36f;
 	/** Новая машина с полным баком (в оригинале бак пуст, заправка ведром лавы). */
-	public static boolean startFullTank = true;
+	public static boolean startFullTank = false;
 	/** Двигатель заводится сам, когда водитель садится (иначе: меню → «Завести двигатель»). */
 	public static boolean autoStartEngine = true;
 	/** Чтобы ехать, нужны водительские права в одной из рук (как в оригинале). */
@@ -30,7 +30,6 @@ public final class RzConfig {
 				JsonObject o = JsonParser.parseString(Files.readString(p)).getAsJsonObject();
 				if (o.has("renderScale")) renderScale = o.get("renderScale").getAsFloat();
 				if (o.has("seatYOffset")) seatYOffset = o.get("seatYOffset").getAsFloat();
-				if (o.has("startFullTank")) startFullTank = o.get("startFullTank").getAsBoolean();
 				if (o.has("autoStartEngine")) autoStartEngine = o.get("autoStartEngine").getAsBoolean();
 				if (o.has("requireLicense")) requireLicense = o.get("requireLicense").getAsBoolean();
 			} else {

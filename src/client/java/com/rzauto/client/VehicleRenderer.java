@@ -30,7 +30,7 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 		public GeoModel model;
 		public GeoModel.Baked bake, bakeE, bakeBar, bakeBar2;
 		/** путь вперёд в блоках (по модулю 18, чтобы не терять точность) и скорость поворота (град/с) для колёс и руля */
-		public float dist, steer, pitch, roll;
+		public float dist, steer, pitch, roll, dy;
 		public Identifier tex, texE;
 		/** сдвиг каждого колеса по высоте (в единицах модели) по рельефу под ним */
 		public float[] wdy;
@@ -51,7 +51,7 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 	private static final class Track {
 		boolean init;
 		double x, z, dist;
-		float yaw, steer, vel, acc, pitch, roll, pp, pv, rp, rv;
+		float yaw, steer, vel, acc, pitch, roll, pp, pv, rp, rv, dy;
 		final float[] wy = new float[8];
 		long wns;
 		long ns;
@@ -84,7 +84,8 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 		if (Double.isNaN(hf)) hf = y; if (Double.isNaN(hr)) hr = y; if (Double.isNaN(hl)) hl = y; if (Double.isNaN(hrr)) hrr = y;
 		float p = (float) -Math.toDegrees(Math.atan2(hf - hr, 2 * halfL));
 		float r = (float) Math.toDegrees(Math.atan2(hl - hrr, 2 * halfW));
-		return new float[] { net.minecraft.util.Mth.clamp(p, -32f, 32f), net.minecraft.util.Mth.clamp(r, -22f, 22f) };
+		float dyv = (float) net.minecraft.util.Mth.clamp((hf + hr) / 2 - y, -1.0, 0.0);   // кузов опускается к средней высоте земли под осями, иначе при въезде на блок он «висит» в воздухе
+		return new float[] { net.minecraft.util.Mth.clamp(p, -32f, 32f), net.minecraft.util.Mth.clamp(r, -22f, 22f), dyv };
 	}
 
 	/** Подвеска колёс: каждое колесо идёт по высоте земли под ним относительно плоскости кузова (по методу наименьших квадратов). */
@@ -160,11 +161,12 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 		}
 		// подвеска по блокам: пружина тянет тангаж/крен к наклону рельефа под колёсами (на склоне, ступеньках, плитах), стоя тоже держит наклон
 		float[] tg = terrain(e, VehicleRegistry.specOf(e.getType()), x, pos.y, z, yaw);
-		if (!t.init) { t.pp = tg[0]; t.rp = tg[1]; t.pv = 0; t.rv = 0; }
+		if (!t.init) { t.pp = tg[0]; t.rp = tg[1]; t.pv = 0; t.rv = 0; t.dy = tg[2]; }
 		else {
 			float h = net.minecraft.util.Mth.clamp(dt, 0f, 0.05f);
 			t.pv += ((tg[0] - t.pp) * 85f - t.pv * 9f) * h; t.pp += t.pv * h;
 			t.rv += ((tg[1] - t.rp) * 85f - t.rv * 9f) * h; t.rp += t.rv * h;
+				t.dy += (tg[2] - t.dy) * (1f - (float) Math.exp(-Math.max(dt, 0f) / 0.07f));
 		}
 		t.init = true; t.x = x; t.z = z; t.yaw = yaw; t.ns = now;
 		// наклон кузова по инерции: торможение клюёт носом, разгон приседает, на повороте крен наружу
@@ -173,7 +175,7 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 		float rt = net.minecraft.util.Mth.clamp(lat * 70f, -4.5f, 4.5f);
 		float k = 1f - (float) Math.exp(-Math.max(dt, 0f) / 0.15f);
 		t.pitch += (pt - t.pitch) * k; t.roll += (rt - t.roll) * k;
-		s.pitch = t.pitch + t.pp; s.roll = t.roll + t.rp;
+		s.pitch = t.pitch + t.pp; s.roll = t.roll + t.rp; s.dy = t.dy;
 		s.dist = (float) (t.dist % 18.0);
 		s.steer = t.steer;
 	}
@@ -200,7 +202,7 @@ public class VehicleRenderer extends EntityRenderer<VehicleEntity, VehicleRender
 			String tn = com.rzauto.logic.VehicleCatalog.texture(spec.bedrockId());
 			s.tex = (s.model != null && tn != null) ? Identifier.fromNamespaceAndPath("rz_auto", "textures/entity/" + tn + ".png") : null;
 			s.texE = (s.tex != null && hasEmissive(tn)) ? Identifier.fromNamespaceAndPath("rz_auto", "textures/entity/" + tn + "_e.png") : null;
-			s.bake = s.tex != null ? s.model.baked(s.tex) : null;
+			s.bake = s.tex != null ? s.model.baked(s.tex, e.roofOn() ? 0 : 4) : null;
 			s.bakeE = s.texE != null ? s.model.baked(s.texE, 2) : null;
 			s.bakeBar = s.texE != null ? s.model.baked(s.texE, 1) : null;
 			s.bakeBar2 = s.texE != null ? s.model.baked(s.texE, 3) : null;

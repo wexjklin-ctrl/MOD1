@@ -41,7 +41,7 @@ public final class VehicleCatalog {
 			VehicleSpec s = new VehicleSpec(
 				o.get("id").getAsString(), o.get("family_prefix").getAsString(), o.get("is_motorcycle").getAsBoolean(),
 				p.get("top_speed").getAsDouble(), p.get("accel").getAsDouble(),
-				f.get("fuelMult").getAsDouble(), f.get("maxFuel").getAsDouble(), f.get("fuelPerBucket").getAsDouble(),
+				Fuel.LITERS_PER_BLOCK, Fuel.TANK_LITERS, Fuel.BUCKET_LITERS,   // единый бак: 150 л, ведро лавы 10 л, 0,01 л на блок (≈1000 блоков на 10 л)
 				chances, g == null ? 0 : g.get("speed").getAsDouble(), g == null ? 0 : g.get("seconds").getAsDouble(),
 				g == null ? 1 : g.get("fuelMult").getAsDouble(), g == null ? 1 : g.get("wearMult").getAsDouble(),
 				o.get("max_auto_step").getAsDouble(), o.get("health").getAsInt());
