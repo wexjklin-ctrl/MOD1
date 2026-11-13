@@ -65,6 +65,11 @@ public class RzAutoClient implements ClientModInitializer {
 		while (MENU.consumeClick()) {
 			VehicleEntity ve = VehicleHud.riding(mc);
 			if (ve == null) ve = VehicleHud.looked(mc);
+			if (ve == null && mc.gui.screen() == null) {
+				net.minecraft.world.item.ItemStack held = com.rzauto.item.Passport.isDoc(mc.player.getMainHandItem()) ? mc.player.getMainHandItem() : mc.player.getOffhandItem();
+				if (com.rzauto.item.Passport.isDoc(held)) mc.setScreenAndShow(new DocumentScreen(held));
+				continue;
+			}
 			if (ve == null || mc.gui.screen() != null) continue;
 			if (!ve.isUnclaimed() && !ve.isOwnedBy(mc.player.getUUID())) { mc.gui.hud.setOverlayMessage(net.minecraft.network.chat.Component.literal("Меню доступно только владельцу машины."), false); continue; }
 			mc.setScreenAndShow(new VehicleMenuScreen(ve));

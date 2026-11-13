@@ -80,7 +80,7 @@ public class VehicleEntity extends Entity {
 	public static final EntityDataAccessor<Integer> DATA_SEATS = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.INT);
 
 	/** Действия из меню / клавиши F (пакет VehicleActionPayload). */
-	public static final int ACT_ENTER = 0, ACT_ENGINE = 1, ACT_LOCK = 2, ACT_REPAIR = 3, ACT_LIGHTS = 4, ACT_SIREN = 5, ACT_SEAT = 6, ACT_SENS_DOWN = 7, ACT_SENS_UP = 8, ACT_GEARS = 9, ACT_EXIT = 10, ACT_ROOF = 11, ACT_RADIO_OFF = 99, ACT_RADIO_BASE = 100, RADIO_MAX = 32;
+	public static final int ACT_ENTER = 0, ACT_ENGINE = 1, ACT_LOCK = 2, ACT_REPAIR = 3, ACT_LIGHTS = 4, ACT_SIREN = 5, ACT_SEAT = 6, ACT_SENS_DOWN = 7, ACT_SENS_UP = 8, ACT_GEARS = 9, ACT_EXIT = 10, ACT_ROOF = 11, ACT_GLOVE_PUT = 20, ACT_GLOVE_TAKE = 21, ACT_RADIO_OFF = 99, ACT_RADIO_BASE = 100, RADIO_MAX = 32;
 	/** Радио: 0 = выключено, n = станция n-1 из клиентского списка. Сервер хранит и рассылает одно число, звук считают клиенты сами. */
 	public static final EntityDataAccessor<Integer> DATA_RADIO = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.INT);
 	public int radioValue() { return entityData.get(DATA_RADIO); }
@@ -119,6 +119,11 @@ public class VehicleEntity extends Entity {
 	public static final EntityDataAccessor<Integer> DATA_GEARX = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.INT);
 	public boolean gearAuto() { return entityData.get(DATA_GEARX) >= 100; }
 	public int gearNum() { return entityData.get(DATA_GEARX) % 100; }
+	/** Бардачок: один слот. Синхронизируется клиентам для экрана; серверный gloveOk считается только при изменении (владелец или содержимое). */
+	public static final EntityDataAccessor<ItemStack> DATA_GLOVE = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.ITEM_STACK);
+	public ItemStack gloveStack() { return entityData.get(DATA_GLOVE); }
+	private ItemStack glove = ItemStack.EMPTY;
+	private boolean gloveOk, gloveDirty = true;
 	private int shiftCd;
 	private java.util.UUID syncedOwner = new java.util.UUID(0, 0);   // заведомо другой, чтобы первая синхронизация прошла
 	private double lastMax;
@@ -292,9 +297,10 @@ public class VehicleEntity extends Entity {
 
 		if (driver != null && !hadDriver && com.rzauto.RzConfig.autoStartEngine && !vs.wear.broken && vs.fuel > 0) vs.engineOn = true;
 		hadDriver = driver != null;
-		DriveGate gate = DriveGate.check(vs, true, !com.rzauto.RzConfig.requireLicense || (driver != null && holdsLicense(driver)));
+		if (gloveDirty) { gloveOk = computeGloveOk(); gloveDirty = false; }
+		DriveGate gate = DriveGate.check(vs, true, !com.rzauto.RzConfig.requireLicense || (driver != null && gloveOk));
 		boolean canDrive = gate.canDrive();
-		if (driver != null && !canDrive && gateMsgCooldown-- <= 0) { gateMsgCooldown = 40; if (gate.message != null) driver.sendSystemMessage(Component.literal(gate.message), true); }
+		if (driver != null && !canDrive && gateMsgCooldown-- <= 0) { gateMsgCooldown = 40; if (gate.message != null) driver.sendSystemMessage(Component.literal(gate == DriveGate.NO_LICENSE ? licenseHint() : gate.message), true); }
 		if (!canDrive) { x = 0; y = 0; }
 
 		st.yawDeg = getYRot();
@@ -348,7 +354,12 @@ public class VehicleEntity extends Entity {
 		syncState();
 
 		Physics.horizontalVelocity(st.yawDeg, st.speed, st.lat, vel);
-		double vy = onGround() ? -GRAVITY : (getDeltaMovement().y - GRAVITY) * 0.98;
+		double vy;
+		if (isInWater()) {
+			// плавучесть: машина держится на поверхности (осадка ~половина), а не тонет и не застревает на дне
+			double fh = getFluidHeight(net.minecraft.tags.FluidTags.WATER);
+			vy = Math.max(-0.05, Math.min(0.06, (fh - 0.5) * 0.25));
+		} else vy = onGround() ? -GRAVITY : (getDeltaMovement().y - GRAVITY) * 0.98;
 		setDeltaMovement(vel[0], vy, vel[1]);
 		double px0 = getX(), pz0 = getZ();
 		move(MoverType.SELF, getDeltaMovement());
@@ -374,8 +385,37 @@ public class VehicleEntity extends Entity {
 	public double debugSpeed() { return st.speed; }
 
 
-	private boolean holdsLicense(Player p) {
-		return VehicleRegistry.LICENSE != null && (p.getMainHandItem().is(VehicleRegistry.LICENSE) || p.getOffhandItem().is(VehicleRegistry.LICENSE));
+	private boolean computeGloveOk() {
+		return owner != null && !glove.isEmpty() && owner.toString().equals(com.rzauto.item.Passport.ownerUuid(glove));
+	}
+
+	/** Что не так с документом, одной фразой для водителя. */
+	private String licenseHint() {
+		if (glove.isEmpty() || !com.rzauto.item.Passport.isDoc(glove)) return "§eПоложите подписанный паспорт владельца в бардачок (меню I)";
+		if (!com.rzauto.item.Passport.signed(glove)) return "§eПаспорт в бардачке не подписан: присядьте и нажмите ПКМ с ним в руке";
+		return "§cЧужой паспорт не подходит: нужен паспорт владельца машины";
+	}
+
+	private void setGlove(ItemStack st) {
+		glove = st;
+		gloveDirty = true;
+		entityData.set(DATA_GLOVE, st.copy());
+	}
+
+	private void glovePut(ServerPlayer p) {
+		ItemStack held = p.getMainHandItem();
+		if (held.isEmpty()) { msg(p, "§eВозьмите предмет в основную руку"); return; }
+		if (!glove.isEmpty()) { msg(p, "§eБардачок занят"); return; }
+		ItemStack one = held.copyWithCount(1);
+		held.shrink(1);
+		setGlove(one);
+	}
+
+	private void gloveTake(ServerPlayer p) {
+		if (glove.isEmpty()) return;
+		ItemStack g = glove;
+		setGlove(ItemStack.EMPTY);
+		if (!p.getInventory().add(g)) p.spawnAtLocation(p.level(), g);
 	}
 
 	private void shiftGear(ServerPlayer driver, VehicleSpec s, int dir) {
@@ -407,6 +447,7 @@ public class VehicleEntity extends Entity {
 	private void destroy(boolean drop) {
 		if (level() instanceof ServerLevel sl) {
 			if (drop) { net.minecraft.world.item.Item it = VehicleRegistry.itemOf(getType()); if (it != null) spawnAtLocation(sl, new ItemStack(it)); }
+			if (!glove.isEmpty()) { spawnAtLocation(sl, glove); glove = ItemStack.EMPTY; }
 			ejectPassengers();
 			discard();
 		}
@@ -440,7 +481,7 @@ public class VehicleEntity extends Entity {
 		else { var pl = level().getPlayerByUUID(owner); if (pl != null) ownerName = pl.getName().getString(); }
 		entityData.set(DATA_OWNER_NAME, ownerName);
 	}
-	public void setOwner(UUID owner) { this.owner = owner; if (!level().isClientSide()) { entityData.set(DATA_OWNER, owner == null ? "" : owner.toString()); refreshOwnerName(); } }
+	public void setOwner(UUID owner) { this.owner = owner; gloveDirty = true; if (!level().isClientSide()) { entityData.set(DATA_OWNER, owner == null ? "" : owner.toString()); refreshOwnerName(); } }
 
 	@Override
 	protected void defineSynchedData(SynchedEntityData.Builder builder) {
@@ -459,6 +500,7 @@ public class VehicleEntity extends Entity {
 		builder.define(DATA_SIREN, false);
 		builder.define(DATA_GEARS, false);
 		builder.define(DATA_GEARX, 0);
+		builder.define(DATA_GLOVE, ItemStack.EMPTY);
 		builder.define(DATA_SENS, SENS_DEFAULT);
 		builder.define(DATA_HP, 20f);
 		builder.define(DATA_SEATS, -1);
@@ -482,6 +524,9 @@ public class VehicleEntity extends Entity {
 			roof = !"0".equals(in.getStringOr("roof", "1"));
 			vs.gears.mode = "1".equals(in.getStringOr("gears", "0"));
 			vs.gears.auto = vs.gears.mode && "1".equals(in.getStringOr("gearsAuto", "0"));
+			glove = in.read("glove", ItemStack.OPTIONAL_CODEC).orElse(ItemStack.EMPTY);
+			gloveDirty = true;
+			entityData.set(DATA_GLOVE, glove.copy());
 		} catch (NumberFormatException e) { /* оставляем значения по умолчанию */ }
 	}
 
@@ -501,6 +546,7 @@ public class VehicleEntity extends Entity {
 		out.putString("roof", roof ? "1" : "0");
 		out.putString("gears", vs.gears.mode ? "1" : "0");
 		out.putString("gearsAuto", vs.gears.auto ? "1" : "0");
+		if (!glove.isEmpty()) out.store("glove", ItemStack.OPTIONAL_CODEC, glove);
 	}
 
 	@Override
@@ -597,6 +643,8 @@ public class VehicleEntity extends Entity {
 			}
 			case ACT_LOCK -> vs.lock = vs.lock == Access.Lock.OPEN ? Access.Lock.LOCKED : Access.Lock.OPEN;
 			case ACT_REPAIR -> repairWithGear(p);
+			case ACT_GLOVE_PUT -> glovePut(p);
+			case ACT_GLOVE_TAKE -> gloveTake(p);
 			case ACT_SENS_DOWN -> sens = Math.max(SENS_MIN, Math.round((sens - SENS_STEP) * 10f) / 10f);
 			case ACT_SENS_UP -> sens = Math.min(SENS_MAX, Math.round((sens + SENS_STEP) * 10f) / 10f);
 			case ACT_GEARS -> {   // выкл -> ручная -> автомат -> выкл

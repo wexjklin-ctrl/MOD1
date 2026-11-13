@@ -159,7 +159,7 @@ public final class Physics {
 			double launch = 1 + 0.5 * (1 - clamp(av / top, 0, 1));
 			double ratio = clamp(av / Math.max(effMax, 0.05), 0, 1);
 			double power = 1 - 0.8 * ratio * ratio;   // у максимума машина добирает скорость медленно
-			v += Math.signum(in.y()) * (effMax / 20.0 / s.accel()) * reverseFactor * launch * power * ACCEL_FACTOR * env.traction() * env.lug();
+			v += Math.signum(in.y()) * (refTop / 20.0 / s.accel()) * reverseFactor * launch * power * ACCEL_FACTOR * env.traction() * env.lug();
 			wheelspin = env.traction() < 0.8 && av < effMax * 0.6;
 		}
 		if (!throttling) v = stepTowards(v, 0, 0.010 + 0.016 * clamp(av / top, 0, 1));   // накат: отпустил газ - машина катится и замедляется плавно

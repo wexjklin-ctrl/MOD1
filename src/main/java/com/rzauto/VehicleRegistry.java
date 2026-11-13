@@ -61,7 +61,10 @@ public final class VehicleRegistry {
 	public static void registerAll() {
 		registerBench();
 		GEAR = simple("gear");
-		LICENSE = simple("driver_license");
+		{
+			ResourceKey<Item> lk = ResourceKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath(RzAutoMod.MOD_ID, "driver_license"));
+			LICENSE = Registry.register(BuiltInRegistries.ITEM, lk, new com.rzauto.item.PassportItem(new Item.Properties().setId(lk).stacksTo(16)));
+		}
 		for (VehicleSpec spec : VehicleCatalog.all()) {
 			String path = spec.javaId().substring(spec.javaId().indexOf(':') + 1);
 			Identifier id = Identifier.fromNamespaceAndPath(RzAutoMod.MOD_ID, path);

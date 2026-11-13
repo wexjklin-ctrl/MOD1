@@ -44,6 +44,7 @@ final class VehicleMenuScreen extends net.minecraft.client.gui.screens.Screen {
 	}
 
 	private void act(int action) { if (action == -3) { onClose(); return; } if (action == -2) return; if (action == -1) { CamMode.toggle(); rebuildWidgets(); return; }
+		if (action == -12) { net.minecraft.client.Minecraft.getInstance().setScreenAndShow(new GloveboxScreen(car)); return; }
 		if (action == -10) { CamMode.addDist(-0.2f); rebuildWidgets(); return; }
 		if (action == -11) { CamMode.addDist(0.2f); rebuildWidgets(); return; }
 		if (action == -8) { RadioClient.addVolume(-0.1f); rebuildWidgets(); return; }
@@ -74,7 +75,7 @@ final class VehicleMenuScreen extends net.minecraft.client.gui.screens.Screen {
 		lw = rx - m - lx;
 
 		boolean rider = net.minecraft.client.Minecraft.getInstance().player != null && net.minecraft.client.Minecraft.getInstance().player.getVehicle() == car;
-		int n = 6 + (siren ? 1 : 0) + (jeepYj ? 1 : 0) + 1 + 1 + 2 + (rider ? 2 : 0) + 1;   // основные + руль + приём/громкость + радио в машине + починить
+		int n = 6 + (siren ? 1 : 0) + (jeepYj ? 1 : 0) + 1 + 1 + 2 + (rider ? 2 : 0) + 2;   // основные + руль + приём/громкость + радио в машине + починить
 		int pad = 10, top = ry + 28;
 		int avail = rh - 28 - pad - 4;
 		int gap = 3, h = Math.max(12, Math.min(26, (avail - gap * (n - 1)) / n));
@@ -112,6 +113,12 @@ final class VehicleMenuScreen extends net.minecraft.client.gui.screens.Screen {
 			row(13, RadioClient.stationName(rv > 0 ? rv - 1 : RadioClient.lastIdx), "", false, false, -2, x + bw + 3, y, w - 2 * bw - 6, h);
 			row(11, "", "", true, false, -7, x + w - bw, y, bw, h); y += h + gap;
 		}
+		{
+			net.minecraft.world.item.ItemStack gs = car.gloveStack();
+			boolean ok = false;
+			try { ok = com.rzauto.item.Passport.isDoc(gs) && car.isOwnedBy(java.util.UUID.fromString(com.rzauto.item.Passport.ownerUuid(gs))); } catch (Exception ignored) { }
+			row(14, "Бардачок", gs.isEmpty() ? "пусто" : ok ? "паспорт OK" : "заполнен", true, ok, -12, x, y, w, h); y += h + gap;
+		}
 		row(9, "Починить", canRepair ? "нужна шестерёнка" : "исправна", canRepair, false, VehicleEntity.ACT_REPAIR, x, y, w, h); y += h + gap;
 	}
 
@@ -147,6 +154,7 @@ final class VehicleMenuScreen extends net.minecraft.client.gui.screens.Screen {
 		{ "....#....", "....#....", "....#....", ".#######.", ".#######.", "....#....", "....#....", "....#....", "........." },   // 11 плюс
 		{ "#.......#", ".#.....#.", "..#...#..", "...#.#...", "....#....", "...#.#...", "..#...#..", ".#.....#.", "#.......#" },   // 12 закрыть
 		{ "......#..", ".....#...", "#######..", "#.....#..", "#.###.#..", "#.###.#..", "#.....#..", "#######..", "........." },   // 13 радио
+		{ ".........", "#########", "#.......#", "#.......#", "#########", "#...#...#", "#.......#", "#########", "........." },   // 14 бардачок
 	};
 
 	private void icon(GuiGraphicsExtractor g, int id, int x, int y, int px, int color) {
