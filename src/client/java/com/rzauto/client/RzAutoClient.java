@@ -32,6 +32,7 @@ public class RzAutoClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
 		RadioClient.load();
+		ClientVehicles.register();
 		for (VehicleRegistry.Entry e : VehicleRegistry.entries()) {
 			EntityRendererRegistry.register(e.type(), VehicleRenderer::new);
 		}

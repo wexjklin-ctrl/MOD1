@@ -118,8 +118,8 @@ final class RadioClient {
 		if (mc.player.tickCount % 4 != 0) return;
 		String bestUrl = null;
 		double bestGain = 0;
-		for (net.minecraft.world.entity.Entity ent : mc.level.entitiesForRendering()) {
-			if (!(ent instanceof VehicleEntity e) || e.isRemoved()) continue;
+		for (VehicleEntity e : ClientVehicles.LIST) {
+			if (e.isRemoved()) continue;
 			int r = e.radioValue();
 			if (r <= 0 || r - 1 >= stations.size()) continue;
 			String url = stations.get(r - 1).url();

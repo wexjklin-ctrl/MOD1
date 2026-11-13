@@ -62,8 +62,8 @@ final class VehicleAudio {
 	private static final Map<VehicleEntity, Siren> SIRENS = new HashMap<>();
 
 	private static void sirens(Minecraft mc) {
-		for (net.minecraft.world.entity.Entity ent : mc.level.entitiesForRendering()) {
-			if (ent instanceof VehicleEntity e && !e.isRemoved() && e.sirenOn() && !SIRENS.containsKey(e)) {
+		for (VehicleEntity e : ClientVehicles.LIST) {
+			if (!e.isRemoved() && e.sirenOn() && !SIRENS.containsKey(e)) {
 				Siren si = new Siren(e);
 				SIRENS.put(e, si);
 				mc.getSoundManager().play(si);
@@ -80,9 +80,11 @@ final class VehicleAudio {
 	static void tick(Minecraft mc) {
 		if (mc.level == null || mc.player == null) { STATE.clear(); SIRENS.clear(); return; }
 		sirens(mc);
-		for (net.minecraft.world.entity.Entity ent : mc.level.entitiesForRendering()) {
-			if (!(ent instanceof VehicleEntity e) || e.isRemoved()) continue;
+		for (VehicleEntity e : ClientVehicles.LIST) {
+			if (e.isRemoved()) continue;
 			if (e.distanceToSqr(mc.player) > HEARD_RANGE * HEARD_RANGE) continue;
+			// стоящая пустая машина молчит: не создаём ей состояние каждый тик
+			if (e.getPassengers().isEmpty() && Math.abs(e.syncedSpeed()) < 0.005f && !STATE.containsKey(e)) continue;
 			STATE.computeIfAbsent(e, k -> new St());
 		}
 		float master = 1f;

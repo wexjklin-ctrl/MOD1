@@ -19,8 +19,8 @@ final class VehicleFx {
 
 	static void tick(Minecraft mc) {
 		if (mc.level == null || mc.player == null) { LAST.clear(); return; }
-		for (net.minecraft.world.entity.Entity ent : mc.level.entitiesForRendering()) {
-			if (!(ent instanceof VehicleEntity e) || e.isRemoved() || e.distanceToSqr(mc.player) > 40 * 40) continue;
+		for (VehicleEntity e : ClientVehicles.LIST) {
+			if (e.isRemoved() || e.distanceToSqr(mc.player) > 40 * 40) continue;
 			double[] l = LAST.computeIfAbsent(e, k -> new double[] { e.getX(), e.getZ() });
 			double v = Math.hypot(e.getX() - l[0], e.getZ() - l[1]);
 			l[0] = e.getX(); l[1] = e.getZ();

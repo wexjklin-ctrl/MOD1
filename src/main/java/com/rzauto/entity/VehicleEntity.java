@@ -120,6 +120,7 @@ public class VehicleEntity extends Entity {
 	public boolean gearAuto() { return entityData.get(DATA_GEARX) >= 100; }
 	public int gearNum() { return entityData.get(DATA_GEARX) % 100; }
 	private int shiftCd;
+	private java.util.UUID syncedOwner = new java.util.UUID(0, 0);   // заведомо другой, чтобы первая синхронизация прошла
 	private double lastMax;
 	public float sensValue() { return entityData.get(DATA_SENS); }
 	public float hpValue() { return entityData.get(DATA_HP); }
@@ -206,7 +207,13 @@ public class VehicleEntity extends Entity {
 	/** Сглаженный наклон и просадка кузова по рельефу (одинаково на сервере и клиенте): по ним смещаются сиденья. */
 	private void tiltTick() {
 		VehicleSpec sp = spec();
-		if (sp == null || getPassengers().isEmpty()) { tiltPitch *= 0.8f; tiltDy *= 0.8f; return; }
+		if (sp == null || getPassengers().isEmpty()) {
+			if (tiltPitch == 0f && tiltDy == 0f) return;   // припаркована и осела: ничего не считаем
+			tiltPitch *= 0.8f; tiltDy *= 0.8f;
+			if (Math.abs(tiltPitch) < 0.01f) tiltPitch = 0f;
+			if (Math.abs(tiltDy) < 0.001f) tiltDy = 0f;
+			return;
+		}
 		double[] dm = VehicleCatalog.dims(sp.bedrockId());
 		double halfL = dm == null ? 1.3 : Math.max(0.5, dm[1] * 0.33);
 		float[] t = Terrain.pitchAndDy(level(), getX(), getY(), getZ(), getYRot(), halfL);
@@ -540,7 +547,7 @@ public class VehicleEntity extends Entity {
 		entityData.set(DATA_GEARX, !vs.gears.mode ? 0 : (vs.gears.auto ? 100 : 0) + vs.gears.rawGear());
 		entityData.set(DATA_SENS, sens);
 		entityData.set(DATA_HP, hp < 0 ? maxHp() : hp);
-		entityData.set(DATA_OWNER, owner == null ? "" : owner.toString());
+		if (owner != syncedOwner) { syncedOwner = owner; entityData.set(DATA_OWNER, owner == null ? "" : owner.toString()); }
 		entityData.set(DATA_SPEED, (float) (Math.round(st.speed * 50) / 50.0));
 		entityData.set(DATA_ODO, (float) (Math.round(vs.wear.mileage / 10.0) * 10.0));
 		entityData.set(DATA_SLIP, st.sliding ? (float) (Math.round(Math.min(1.0, 0.4 + Math.abs(st.lat) * 1.5) * 10) / 10.0) : 0f);
