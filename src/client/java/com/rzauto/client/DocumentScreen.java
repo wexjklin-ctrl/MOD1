@@ -139,7 +139,7 @@ final class DocumentScreen extends net.minecraft.client.gui.screens.Screen {
 		else if (country.isEmpty()) g.text(font, PassportUi.clip(font, "не присвоена (вписывает администратор)", ui.aw() - 24), ax, y + step * 2 + 11, PassportUi.WARN, false);
 		else g.text(font, PassportUi.clip(font, country, ui.aw() - 150), ax, y + step * 2 + 11, PassportUi.INK, false);
 		// герб страны справа внизу
-		int sz = Math.max(48, Math.min(ui.len(190), ui.ah() - 40));
+		int sz = Math.max(64, Math.min(ui.len(250), ui.ah() - 60));
 		int sx = ui.x(915) - sz, sy = ui.y(525) - sz;
 		int seal = PassportClient.seal(pr);
 		if (ready && seal >= 0) PassportUi.seal(g, seal, sx, sy, sz);
@@ -155,32 +155,31 @@ final class DocumentScreen extends net.minecraft.client.gui.screens.Screen {
 		int ax = ui.ax() + 4, ay = ui.ay();
 		int right = ui.ax() + ui.aw() - 6;   // правая граница рабочей области: ничего не заходит дальше
 		PassportUi.big(g, font, "НАРУШЕНИЯ", ax, ay + 6, 2f, PassportUi.INK);
-		int top = ay + 34, rh = Math.max(50, ui.len(88));
+		int top = ay + 34, rh = Math.max(38, ui.len(60));
 		int rows = Math.max(1, (ui.ay() + ui.ah() - top) / rh);
 		scroll = Math.min(scroll, Math.max(0, v.size() - rows));
 		if (v.isEmpty()) { g.text(font, profileReady() ? "Нарушений нет" : "Загрузка...", ax, top + 6, PassportUi.INK2, false); return; }
 		// печать БОЛЬШЕ карточки: соседние печати намеренно налезают друг на друга (фишка), как поставленные рукой стопкой
-		int seal = rh + 22, cardR = right - 96 - 6, textW = cardR - ax - 12;
+		int seal = rh + 40, cardR = right - 64, textW = cardR - ax - 12;
 		for (int i = 0; i < rows && scroll + i < v.size(); i++) {
 			String[] r = v.get(scroll + i);
 			if (r.length < 5) continue;
 			int y = top + i * rh;
 			g.fill(ax - 2, y, cardR, y + rh - 6, 0x26000000);
-			g.textWithWordWrap(font, Component.literal(r[0]), ax + 4, y + 6, textW, PassportUi.INK);
-			g.text(font, PassportUi.clip(font, r[1] + "  выдал: " + r[4], textW), ax + 4, y + rh - 20, PassportUi.INK2, false);
+			PassportUi.wrap(g, font, r[0], ax + 4, y + 4, textW, 2, PassportUi.INK);
+			g.text(font, PassportUi.clip(font, r[1] + "  выдал: " + r[4], textW), ax + 4, y + rh - 18, PassportUi.INK2, false);
 		}
 		// печати поверх карточек: у каждой свой сдвиг и наклон, приглушённые чернила
 		for (int i = 0; i < rows && scroll + i < v.size(); i++) {
 			String[] r = v.get(scroll + i);
 			if (r.length < 5) continue;
 			int cy = top + i * rh + (rh - 6) / 2;
-			PassportUi.stamp(g, PassportClient.sealOf(r), right - seal / 2 + 6, cy, seal, PassportClient.seed(r));
+			PassportUi.stamp(g, PassportClient.sealOf(r), right - seal / 2 + 4, cy, seal, PassportClient.seed(r));
 		}
 		if (v.size() > rows) {
 			String cnt = (scroll + 1) + "-" + Math.min(v.size(), scroll + rows) + " из " + v.size();
-			g.text(font, cnt, right - font.width(cnt), ay + 14, PassportUi.INK2, false);
-			String hint = "колесо мыши";
-			g.text(font, hint, right - font.width(hint), ay + 24, PassportUi.INK2, false);
+			String ct = cnt + "  колесо мыши";
+			g.text(font, ct, Math.min(ax + 150, right - font.width(ct)), ay + 14, PassportUi.INK2, false);
 		}
 	}
 

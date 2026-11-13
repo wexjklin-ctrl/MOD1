@@ -115,6 +115,14 @@ final class PassportUi {
 		m.popMatrix();
 	}
 
+	/** Перенос текста по словам без тени (тень делает мелкий текст на цветной странице нечитаемым). Возвращает число строк. */
+	static int wrap(GuiGraphicsExtractor g, Font font, String text, int x, int y, int w, int maxLines, int color) {
+		java.util.List<net.minecraft.util.FormattedCharSequence> lines = font.split(net.minecraft.network.chat.Component.literal(text), w);
+		int n = Math.min(lines.size(), maxLines);
+		for (int i = 0; i < n; i++) g.text(font, lines.get(i), x, y + i * 10, color, false);
+		return n;
+	}
+
 	static String clip(Font font, String s, int w) {
 		if (font.width(s) <= w) return s;
 		while (s.length() > 3 && font.width(s + "...") > w) s = s.substring(0, s.length() - 1);

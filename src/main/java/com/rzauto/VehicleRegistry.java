@@ -85,10 +85,10 @@ public final class VehicleRegistry {
 			float k = RzConfig.renderScale;
 			// хитбокс (в Minecraft он квадратный в плане и не поворачивается): 70% ширины модели, 1.3..2.2 блока; раньше был до 3.2 и цеплялся за воздух
 			double[] dm = VehicleCatalog.dims(spec.bedrockId());
-			float w = (spec.motorcycle() ? 0.9f : 2.0f) * k, h = (spec.motorcycle() ? 1.4f : 1.5f) * k;
+			float w = (spec.motorcycle() ? 0.9f : 2.0f) * k, h = (spec.motorcycle() ? 1.3f : 1.3f) * k;
 			if (dm != null) {
 				w = (float) (spec.motorcycle() ? Math.max(0.7, Math.min(1.1, dm[0] * 0.7)) : Math.max(1.3, Math.min(2.2, dm[0] * 0.7))) * k;   // уже кузова: лучше проехать впритык, чем цепляться за воздух
-				h = (float) Math.max(1.0, Math.min(2.4, dm[2])) * k;
+				h = (float) Math.max(0.9, Math.min(1.7, dm[2] * 0.78)) * k;   // крыша ниже: проезд по туннелю 2 блока высотой и под низкими потолками
 			}
 			double[][] sd = VehicleCatalog.seats(spec.bedrockId());
 			Vec3[] seatPts;
