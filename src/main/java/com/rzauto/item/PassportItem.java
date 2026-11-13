@@ -13,19 +13,23 @@ import net.minecraft.world.level.Level;
 public class PassportItem extends Item {
 	public PassportItem(Properties props) { super(props); }
 
+	private static void say(Player p, String text) {
+		if (p instanceof net.minecraft.server.level.ServerPlayer sp) sp.sendSystemMessage(Component.literal(text), true);
+	}
+
 	@Override
 	public InteractionResult use(Level level, Player player, InteractionHand hand) {
 		if (!player.isShiftKeyDown()) return InteractionResult.PASS;
 		if (level.isClientSide()) return InteractionResult.SUCCESS;
 		ItemStack st = player.getItemInHand(hand);
 		if (Passport.signed(st)) {
-			player.sendSystemMessage(Component.literal("§eДокумент уже принадлежит: " + Passport.ownerName(st)), true);
+			say(player, "§eДокумент уже принадлежит: " + Passport.ownerName(st));
 			return InteractionResult.SUCCESS;
 		}
 		ItemStack one = st.getCount() > 1 ? st.split(1) : st;
 		Passport.sign(one, player);
 		if (one != st && !player.getInventory().add(one) && level instanceof ServerLevel sl) player.spawnAtLocation(sl, one);
-		player.sendSystemMessage(Component.literal("§aДокумент подписан: " + player.getName().getString()), true);
+		say(player, "§aДокумент подписан: " + player.getName().getString());
 		return InteractionResult.SUCCESS;
 	}
 }
