@@ -49,7 +49,8 @@ final class RadioClient {
 		{ "Радио Культура", "http://icecast.vgtrk.cdnvideo.ru/kulturafm_mp3_192kbps" },   // (?)
 		{ "Коммерсантъ FM", "http://kommersant77.hostingradio.ru:8016/kommersant128.mp3" }, // (?)
 		{ "Комсомольская Правда", "http://kpradio.hostingradio.ru:8000/128" },            // (?)
-		{ "Хайп FM", "https://hfm.amgradio.ru/HypeFM" } };
+		{ "Хайп FM", "https://hfm.amgradio.ru/HypeFM" },
+		{ "AniSon FM", "http://pool.anison.fm:9000/AniSonFM(320)" } };
 	/** Ступени громкости: у нуля мелкий шаг, чтобы можно было сделать почти беззвучно или выключить совсем. */
 	static final float[] VOL_STEPS = { 0f, 0.01f, 0.02f, 0.04f, 0.06f, 0.08f, 0.1f, 0.15f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f, 0.8f, 0.9f, 1f };
 	static final double RADIUS = 40.0;

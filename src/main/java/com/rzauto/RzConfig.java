@@ -15,7 +15,7 @@ public final class RzConfig {
 	/** Во сколько раз увеличить машины сверх размера из оригинала (модель, посадочные места, хитбокс). 1.0 = как в Bedrock. */
 	public static float renderScale = 1.0f;
 	/** Смещение высоты сидений Java относительно значений Bedrock (блоки). */
-	public static float seatYOffset = 0.36f;
+	public static float seatYOffset = 0.62f;
 	/** Новая машина с полным баком (в оригинале бак пуст, заправка ведром лавы). */
 	public static boolean startFullTank = false;
 	/** Двигатель заводится сам, когда водитель садится (иначе: меню → «Завести двигатель»). */
@@ -29,7 +29,12 @@ public final class RzConfig {
 			if (Files.exists(p)) {
 				JsonObject o = JsonParser.parseString(Files.readString(p)).getAsJsonObject();
 				if (o.has("renderScale")) renderScale = o.get("renderScale").getAsFloat();
-				if (o.has("seatYOffset")) seatYOffset = o.get("seatYOffset").getAsFloat();
+				if (o.has("seatYOffset")) {
+					float v = o.get("seatYOffset").getAsFloat();
+					// старое значение по умолчанию 0.36 было низким (из-за руля не видно дороги): переводим на новое; своё значение не трогаем
+					if (Math.abs(v - 0.36f) < 1e-4f) { o.addProperty("seatYOffset", seatYOffset); Files.writeString(p, new GsonBuilder().setPrettyPrinting().create().toJson(o)); }
+					else seatYOffset = v;
+				}
 				if (o.has("autoStartEngine")) autoStartEngine = o.get("autoStartEngine").getAsBoolean();
 				if (o.has("requireLicense")) requireLicense = o.get("requireLicense").getAsBoolean();
 			} else {
