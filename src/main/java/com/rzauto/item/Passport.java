@@ -24,28 +24,12 @@ public final class Passport {
 	public static String ownerUuid(ItemStack s) { return isDoc(s) ? tag(s).getStringOr("rz_owner", "") : ""; }
 	public static String ownerName(ItemStack s) { return isDoc(s) ? tag(s).getStringOr("rz_name", "") : ""; }
 	public static String date(ItemStack s) { return isDoc(s) ? tag(s).getStringOr("rz_date", "") : ""; }
-	/** Доступные печати (путь внутри textures/gui без .png). Выбор хранится в паспорте. */
+	/** Доступные печати (путь внутри textures/gui без .png). Страну и герб игрока вписывает админ в паспортном столе (профиль в PassportStore). */
 	public static final String[] SEALS = { "seals/rz_eagle", "seal_red", "seals/sakura", "seal" };
 	public static final String[] SEAL_NAMES = { "Орёл RZ", "Красная печать", "Сакура", "Синяя печать" };
-	public static int sealIndex(ItemStack s) { return isDoc(s) ? Math.floorMod(tag(s).getIntOr("rz_seal", 0), SEALS.length) : 0; }
-	public static String seal(ItemStack s) { return SEALS[sealIndex(s)]; }
-	/** Установить печать по индексу (только сервер). */
-	public static void setSeal(ItemStack s, int idx) {
-		CompoundTag t = tag(s);
-		t.putInt("rz_seal", Math.floorMod(idx, SEALS.length));
-		s.set(DataComponents.CUSTOM_DATA, CustomData.of(t));
-	}
-	public static final String DEFAULT_COUNTRY = "RZ Федеративное объединение";
-	/** Название страны из паспортного стола (по умолчанию RZ Федеративное объединение). */
-	public static String country(ItemStack s) {
-		String c = isDoc(s) ? tag(s).getStringOr("rz_country", "") : "";
-		return c.isEmpty() ? DEFAULT_COUNTRY : c;
-	}
-	public static void setCountry(ItemStack s, String c) {
-		CompoundTag t = tag(s);
-		t.putString("rz_country", c);
-		s.set(DataComponents.CUSTOM_DATA, CustomData.of(t));
-	}
+	/** Страна и герб, записанные в NBT старыми версиями мода (только для переноса в профиль); пусто / -1 = не было. */
+	public static String legacyCountry(ItemStack s) { return isDoc(s) ? tag(s).getStringOr("rz_country", "") : ""; }
+	public static int legacySeal(ItemStack s) { return isDoc(s) && tag(s).contains("rz_seal") ? Math.floorMod(tag(s).getIntOr("rz_seal", 0), SEALS.length) : -1; }
 	public static String sealPath(int idx) { return SEALS[Math.floorMod(idx, SEALS.length)]; }
 	/** Убрать управляющие символы и §, обрезать пробелы и длину. */
 	public static String clean(String s, int max) {
@@ -58,12 +42,13 @@ public final class Passport {
 	public static String today() { return LocalDate.now().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")); }
 	public static boolean signed(ItemStack s) { return !ownerUuid(s).isEmpty(); }
 
-	/** Присвоить документ игроку (только сервер). */
+	/** Присвоить документ игроку (только сервер). Первый паспорт создаёт профиль (дата регистрации); остальные копируют дату основного. */
 	public static void sign(ItemStack s, Player p) {
+		com.rzauto.passport.PassportStore.Profile prof = com.rzauto.passport.PassportStore.ensureProfile(p.getUUID(), p.getName().getString(), today());
 		CompoundTag t = tag(s);
 		t.putString("rz_owner", p.getUUID().toString());
 		t.putString("rz_name", p.getName().getString());
-		t.putString("rz_date", today());
+		t.putString("rz_date", prof.date());
 		s.set(DataComponents.CUSTOM_DATA, CustomData.of(t));
 		com.rzauto.passport.PassportStore.rememberName(p.getUUID(), p.getName().getString());
 	}

@@ -23,3 +23,7 @@
 - Админ = `ServerPlayer.permissions().hasPermission(Permissions.COMMANDS_ADMIN)` (проверено по api_dump).
 - Модель данных: `PassportStore.Profile(name, date, country, seal)` на игрока (первый паспорт создаёт профиль: дата регистрации; страна/герб пустые, seal=-1, их вписывает админ в столе). Все паспорта игрока показывают данные профиля (клиент берёт их из `PassportInfoPayload.profile`), а не из NBT.
 - Нарушение: `Violation(text, date, country, seal, issuer, seed)`; печать выбирается админом независимо от паспорта; `seed` даёт клиенту детерминированное смещение/наклон печати (рука, не программно).
+
+## Статус (обновляется)
+- [x] Сервер: Passport.java (профиль вместо NBT), PassportStore (Profile, seed, миграция), payload-ы (PassportInfoPayload+profile, DeskDataPayload+profile+admin, DeskEditPayload+target, DeskViolationPayload+seal), PassportNet (только админ, удаление любых нарушений, миграция старых паспортов).
+- [ ] Клиент: PassportClient (profile, deskProfile, deskAdmin), новый PassportUi (задники, язычки, печать с наклоном), DocumentScreen, DeskScreen — переписать под новый API. До этого ветка НЕ собирается; WIP лежит в ветке `wip-session17`, `main` не трогать, пока клиент не готов.
