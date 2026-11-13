@@ -112,27 +112,69 @@ public final class Physics {
 	 */
 	public static void tickGta(VehicleSpec s, State st, Input in, double effMax) { tickGta(s, st, in, effMax, 1.0); }
 
+	/** Условия дороги: сцепление шин, тяга колёс (буксовка) и уклон (+ = подъём, синус угла). */
+	public record Env(double grip, double traction, double slope) {
+		public static final Env DEFAULT = new Env(1.0, 1.0, 0.0);
+	}
+
+	/** Общий множитель разгона (меньше = дольше набор скорости). */
+	public static final double ACCEL_FACTOR = 0.8;
+
 	/** @param sens чувствительность руля (множитель скорости и угла поворота) */
-	public static void tickGta(VehicleSpec s, State st, Input in, double effMax, double sens) {
+	public static void tickGta(VehicleSpec s, State st, Input in, double effMax, double sens) { tickGta(s, st, in, effMax, sens, Env.DEFAULT); }
+
+	/**
+	 * GTA-управление с «весом»: разгон тянется (мощность падает к максимуму), на поворотах скорость теряется, на высокой скорости
+	 * машину сносит (занос по st.lat), в горку скорость падает, под горку растёт, на льду занос и длинный тормозной путь, на песке буксует.
+	 */
+	public static void tickGta(VehicleSpec s, State st, Input in, double effMax, double sens, Env env) {
 		Params p = Params.of(s);
 		double top = Math.max(s.topSpeed(), 0.05), v = st.speed, av = Math.abs(v);
+		double refTop = Math.max(top / 1.5, 0.2);
 		st.steer = stepTowards(st.steer, in.x(), (in.x() == 0 ? 0.40 : 0.30) * Math.max(1.0, sens));
 		double low = clamp(av / 0.12, 0, 1);
 		double high = 1 - 0.6 * clamp((av - 0.4) / Math.max(top - 0.4, 0.1), 0, 1);
 		double yawMax = (s.motorcycle() ? GTA_YAW_MOTO : GTA_YAW_CAR) * sens;
+		double yawBefore = st.yawDeg;
 		st.yawDeg = normalizeAngle(st.yawDeg - st.steer * yawMax * low * high * (v >= 0 ? 1 : -1));
+		double dYaw = Math.toRadians(normalizeAngle(st.yawDeg - yawBefore));
+
+		// занос: курс поворачивается, а скорость по инерции остаётся в старом направлении (боковая составляющая lat)
+		double slipSpeed = Math.max(0.12, 0.55 * refTop * env.grip());
+		double slipFrac = av > slipSpeed ? clamp(1 - slipSpeed / av, 0, 0.85) : 0;
+		if (v > 0) st.lat += dYaw * v * slipFrac * 1.6;
+		st.lat *= 1 - clamp(0.10 + 0.22 * env.grip(), 0.05, 0.40);
+		if (Math.abs(st.lat) < 0.01) st.lat = 0;
+		st.lat = clamp(st.lat, -0.9, 0.9);
 
 		boolean throttling = Math.abs(in.y()) > THROTTLE_DEADZONE;
 		boolean braking = throttling && av > 0.02 && Math.signum(in.y()) != Math.signum(v);
 		double reverseFactor = v >= 0 ? 1 : p.reverseModifier();
+		boolean wheelspin = false;
 		if (braking) {
-			v = stepTowards(v, 0, (p.brakeForce() / 20.0) * 1.4 * brakeFade(v, top));
+			v = stepTowards(v, 0, (p.brakeForce() / 20.0) * 1.4 * brakeFade(v, top) * (0.3 + 0.7 * env.grip()));
 		} else if (throttling && av <= effMax * Math.abs(in.y())) {
-			double launch = 1 + 1.2 * (1 - clamp(av / top, 0, 1));
-			v += Math.signum(in.y()) * (effMax / 20.0 / s.accel()) * reverseFactor * launch;
+			double launch = 1 + 0.5 * (1 - clamp(av / top, 0, 1));
+			double ratio = clamp(av / Math.max(effMax, 0.05), 0, 1);
+			double power = 1 - 0.8 * ratio * ratio;   // у максимума машина добирает скорость медленно
+			v += Math.signum(in.y()) * (effMax / 20.0 / s.accel()) * reverseFactor * launch * power * ACCEL_FACTOR * env.traction();
+			wheelspin = env.traction() < 0.8 && av < effMax * 0.6;
 		}
 		if (!throttling) v = stepTowards(v, 0, 0.03);
-		st.speed = clamp(v, -effMax * p.reverseModifier(), effMax);
+
+		// потери на повороте и на боковом скольжении
+		if (av > 0.05) {
+			double turnLoss = Math.abs(st.steer) * 0.010 * clamp(av / refTop, 0, 1.5) * sens;
+			v = stepTowards(v, 0, turnLoss + Math.abs(st.lat) * 0.06);
+		}
+		// склон: в горку замедляет, под горку разгоняет
+		double slope = clamp(env.slope(), -0.5, 0.5);
+		if (Math.abs(slope) > 0.02 && av > 0.01) v -= slope * 0.04 * Math.signum(v);
+		double capUp = effMax * (1 - Math.max(0, slope) * 0.6), capDown = effMax * (1 + Math.max(0, -slope) * 0.5);
+		double cap = slope >= 0 ? capUp : capDown;
+		if (Math.abs(v) > cap && slope >= 0 && !braking) v = stepTowards(v, Math.signum(v) * cap, 0.03);
+		st.speed = clamp(v, -Math.max(cap, 0.05) * p.reverseModifier(), Math.max(cap, 0.05));
+		st.sliding = Math.abs(st.lat) > 0.12 || wheelspin || (braking && env.grip() < 0.3);
 	}
 
 	/**

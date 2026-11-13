@@ -26,3 +26,12 @@ net.minecraft.world.item.BlockItem
 net.minecraft.world.level.block.HorizontalDirectionalBlock
 net.minecraft.world.InteractionResult
 net.minecraft.world.item.Item$Properties
+net.minecraft.world.level.block.state.BlockBehaviour$BlockStateBase
+net.minecraft.world.phys.shapes.EntityCollisionContext
+net.minecraft.world.phys.shapes.CollisionContext
+net.minecraft.client.renderer.entity.EntityRenderDispatcher
+net.minecraft.client.renderer.entity.EntityRenderer
+net.minecraft.client.gui.screens.inventory.InventoryScreen
+net.minecraft.client.renderer.rendertype.RenderTypes
+net.minecraft.client.renderer.entity.state.EntityRenderState
+net.minecraft.tags.BlockTags

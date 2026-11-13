@@ -35,7 +35,7 @@ final class GeoModel {
 			String name = geometryId.startsWith("geometry.") ? geometryId.substring(9) : geometryId;
 			var in = GeoModel.class.getResourceAsStream("/assets/rz_auto/geo/" + name + ".geo.json");
 			if (in != null) try (var r = new InputStreamReader(in, StandardCharsets.UTF_8)) { m = parse(JsonParser.parseReader(r).getAsJsonObject(), geometryId); }
-			if (m != null) { m.applyStatic(animId); m.applyDyn(animId); m.assignWheels(); }
+			if (m != null) { m.applyStatic(animId); m.applyDyn(animId); m.applyPop(); m.assignWheels(); }
 		} catch (Throwable t) {
 			com.rzauto.RzAutoMod.LOG.error("geo {} не загрузилась", geometryId, t);
 		}
@@ -243,8 +243,15 @@ final class GeoModel {
 		}
 	}
 
-	private static float dynVal(float kind, float k, float dist, float steer) {
-		return kind == 1f ? dist * k : kind == 2f ? steer * k : k;
+	/** Выдвижные фары (MR2): кость headlights лежит повёрнутой на 45° (закрыта), анимация оригинала за 0,5 с поворачивает её на -45° (открыта). Канал kind=3: k * прогресс открытия. */
+	private void applyPop() {
+		for (Bone b : bones) if (b.dyn == null && b.name.equalsIgnoreCase("headlights") && Math.abs(b.rx - 45f) < 0.01f) b.dyn = new float[] { 3f, -45f, 0f, 0f, 0f, 0f };
+	}
+
+	private float curPop;
+
+	private float dynVal(float kind, float k, float dist, float steer) {
+		return kind == 1f ? dist * k : kind == 2f ? steer * k : kind == 3f ? curPop * k : k;
 	}
 
 	private Matrix4f world(int i, Matrix4f[] memo, float dist, float steer) {
@@ -423,7 +430,10 @@ final class GeoModel {
 	 * @param push сдвиг граней наружу по нормали (слой свечения, чтобы не мерцал на тех же координатах, что кузов)
 	 * @param steer скорость поворота в градусах за секунду (знак как у yaw в Minecraft), от неё поворачиваются передние колёса и руль
 	 */
-	void render(Baked bk, PoseStack.Pose pp, VertexConsumer vc, int light, float dist, float steer, float push, float[] wdy) {
+	void render(Baked bk, PoseStack.Pose pp, VertexConsumer vc, int light, float dist, float steer, float push, float[] wdy) { render(bk, pp, vc, light, dist, steer, push, wdy, 0f); }
+
+	/** @param pop прогресс открытия выдвижных фар 0..1 */
+	void render(Baked bk, PoseStack.Pose pp, VertexConsumer vc, int light, float dist, float steer, float push, float[] wdy, float pop) {
 		float[] sp = bk.sp;
 		for (int q = 0; q < bk.sn; q++) {
 			int o = q * 23;
@@ -435,7 +445,7 @@ final class GeoModel {
 			}
 		}
 		if (bk.dc.length == 0) return;
-		curWdy = wdy;
+		curWdy = wdy; curPop = pop;
 		Matrix4f[] memo = new Matrix4f[bones.length];
 		Vector3f v = new Vector3f(), n = new Vector3f();
 		for (int i = 0; i < bk.dc.length; i++) {

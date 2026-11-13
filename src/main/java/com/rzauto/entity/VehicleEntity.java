@@ -99,6 +99,9 @@ public class VehicleEntity extends Entity {
 	public float fuelValue() { return entityData.get(DATA_FUEL); }
 	public boolean isBroken() { return entityData.get(DATA_BROKEN); }
 	/** Внутренняя скорость физики (блоков/тик, со знаком). */
+	public static final EntityDataAccessor<Float> DATA_SLIP = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.FLOAT);
+	/** 0..1: насколько сильно сейчас скользят шины (занос, буксовка, торможение юзом). Нужно клиенту для следов и дыма. */
+	public float slipValue() { return entityData.get(DATA_SLIP); }
 	public float syncedSpeed() { return entityData.get(DATA_SPEED); }
 	public Access.Lock lockState() { int i = entityData.get(DATA_LOCK); Access.Lock[] v = Access.Lock.values(); return v[Math.max(0, Math.min(v.length - 1, i))]; }
 	public boolean isLocked() { return lockState() != Access.Lock.OPEN; }
@@ -283,7 +286,12 @@ public class VehicleEntity extends Entity {
 			var fx = com.rzauto.logic.Surface.effect(net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(level().getBlockState(blockPosition().below()).getBlock()).getPath());
 			if (fx != null) max *= OFFROAD_MULT;   // земля, песок, грязь: -40% (джипы и полиция не страдают)
 		}
-		if (vs.gta) Physics.tickGta(s, st, new Physics.Input(x, y), max, sens);
+		if (vs.gta) {
+			String under = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(level().getBlockState(blockPosition().below()).getBlock()).getPath();
+			if (under.equals("air")) under = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(level().getBlockState(blockPosition()).getBlock()).getPath();
+			double slope = Math.max(-0.5, Math.min(0.5, -Math.sin(Math.toRadians(tiltPitch))));
+			Physics.tickGta(s, st, new Physics.Input(x, y), max, sens, com.rzauto.logic.Surface.env(under, slope));
+		}
 		else Physics.tick(s, st, new Physics.Input(x, y), max, false, TURN_STRENGTH);
 		if (canDrive && driver != null) {
 			double d = Math.abs(st.speed);
@@ -386,6 +394,7 @@ public class VehicleEntity extends Entity {
 		builder.define(DATA_LOCK, (byte) 0);
 		builder.define(DATA_BROKEN, false);
 		builder.define(DATA_SPEED, 0f);
+		builder.define(DATA_SLIP, 0f);
 		builder.define(DATA_OWNER, "");
 		builder.define(DATA_OWNER_NAME, "");
 		builder.define(DATA_LIGHTS, true);
@@ -479,6 +488,7 @@ public class VehicleEntity extends Entity {
 		entityData.set(DATA_HP, hp < 0 ? maxHp() : hp);
 		entityData.set(DATA_OWNER, owner == null ? "" : owner.toString());
 		entityData.set(DATA_SPEED, (float) (Math.round(st.speed * 50) / 50.0));
+		entityData.set(DATA_SLIP, st.sliding ? (float) (Math.round(Math.min(1.0, 0.4 + Math.abs(st.lat) * 1.5) * 10) / 10.0) : 0f);
 	}
 
 	private static void msg(Player p, String text) { if (p instanceof ServerPlayer sp) sp.sendSystemMessage(Component.literal(text), true); }

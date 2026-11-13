@@ -26,6 +26,19 @@ public final class Surface {
 		return null;
 	}
 
+	private static final Set<String> ICE = Set.of("ice", "packed_ice", "blue_ice", "frosted_ice");
+
+	/** Сцепление и тяга по блоку под машиной (асфальт = 1/1). */
+	public static Physics.Env env(String blockId, double slope) {
+		if (blockId == null) return new Physics.Env(1, 1, slope);
+		if (ICE.contains(blockId)) return new Physics.Env(0.12, 0.45, slope);
+		if (SAND.contains(blockId)) return new Physics.Env(0.6, 0.55, slope);
+		if (MUD.contains(blockId)) return new Physics.Env(0.55, 0.5, slope);
+		if (SNOW.contains(blockId) || blockId.equals("snow_block") || blockId.equals("powder_snow")) return new Physics.Env(0.7, 0.7, slope);
+		if (EARTH.contains(blockId) || ROAD_GRASS.contains(blockId)) return new Physics.Env(0.85, 0.9, slope);
+		return new Physics.Env(1, 1, slope);
+	}
+
 	// ---- vehicle_surfaces.js getRoadSound: шум шин по блоку под машиной (клиентский звук) ----
 	public record Road(String key, double vol) {}
 	public static final String[] ROAD_KEYS = {"asphalt", "gravel", "dirt", "sand", "grass"};
