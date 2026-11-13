@@ -132,7 +132,7 @@ final class VehicleHud implements HudElement {
 		g.pose().pushMatrix();
 		g.pose().translate(bx, by + 7);
 		g.pose().scale(0.6f, 0.6f);
-		g.text(mc.font, eng + (ve.lightsOn() ? "  ФАРЫ" : "") + (ve.sirenOn() ? "  СИРЕНА" : "") + "  [" + RzAutoClient.MENU.getTranslatedKeyMessage().getString() + "] меню", 0, 0, ec, false);
+		g.text(mc.font, eng + (ve.gearsOn() ? "  " + (ve.gearAuto() ? "A" : "П") + ve.gearNum() : "") + (ve.lightsOn() ? "  ФАРЫ" : "") + (ve.sirenOn() ? "  СИРЕНА" : "") + "  [" + RzAutoClient.MENU.getTranslatedKeyMessage().getString() + "] меню", 0, 0, ec, false);
 		g.pose().popMatrix();
 		if (fuel <= 0.12 && System.currentTimeMillis() / 400 % 2 == 0) g.text(mc.font, "МАЛО ТОПЛИВА", cx - R, cy - R - 12, 0xFFFF6A00, true);
 	}

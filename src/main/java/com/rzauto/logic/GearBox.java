@@ -8,6 +8,7 @@ public final class GearBox {
 		"Прыжок (пробел / A): нажатие - выше, удержание - ниже", "Хотбар (колесо мыши / RB / LB)"};
 
 	public boolean mode;                 // gear_mode
+	public boolean auto;                 // автомат: передачи переключает машина (работает при mode = true)
 	public boolean jumpLock = true;      // gear_jump_lock (по умолчанию вкл)
 	public boolean gear7Locked;          // gear7_locked
 	public int gear7Left;                // gear7_left, тиков

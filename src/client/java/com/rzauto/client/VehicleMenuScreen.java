@@ -40,7 +40,7 @@ final class VehicleMenuScreen extends net.minecraft.client.gui.screens.Screen {
 
 	private int signature() {
 		return (CamMode.gta ? 1 << 24 : 0) | (car.isEngineOn() ? 1 : 0) | (car.isBroken() ? 2 : 0) | (car.lockState().ordinal() << 2) | (car.lightsOn() ? 16 : 0)
-			| (car.roofOn() ? 1 << 25 : 0) | (car.sirenOn() ? 32 : 0) | (car.gearsOn() ? 64 : 0) | (car.radioValue() << 26) | (RadioClient.enabled ? 1 << 31 : 0) | (Math.round(car.sensValue() * 10) << 8) | (Math.round(car.hpValue()) << 16);
+			| (car.roofOn() ? 1 << 25 : 0) | (car.sirenOn() ? 32 : 0) | (car.gearsOn() ? 64 : 0) | (car.gearAuto() ? 1 << 30 : 0) | (car.radioValue() << 26) | (RadioClient.enabled ? 1 << 31 : 0) | (Math.round(car.sensValue() * 10) << 8) | (Math.round(car.hpValue()) << 16);
 	}
 
 	private void act(int action) { if (action == -3) { onClose(); return; } if (action == -2) return; if (action == -1) { CamMode.toggle(); rebuildWidgets(); return; }
@@ -87,7 +87,7 @@ final class VehicleMenuScreen extends net.minecraft.client.gui.screens.Screen {
 		if (siren) { row(3, "Сирена", car.sirenOn() ? "ВКЛ" : "ВЫКЛ", true, car.sirenOn(), VehicleEntity.ACT_SIREN, x, y, w, h); y += h + gap; }
 		if (jeepYj) { row(4, "Крыша / тент", car.roofOn() ? "ЕСТЬ" : "СНЯТА", true, car.roofOn(), VehicleEntity.ACT_ROOF, x, y, w, h); y += h + gap; }
 		row(5, "Пересесть", "", true, false, VehicleEntity.ACT_SEAT, x, y, w, h); y += h + gap;
-		row(6, "Передачи", car.gearsOn() ? "ВКЛ" : "ВЫКЛ", true, car.gearsOn(), VehicleEntity.ACT_GEARS, x, y, w, h); y += h + gap;
+		row(6, "Передачи", !car.gearsOn() ? "ВЫКЛ" : car.gearAuto() ? "АВТОМАТ" : "РУЧНАЯ", true, car.gearsOn(), VehicleEntity.ACT_GEARS, x, y, w, h); y += h + gap;
 		row(7, "Камера", CamMode.gta ? "GTA" : "СВОБОДНАЯ", true, false, -1, x, y, w, h); y += h + gap;
 		int bw0 = Math.max(22, h + 4);
 		row(7, "", "", true, false, -10, x, y, bw0, h);

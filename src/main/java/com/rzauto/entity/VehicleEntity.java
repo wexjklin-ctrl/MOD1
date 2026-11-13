@@ -115,6 +115,12 @@ public class VehicleEntity extends Entity {
 	public boolean lightsOn() { return entityData.get(DATA_LIGHTS); }
 	public boolean sirenOn() { return entityData.get(DATA_SIREN); }
 	public boolean gearsOn() { return entityData.get(DATA_GEARS); }
+	/** Передачи для HUD: 0 = выкл; ручные 1..7; автомат 100 + номер. */
+	public static final EntityDataAccessor<Integer> DATA_GEARX = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.INT);
+	public boolean gearAuto() { return entityData.get(DATA_GEARX) >= 100; }
+	public int gearNum() { return entityData.get(DATA_GEARX) % 100; }
+	private int shiftCd;
+	private double lastMax;
 	public float sensValue() { return entityData.get(DATA_SENS); }
 	public float hpValue() { return entityData.get(DATA_HP); }
 	/** Владелец ещё не задан (машина «ничья»)? */
@@ -266,7 +272,7 @@ public class VehicleEntity extends Entity {
 			x = (in.left() ? 1 : 0) - (in.right() ? 1 : 0);   // как в Bedrock: влево = +1
 			y = (in.forward() ? 1 : 0) - (in.backward() ? 1 : 0);
 			// Передачи (если включены в меню): Shift — выше, Ctrl — ниже
-			if (vs.gears.mode) {
+			if (vs.gears.mode && !vs.gears.auto) {
 				if (in.shift() && !lastSneak) shiftGear(driver, s, +1);
 				if (in.sprint() && !lastSprint) shiftGear(driver, s, -1);
 			}
@@ -285,6 +291,28 @@ public class VehicleEntity extends Entity {
 		if (!canDrive) { x = 0; y = 0; }
 
 		st.yawDeg = getYRot();
+		double lug = 1.0, assist = 0.0;
+		if (vs.gears.mode && canDrive && lastMax > 0.05) {
+			int g = vs.gears.gear(s);
+			double av0 = Math.abs(st.speed);
+			double[] pct = com.rzauto.logic.Gears.POWER_PCT;
+			if (vs.gears.auto) {
+				assist = 1.0;
+				if (g > 6) { vs.gears.setGear(6); g = 6; }
+				boolean thr = Math.abs(y) > 0.1;
+				if (shiftCd > 0) shiftCd--;
+				if (!thr && av0 < 0.03) { if (g != 1) { vs.gears.setGear(1); } }
+				else if (shiftCd == 0) {
+					if (g < 6 && thr && av0 > lastMax * 0.75) { vs.gears.setGear(g + 1); shiftCd = 12; }
+					else if (g > 1 && av0 < lastMax * pct[g - 2] / pct[g - 1] * 0.5) { vs.gears.setGear(g - 1); shiftCd = 12; }
+				}
+			} else if (g >= 2 && g <= 6) {
+				// ручная: на высокой передаче с малой скорости не хватает оборотов (как в настоящей машине)
+				double lowEnd = lastMax * pct[g - 2] / pct[g - 1] * 0.45;
+				if (lowEnd > 0 && av0 < lowEnd) { double r = av0 / lowEnd; lug = Math.max(0.05, r * r); }
+			}
+		}
+		if (driver == null && Math.abs(st.speed) > 0.02) st.speed -= Math.signum(st.speed) * 0.02;   // без водителя машина не катится далеко
 		double max = canDrive ? Physics.currentMax(s, vs.gears.speedPercent(s, vs.speedPercent), vs.wear.broken, vs.fuel, vs.engineOn) : s.topSpeed();
 		max *= SPEED_SCALE;   // скорость Bedrock делим на 1.5
 		if (isInWater()) max *= 0.1;   // по воде только 10% скорости
@@ -294,11 +322,13 @@ public class VehicleEntity extends Entity {
 			var fx = com.rzauto.logic.Surface.effect(Terrain.supportId(level(), this));
 			if (fx != null) max *= OFFROAD_MULT;   // земля, песок, грязь: -40% (джипы и полиция не страдают)
 		}
+		if (canDrive) lastMax = max;
 		if (vs.gta) {
 			String under = Terrain.supportId(level(), this);
 			double slope = Math.max(-0.5, Math.min(0.5, -Math.sin(Math.toRadians(tiltPitch))));
 			Physics.Env env = com.rzauto.logic.Surface.env(under, slope);
 			if (crawl) env = new Physics.Env(env.grip(), 1.0, 0.0);
+			env = new Physics.Env(env.grip(), env.traction(), env.slope(), lug, assist);
 			Physics.tickGta(s, st, new Physics.Input(x, y), max, sens, env);
 		}
 		else Physics.tick(s, st, new Physics.Input(x, y), max, false, TURN_STRENGTH);
@@ -313,12 +343,21 @@ public class VehicleEntity extends Entity {
 		Physics.horizontalVelocity(st.yawDeg, st.speed, st.lat, vel);
 		double vy = onGround() ? -GRAVITY : (getDeltaMovement().y - GRAVITY) * 0.98;
 		setDeltaMovement(vel[0], vy, vel[1]);
+		double px0 = getX(), pz0 = getZ();
 		move(MoverType.SELF, getDeltaMovement());
 		if (horizontalCollision) {
 			double av = Math.abs(st.speed);
-			// урон только от сильного лобового удара; скольжение боком и полублоки на поворотах не считаются
-			if (av > 1.3 && Math.abs(st.speed) > 1.3) damage((float) ((av - 1.3) * 2.0));
-			st.speed = Physics.collisionBleed(st.speed, max);
+			double dl2 = vel[0] * vel[0] + vel[1] * vel[1];
+			// какая доля движения реально выполнена: у скользящего касания стены она большая, у лобового удара маленькая
+			double ratio = dl2 > 1e-8 ? Math.max(0, Math.min(1, ((getX() - px0) * vel[0] + (getZ() - pz0) * vel[1]) / dl2)) : 0;
+			if (ratio > 0.4) {
+				st.speed *= 1 - 0.015 - 0.10 * (1 - ratio);   // трение о стену: чуть теряем скорость, продолжаем ехать
+				st.lat *= 0.92;
+			} else {
+				// урон только от сильного лобового удара
+				if (av > 1.3) damage((float) ((av - 1.3) * 2.0));
+				st.speed = Physics.collisionBleed(st.speed, max);
+			}
 		}
 		setYRot((float) st.yawDeg);
 	}
@@ -412,6 +451,7 @@ public class VehicleEntity extends Entity {
 		builder.define(DATA_ROOF, true);
 		builder.define(DATA_SIREN, false);
 		builder.define(DATA_GEARS, false);
+		builder.define(DATA_GEARX, 0);
 		builder.define(DATA_SENS, SENS_DEFAULT);
 		builder.define(DATA_HP, 20f);
 		builder.define(DATA_SEATS, -1);
@@ -434,6 +474,7 @@ public class VehicleEntity extends Entity {
 			lights = !"0".equals(in.getStringOr("lights", "1"));
 			roof = !"0".equals(in.getStringOr("roof", "1"));
 			vs.gears.mode = "1".equals(in.getStringOr("gears", "0"));
+			vs.gears.auto = vs.gears.mode && "1".equals(in.getStringOr("gearsAuto", "0"));
 		} catch (NumberFormatException e) { /* оставляем значения по умолчанию */ }
 	}
 
@@ -452,6 +493,7 @@ public class VehicleEntity extends Entity {
 		out.putString("lights", lights ? "1" : "0");
 		out.putString("roof", roof ? "1" : "0");
 		out.putString("gears", vs.gears.mode ? "1" : "0");
+		out.putString("gearsAuto", vs.gears.auto ? "1" : "0");
 	}
 
 	@Override
@@ -495,6 +537,7 @@ public class VehicleEntity extends Entity {
 		entityData.set(DATA_ROOF, roof);
 		entityData.set(DATA_SIREN, siren);
 		entityData.set(DATA_GEARS, vs.gears.mode);
+		entityData.set(DATA_GEARX, !vs.gears.mode ? 0 : (vs.gears.auto ? 100 : 0) + vs.gears.rawGear());
 		entityData.set(DATA_SENS, sens);
 		entityData.set(DATA_HP, hp < 0 ? maxHp() : hp);
 		entityData.set(DATA_OWNER, owner == null ? "" : owner.toString());
@@ -549,7 +592,11 @@ public class VehicleEntity extends Entity {
 			case ACT_REPAIR -> repairWithGear(p);
 			case ACT_SENS_DOWN -> sens = Math.max(SENS_MIN, Math.round((sens - SENS_STEP) * 10f) / 10f);
 			case ACT_SENS_UP -> sens = Math.min(SENS_MAX, Math.round((sens + SENS_STEP) * 10f) / 10f);
-			case ACT_GEARS -> vs.gears.mode = !vs.gears.mode;
+			case ACT_GEARS -> {   // выкл -> ручная -> автомат -> выкл
+				if (!vs.gears.mode) { vs.gears.mode = true; vs.gears.auto = false; }
+				else if (!vs.gears.auto) { vs.gears.auto = true; if (vs.gears.rawGear() > 6) vs.gears.setGear(6); }
+				else { vs.gears.mode = false; vs.gears.auto = false; }
+			}
 			default -> { }
 		}
 		syncState();

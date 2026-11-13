@@ -113,7 +113,9 @@ public final class Physics {
 	public static void tickGta(VehicleSpec s, State st, Input in, double effMax) { tickGta(s, st, in, effMax, 1.0); }
 
 	/** Условия дороги: сцепление шин, тяга колёс (буксовка) и уклон (+ = подъём, синус угла). */
-	public record Env(double grip, double traction, double slope) {
+	/** lug: доля тяги при нехватке оборотов (1 = норма; стартовать на высокой передаче нельзя), assist: помощь автомата в поворотах (0..1). */
+	public record Env(double grip, double traction, double slope, double lug, double assist) {
+		public Env(double grip, double traction, double slope) { this(grip, traction, slope, 1.0, 0.0); }
 		public static final Env DEFAULT = new Env(1.0, 1.0, 0.0);
 	}
 
@@ -131,16 +133,16 @@ public final class Physics {
 		Params p = Params.of(s);
 		double top = Math.max(s.topSpeed(), 0.05), v = st.speed, av = Math.abs(v);
 		double refTop = Math.max(top / 1.5, 0.2);
-		st.steer = stepTowards(st.steer, in.x(), (in.x() == 0 ? 0.40 : 0.30) * Math.max(1.0, sens));
+		st.steer = stepTowards(st.steer, in.x(), (in.x() == 0 ? 0.40 : 0.30 - 0.12 * env.assist()) * Math.max(1.0, sens));
 		double low = clamp(av / 0.12, 0, 1);
-		double high = 1 - 0.6 * clamp((av - 0.4) / Math.max(top - 0.4, 0.1), 0, 1);
+		double high = 1 - (0.6 + 0.2 * env.assist()) * clamp((av - 0.4) / Math.max(top - 0.4, 0.1), 0, 1);
 		double yawMax = (s.motorcycle() ? GTA_YAW_MOTO : GTA_YAW_CAR) * sens;
 		double yawBefore = st.yawDeg;
 		st.yawDeg = normalizeAngle(st.yawDeg - st.steer * yawMax * low * high * (v >= 0 ? 1 : -1));
 		double dYaw = Math.toRadians(normalizeAngle(st.yawDeg - yawBefore));
 
 		// занос: курс поворачивается, а скорость по инерции остаётся в старом направлении (боковая составляющая lat)
-		double slipSpeed = Math.max(0.12, 0.55 * refTop * env.grip());
+		double slipSpeed = Math.max(0.12, 0.55 * refTop * env.grip() * (1 + 0.25 * env.assist()));
 		double slipFrac = av > slipSpeed ? clamp(1 - slipSpeed / av, 0, 0.85) : 0;
 		if (v > 0) st.lat += dYaw * v * slipFrac * 1.6;
 		st.lat *= 1 - clamp(0.10 + 0.22 * env.grip(), 0.05, 0.40);
@@ -157,14 +159,14 @@ public final class Physics {
 			double launch = 1 + 0.5 * (1 - clamp(av / top, 0, 1));
 			double ratio = clamp(av / Math.max(effMax, 0.05), 0, 1);
 			double power = 1 - 0.8 * ratio * ratio;   // у максимума машина добирает скорость медленно
-			v += Math.signum(in.y()) * (effMax / 20.0 / s.accel()) * reverseFactor * launch * power * ACCEL_FACTOR * env.traction();
+			v += Math.signum(in.y()) * (effMax / 20.0 / s.accel()) * reverseFactor * launch * power * ACCEL_FACTOR * env.traction() * env.lug();
 			wheelspin = env.traction() < 0.8 && av < effMax * 0.6;
 		}
-		if (!throttling) v = stepTowards(v, 0, 0.03);
+		if (!throttling) v = stepTowards(v, 0, 0.010 + 0.016 * clamp(av / top, 0, 1));   // накат: отпустил газ - машина катится и замедляется плавно
 
 		// потери на повороте и на боковом скольжении
 		if (av > 0.05) {
-			double turnLoss = Math.abs(st.steer) * 0.010 * clamp(av / refTop, 0, 1.5) * sens;
+			double turnLoss = Math.abs(st.steer) * 0.010 * clamp(av / refTop, 0, 1.5) * sens * (1 + 1.2 * env.assist());
 			v = stepTowards(v, 0, turnLoss + Math.abs(st.lat) * 0.06);
 		}
 		// склон: в горку замедляет, под горку разгоняет
