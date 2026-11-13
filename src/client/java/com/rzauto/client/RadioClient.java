@@ -34,6 +34,8 @@ import java.util.List;
 final class RadioClient {
 	record Station(String name, String url) {}
 
+	/** Прямой MP3-поток Маруся ФМ (дал владелец). */
+	static final String MARUSYA_URL = "http://radio-holding.ru:9000/marusya_default";
 	static final double RADIUS = 40.0;
 	static boolean enabled;
 	static float volume = 0.8f;
@@ -57,7 +59,12 @@ final class RadioClient {
 				}
 			}
 		} catch (Exception ex) { RzAutoMod.LOG.warn("rz_auto_radio.json не прочитался: {}", ex.toString()); }
-		if (stations.isEmpty()) stations.add(new Station("Маруся ФМ", ""));
+		if (stations.isEmpty()) stations.add(new Station("Маруся ФМ", MARUSYA_URL));
+		// старый конфиг с пустой ссылкой у Маруси ФМ: подставляем поток
+		for (int i = 0; i < stations.size(); i++) {
+			Station st = stations.get(i);
+			if (st.url().isEmpty() && st.name().equals("Маруся ФМ")) stations.set(i, new Station(st.name(), MARUSYA_URL));
+		}
 		save();
 	}
 
