@@ -30,6 +30,10 @@ final class DeskScreen extends net.minecraft.client.gui.screens.Screen {
 	DeskScreen(BlockPos pos) {
 		super(Component.literal("Паспортный стол"));
 		this.pos = pos;
+		// клик по столу паспортом в руке: сразу выбран владелец этого паспорта, его данные загружаются для правки
+		String pre = com.rzauto.block.PassportDeskBlock.PREFILL;
+		com.rzauto.block.PassportDeskBlock.PREFILL = "";
+		if (pre != null && !pre.isEmpty()) { target = pre; }
 	}
 
 	private boolean loaded() { return PassportClient.deskVer > ver0; }
@@ -178,15 +182,15 @@ final class DeskScreen extends net.minecraft.client.gui.screens.Screen {
 		if (tab == 0) {
 			label(g, "Название страны", y0 + grp());
 			label(g, "Герб", y0 + grp() * 2);
-			g.centeredText(font, Passport.SEAL_NAMES[Math.floorMod(seal, Passport.SEALS.length)], lx() + fw() / 2, y0 + grp() * 2 + 16, PassportUi.INK);
+			PassportUi.ctext(g, font, Passport.SEAL_NAMES[Math.floorMod(seal, Passport.SEALS.length)], lx() + fw() / 2, y0 + grp() * 2 + 16, PassportUi.INK);
 			PassportUi.seal(g, seal, pcx - big / 2, pcy - big / 2, big);
 			String st = target.isEmpty() ? "Введите ник или нажмите «Онлайн»" : !targetMatches() ? "Нажмите «Найти», чтобы загрузить паспорт игрока" : !hasProfile() ? "У игрока нет паспорта" : "Паспорт найден: регистрация " + PassportClient.date(targetProfile());
 			g.text(font, PassportUi.clip(font, st, fw()), lx(), y0 + grp() * 3 + 28, !hasProfile() && targetMatches() ? PassportUi.WARN : PassportUi.INK2, false);
 		} else if (tab == 1) {
 			label(g, "Текст нарушения (вручную)", y0 + grp());
 			label(g, "Печать (не зависит от герба в паспорте)", y0 + grp() * 2);
-			g.centeredText(font, Passport.SEAL_NAMES[Math.floorMod(vSeal, Passport.SEALS.length)], lx() + fw() / 2, y0 + grp() * 2 + 16, PassportUi.INK);
-			g.centeredText(font, "так будет выглядеть", pcx, ui.y(PassportUi.PHOTO_Y) + 6, PassportUi.INK2);
+			PassportUi.ctext(g, font, Passport.SEAL_NAMES[Math.floorMod(vSeal, Passport.SEALS.length)], lx() + fw() / 2, y0 + grp() * 2 + 16, PassportUi.INK);
+			PassportUi.ctext(g, font, "так будет выглядеть", pcx, ui.y(PassportUi.PHOTO_Y) + 6, PassportUi.INK2);
 			PassportUi.stamp(g, vSeal, pcx, pcy, big, 20260);
 		} else {
 			List<String[]> v = targetViol();
@@ -201,8 +205,8 @@ final class DeskScreen extends net.minecraft.client.gui.screens.Screen {
 				g.text(font, PassportUi.clip(font, (row.length > 1 ? row[1] + "  " : "") + row[0], fw() - 28), lx(), y0 + 49 + r * 20, PassportUi.INK, false);
 			}
 			g.text(font, "Любое нарушение удаляется кнопкой X", lx() + 56, ui.ay() + ui.ah() - 17, PassportUi.INK2, false);
-			g.centeredText(font, "Нарушений:", pcx, pcy - 10, PassportUi.INK);
-			g.centeredText(font, targetMatches() ? String.valueOf(v.size()) : "-", pcx, pcy + 4, PassportUi.INK);
+			PassportUi.ctext(g, font, "Нарушений:", pcx, pcy - 10, PassportUi.INK);
+			PassportUi.ctext(g, font, targetMatches() ? String.valueOf(v.size()) : "-", pcx, pcy + 4, PassportUi.INK);
 		}
 		super.extractRenderState(g, mx, my, pt);
 	}

@@ -63,15 +63,19 @@ final class PassportUi {
 		return mx >= r[0] && mx < r[0] + r[2] && my >= r[1] && my < r[1] + r[3];
 	}
 
-	/** Подписи на язычках; активный (active) выделен тёмным и «жирным». */
+	/** Подписи на язычках: без тени и без «двойной печати» (тень делала мелкий текст нечитаемым). Активный темнее. */
 	void tabLabels(GuiGraphicsExtractor g, Font font, String[] names, int active, boolean beige) {
 		for (int i = 0; i < names.length && i < 3; i++) {
 			int[] r = tabRect(i, beige);
+			String t = clip(font, names[i], r[2] - 6);
 			int ty = r[1] + (r[3] - 8) / 2;
-			boolean on = i == active;
-			g.centeredText(font, names[i], r[0] + r[2] / 2, ty, on ? 0xFF000000 : 0xFF3B2A14);
-			if (on) g.centeredText(font, names[i], r[0] + r[2] / 2 + 1, ty, 0xFF000000);
+			ctext(g, font, t, r[0] + r[2] / 2, ty, i == active ? 0xFF000000 : 0xFF2E2110);
 		}
+	}
+
+	/** Текст по центру x без тени. */
+	static void ctext(GuiGraphicsExtractor g, Font font, String t, int cx, int y, int color) {
+		g.text(font, t, cx - font.width(t) / 2, y, color, false);
 	}
 
 	/** Крупный текст (масштаб k) в точке x, y. */
@@ -88,7 +92,7 @@ final class PassportUi {
 
 	/** Герб ровно, без наклона (x, y = левый верхний угол). */
 	static void seal(GuiGraphicsExtractor g, int idx, int x, int y, int size) {
-		g.blit(RenderPipelines.GUI_TEXTURED, sealTex(idx), x, y, 0f, 0f, size, size, 256, 256, 256, 256);
+		g.blit(RenderPipelines.GUI_TEXTURED, sealTex(idx), x, y, 0f, 0f, size, size, 256, 256, 256, 256, 0xBEA0A4B4);
 	}
 
 	/**
@@ -101,13 +105,13 @@ final class PassportUi {
 		float dy = (r.nextFloat() * 2 - 1) * 0.09f * size;
 		float rot = (float) Math.toRadians((r.nextFloat() * 2 - 1) * 9.0);
 		float sc = 0.95f + r.nextFloat() * 0.09f;
-		int a = 215 + r.nextInt(36);
+		int a = 140 + r.nextInt(40);
 		var m = g.pose();
 		m.pushMatrix();
 		m.translate(cx + dx, cy + dy);
 		m.rotate(rot);
 		m.scale(sc, sc);
-		g.blit(RenderPipelines.GUI_TEXTURED, sealTex(idx), -size / 2, -size / 2, 0f, 0f, size, size, 256, 256, 256, 256, (a << 24) | 0xFFFFFF);
+		g.blit(RenderPipelines.GUI_TEXTURED, sealTex(idx), -size / 2, -size / 2, 0f, 0f, size, size, 256, 256, 256, 256, (a << 24) | 0xA0A4B4);
 		m.popMatrix();
 	}
 

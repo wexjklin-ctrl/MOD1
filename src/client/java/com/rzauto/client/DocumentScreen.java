@@ -103,6 +103,7 @@ final class DocumentScreen extends net.minecraft.client.gui.screens.Screen {
 			super.extractRenderState(g, mx, my, pt);
 			return;
 		}
+		skinPanel(g);
 		switch (tab) {
 			case 0 -> info(g);
 			case 1 -> violations(g);
@@ -111,13 +112,16 @@ final class DocumentScreen extends net.minecraft.client.gui.screens.Screen {
 		super.extractRenderState(g, mx, my, pt);
 	}
 
-	private void info(GuiGraphicsExtractor g) {
+	/** Скин владельца в тёмной панели слева: на всех вкладках, чтобы панель не пустовала. */
+	private void skinPanel(GuiGraphicsExtractor g) {
 		UUID id = null;
 		try { id = UUID.fromString(Passport.ownerUuid(doc)); } catch (Exception ignored) { }
-		// скин владельца в тёмной панели слева
 		int pw = ui.len(PassportUi.PHOTO_W), phh = ui.len(PassportUi.PHOTO_H);
 		int bs = Math.max(1, Math.min(pw / 18, phh / 34));
 		body(g, skinOf(id), ui.x(PassportUi.PHOTO_X) + (pw - 16 * bs) / 2, ui.y(PassportUi.PHOTO_Y) + (phh - 32 * bs) / 2, bs);
+	}
+
+	private void info(GuiGraphicsExtractor g) {
 		int ax = ui.ax() + 4, ay = ui.ay();
 		boolean ready = profileReady();
 		String[] pr = ready ? PassportClient.profile : new String[0];
@@ -132,7 +136,7 @@ final class DocumentScreen extends net.minecraft.client.gui.screens.Screen {
 		g.text(font, date, ax, y + step + 11, PassportUi.INK, false);
 		g.text(font, "Страна", ax, y + step * 2, PassportUi.INK2, false);
 		if (!ready) g.text(font, "Загрузка...", ax, y + step * 2 + 11, PassportUi.INK2, false);
-		else if (country.isEmpty()) g.text(font, "не присвоена (вписывает администратор)", ax, y + step * 2 + 11, PassportUi.WARN, false);
+		else if (country.isEmpty()) g.text(font, PassportUi.clip(font, "не присвоена (вписывает администратор)", ui.aw() - 24), ax, y + step * 2 + 11, PassportUi.WARN, false);
 		else g.text(font, PassportUi.clip(font, country, ui.aw() - 150), ax, y + step * 2 + 11, PassportUi.INK, false);
 		// герб страны справа внизу
 		int sz = Math.max(48, Math.min(ui.len(190), ui.ah() - 40));
@@ -141,52 +145,85 @@ final class DocumentScreen extends net.minecraft.client.gui.screens.Screen {
 		if (ready && seal >= 0) PassportUi.seal(g, seal, sx, sy, sz);
 		else {
 			g.outline(sx, sy, sz, sz, 0x884A3A1E);
-			g.centeredText(font, "герб", sx + sz / 2, sy + sz / 2 - 10, PassportUi.INK2);
-			g.centeredText(font, "не присвоен", sx + sz / 2, sy + sz / 2 + 2, PassportUi.INK2);
+			PassportUi.ctext(g, font, "герб", sx + sz / 2, sy + sz / 2 - 10, PassportUi.INK2);
+			PassportUi.ctext(g, font, "не присвоен", sx + sz / 2, sy + sz / 2 + 2, PassportUi.INK2);
 		}
 	}
 
 	private void violations(GuiGraphicsExtractor g) {
 		List<String[]> v = profileReady() ? PassportClient.violations : List.of();
 		int ax = ui.ax() + 4, ay = ui.ay();
+		int right = ui.ax() + ui.aw() - 6;   // правая граница рабочей области: ничего не заходит дальше
 		PassportUi.big(g, font, "НАРУШЕНИЯ", ax, ay + 6, 2f, PassportUi.INK);
-		int top = ay + 30, rh = Math.max(44, ui.len(80));
+		int top = ay + 34, rh = Math.max(50, ui.len(88));
 		int rows = Math.max(1, (ui.ay() + ui.ah() - top) / rh);
 		scroll = Math.min(scroll, Math.max(0, v.size() - rows));
 		if (v.isEmpty()) { g.text(font, profileReady() ? "Нарушений нет" : "Загрузка...", ax, top + 6, PassportUi.INK2, false); return; }
-		int seal = Math.min(100, rh + 12), textW = ui.aw() - seal - 16;
+		// печать чуть меньше карточки, чтобы соседние не налезали друг на друга
+		int seal = Math.min(96, rh - 8), cardR = right - seal - 6, textW = cardR - ax - 12;
 		for (int i = 0; i < rows && scroll + i < v.size(); i++) {
 			String[] r = v.get(scroll + i);
 			if (r.length < 5) continue;
 			int y = top + i * rh;
-			g.fill(ax - 2, y, ax + ui.aw() - seal - 4, y + rh - 5, 0x22000000);
-			g.textWithWordWrap(font, Component.literal(r[0]), ax + 4, y + 5, textW, PassportUi.INK);
-			g.text(font, PassportUi.clip(font, r[1] + "   выдал: " + r[4], textW), ax + 4, y + rh - 18, PassportUi.INK2, false);
+			g.fill(ax - 2, y, cardR, y + rh - 6, 0x26000000);
+			g.textWithWordWrap(font, Component.literal(r[0]), ax + 4, y + 6, textW, PassportUi.INK);
+			g.text(font, PassportUi.clip(font, r[1] + "  выдал: " + r[4], textW), ax + 4, y + rh - 20, PassportUi.INK2, false);
 		}
-		// печати поверх карточек: крупные, у каждой свой сдвиг и наклон
+		// печати поверх карточек: у каждой свой сдвиг и наклон, приглушённые чернила
 		for (int i = 0; i < rows && scroll + i < v.size(); i++) {
 			String[] r = v.get(scroll + i);
 			if (r.length < 5) continue;
-			int cy = top + i * rh + (rh - 5) / 2;
-			PassportUi.stamp(g, PassportClient.sealOf(r), ax + ui.aw() - seal / 2 - 4, cy, seal, PassportClient.seed(r));
+			int cy = top + i * rh + (rh - 6) / 2;
+			PassportUi.stamp(g, PassportClient.sealOf(r), right - seal / 2 - 2, cy, seal, PassportClient.seed(r));
 		}
-		if (v.size() > rows) g.text(font, (scroll + 1) + "-" + Math.min(v.size(), scroll + rows) + " из " + v.size() + "  (колесо мыши)", ax + 170, ay + 12, PassportUi.INK2, false);
+		if (v.size() > rows) {
+			String cnt = (scroll + 1) + "-" + Math.min(v.size(), scroll + rows) + " из " + v.size();
+			g.text(font, cnt, right - font.width(cnt), ay + 14, PassportUi.INK2, false);
+			String hint = "колесо мыши";
+			g.text(font, hint, right - font.width(hint), ay + 24, PassportUi.INK2, false);
+		}
+	}
+
+	/** Предмет машины по её названию (название сущности = название предмета); null, если не нашли. */
+	private static final java.util.Map<String, ItemStack> ICONS = new java.util.HashMap<>();
+	private static ItemStack iconOf(String name) {
+		if (ICONS.isEmpty()) {
+			for (com.rzauto.VehicleRegistry.Entry e : com.rzauto.VehicleRegistry.entries()) {
+				ICONS.putIfAbsent(e.type().getDescription().getString(), new ItemStack(e.item()));
+				ICONS.putIfAbsent(e.item().getName(new ItemStack(e.item())).getString(), new ItemStack(e.item()));
+			}
+		}
+		return ICONS.getOrDefault(name, ItemStack.EMPTY);
 	}
 
 	private void cars(GuiGraphicsExtractor g) {
 		List<String[]> c = profileReady() ? PassportClient.cars : List.of();
 		int ax = ui.ax() + 4, ay = ui.ay();
+		int right = ui.ax() + ui.aw() - 6;
 		PassportUi.big(g, font, "МАШИНЫ", ax, ay + 6, 2f, PassportUi.INK);
-		int top = ay + 34;
-		int rows = Math.max(1, (ui.ay() + ui.ah() - top) / 14);
+		int top = ay + 40, rh = 18;
+		int rows = Math.max(1, (ui.ay() + ui.ah() - top) / rh);
 		scroll = Math.min(scroll, Math.max(0, c.size() - rows));
 		if (c.isEmpty()) { g.text(font, profileReady() ? "Машин нет" : "Загрузка...", ax, top, PassportUi.INK2, false); return; }
+		int x0 = ax + 14;   // список сдвинут правее: слева место под иконку предмета
+		int coordsW = 0;
+		for (int i = 0; i < rows && scroll + i < c.size(); i++) {
+			String[] r = c.get(scroll + i);
+			if (r.length >= 4) coordsW = Math.max(coordsW, font.width(r[1] + " " + r[2] + " " + r[3]));
+		}
 		for (int i = 0; i < rows && scroll + i < c.size(); i++) {
 			String[] r = c.get(scroll + i);
 			if (r.length < 4) continue;
-			int y = top + i * 14;
-			g.text(font, PassportUi.clip(font, r[0], ui.aw() - 150), ax, y, PassportUi.INK, false);
-			g.text(font, r[1] + " " + r[2] + " " + r[3], ax + ui.aw() - 140, y, PassportUi.INK2, false);
+			int y = top + i * rh;
+			ItemStack ic = iconOf(r[0]);
+			if (!ic.isEmpty()) g.item(ic, ax, y - 4);
+			g.text(font, PassportUi.clip(font, r[0], right - x0 - coordsW - 24), x0 + 4, y, PassportUi.INK, false);
+			String co = r[1] + " " + r[2] + " " + r[3];
+			g.text(font, co, right - font.width(co), y, PassportUi.INK2, false);
+		}
+		if (c.size() > rows) {
+			String cnt = (scroll + 1) + "-" + Math.min(c.size(), scroll + rows) + " из " + c.size();
+			g.text(font, cnt, right - font.width(cnt), ay + 14, PassportUi.INK2, false);
 		}
 	}
 }
