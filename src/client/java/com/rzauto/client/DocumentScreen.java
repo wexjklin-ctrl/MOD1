@@ -159,8 +159,8 @@ final class DocumentScreen extends net.minecraft.client.gui.screens.Screen {
 		int rows = Math.max(1, (ui.ay() + ui.ah() - top) / rh);
 		scroll = Math.min(scroll, Math.max(0, v.size() - rows));
 		if (v.isEmpty()) { g.text(font, profileReady() ? "Нарушений нет" : "Загрузка...", ax, top + 6, PassportUi.INK2, false); return; }
-		// печать чуть меньше карточки, чтобы соседние не налезали друг на друга
-		int seal = Math.min(96, rh - 8), cardR = right - seal - 6, textW = cardR - ax - 12;
+		// печать БОЛЬШЕ карточки: соседние печати намеренно налезают друг на друга (фишка), как поставленные рукой стопкой
+		int seal = rh + 22, cardR = right - 96 - 6, textW = cardR - ax - 12;
 		for (int i = 0; i < rows && scroll + i < v.size(); i++) {
 			String[] r = v.get(scroll + i);
 			if (r.length < 5) continue;
@@ -174,7 +174,7 @@ final class DocumentScreen extends net.minecraft.client.gui.screens.Screen {
 			String[] r = v.get(scroll + i);
 			if (r.length < 5) continue;
 			int cy = top + i * rh + (rh - 6) / 2;
-			PassportUi.stamp(g, PassportClient.sealOf(r), right - seal / 2 - 2, cy, seal, PassportClient.seed(r));
+			PassportUi.stamp(g, PassportClient.sealOf(r), right - seal / 2 + 6, cy, seal, PassportClient.seed(r));
 		}
 		if (v.size() > rows) {
 			String cnt = (scroll + 1) + "-" + Math.min(v.size(), scroll + rows) + " из " + v.size();
