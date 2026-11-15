@@ -88,7 +88,6 @@ final class VehicleMenuScreen extends net.minecraft.client.gui.screens.Screen {
 		if (siren) { row(3, "Сирена", car.sirenOn() ? "ВКЛ" : "ВЫКЛ", true, car.sirenOn(), VehicleEntity.ACT_SIREN, x, y, w, h); y += h + gap; }
 		if (jeepYj) { row(4, "Крыша / тент", car.roofOn() ? "ЕСТЬ" : "СНЯТА", true, car.roofOn(), VehicleEntity.ACT_ROOF, x, y, w, h); y += h + gap; }
 		row(5, "Пересесть", "", true, false, VehicleEntity.ACT_SEAT, x, y, w, h); y += h + gap;
-		row(6, "Передачи", !car.gearsOn() ? "ВЫКЛ" : car.gearAuto() ? "АВТОМАТ" : "РУЧНАЯ", true, car.gearsOn(), VehicleEntity.ACT_GEARS, x, y, w, h); y += h + gap;
 		row(7, "Камера", CamMode.gta ? "GTA" : "СВОБОДНАЯ", true, false, -1, x, y, w, h); y += h + gap;
 		int bw0 = Math.max(22, h + 4);
 		row(7, "", "", true, false, -10, x, y, bw0, h);
@@ -119,7 +118,6 @@ final class VehicleMenuScreen extends net.minecraft.client.gui.screens.Screen {
 			try { ok = com.rzauto.item.Passport.isDoc(gs) && car.isOwnedBy(java.util.UUID.fromString(com.rzauto.item.Passport.ownerUuid(gs))); } catch (Exception ignored) { }
 			row(14, "Бардачок", gs.isEmpty() ? "пусто" : ok ? "паспорт OK" : "заполнен", true, ok, -12, x, y, w, h); y += h + gap;
 		}
-		row(9, "Починить", canRepair ? "нужна шестерёнка" : "исправна", canRepair, false, VehicleEntity.ACT_REPAIR, x, y, w, h); y += h + gap;
 	}
 
 	@Override

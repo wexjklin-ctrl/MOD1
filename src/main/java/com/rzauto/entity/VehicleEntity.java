@@ -273,7 +273,8 @@ public class VehicleEntity extends Entity {
 		VehicleSpec s = spec();
 		if (s == null) return;
 		initFuel();
-		if (owner != null && tickCount % 200 == 11) com.rzauto.passport.PassportStore.touchCar(this);
+		// передачи и поломки удалены: машина всегда исправна и едет без режима передач
+		if (vs.gears.mode || vs.gears.auto || vs.wear.broken) { vs.gears.mode = false; vs.gears.auto = false; vs.wear.broken = false; }
 		if (owner != null && tickCount % 40 == 0 && (ownerName.isEmpty() || !ownerName.equals(entityData.get(DATA_OWNER_NAME)))) refreshOwnerName();
 		if (hp >= 0 && hp < maxHp() && tickCount - lastHitTick > 100 && tickCount % 10 == 0) { hp = Math.min(maxHp(), hp + maxHp() * 0.01f); syncState(); }
 
@@ -351,7 +352,6 @@ public class VehicleEntity extends Entity {
 		if (canDrive && driver != null) {
 			double d = Math.abs(st.speed);
 			vs.fuel = Fuel.consume(s, vs.fuel, d, 1.0);
-			Wear.track(s, vs.wear, d, 1.0, rnd);
 			if (vs.fuel <= 0) { vs.engineOn = false; }
 		}
 		syncState();
@@ -434,6 +434,7 @@ public class VehicleEntity extends Entity {
 
 	/** Урон машине: на нуле она ломается (чинится шестерёнкой), окончательно — только рукой или взрывом. */
 	private void damage(float amount) {
+		if (true) return;   // поломки удалены: урон машине не копится
 		if (level().isClientSide() || amount <= 0 || vs.wear.broken) return;
 		if (hp < 0) hp = maxHp();
 		hp = Math.max(0f, hp - amount);
@@ -523,15 +524,15 @@ public class VehicleEntity extends Entity {
 			if (!in.getStringOr("fuel", "").isEmpty()) { vs.fuel = Double.parseDouble(in.getStringOr("fuel", "0")); fuelInit = true; }
 			vs.engineOn = "1".equals(in.getStringOr("engine", "0"));
 			vs.lock = Access.Lock.parse(in.getStringOr("lock", "open"), false);
-			vs.wear.broken = "1".equals(in.getStringOr("broken", "0"));
+			vs.wear.broken = false;
 			vs.wear.mileage = Double.parseDouble(in.getStringOr("mileage", "0"));
 			vs.wear.checkedIndex = Integer.parseInt(in.getStringOr("mileage_idx", "-1"));
 			hp = Float.parseFloat(in.getStringOr("hp", "-1"));
 			sens = Float.parseFloat(in.getStringOr("sens", Float.toString(SENS_DEFAULT)));
 			lights = !"0".equals(in.getStringOr("lights", "1"));
 			roof = !"0".equals(in.getStringOr("roof", "1"));
-			vs.gears.mode = "1".equals(in.getStringOr("gears", "0"));
-			vs.gears.auto = vs.gears.mode && "1".equals(in.getStringOr("gearsAuto", "0"));
+			vs.gears.mode = false;
+			vs.gears.auto = false;
 			glove = in.read("glove", ItemStack.OPTIONAL_CODEC).orElse(ItemStack.EMPTY);
 			gloveDirty = true;
 			entityData.set(DATA_GLOVE, glove.copy());
@@ -650,16 +651,12 @@ public class VehicleEntity extends Entity {
 				else vs.engineOn = true;
 			}
 			case ACT_LOCK -> vs.lock = vs.lock == Access.Lock.OPEN ? Access.Lock.LOCKED : Access.Lock.OPEN;
-			case ACT_REPAIR -> repairWithGear(p);
+			case ACT_REPAIR -> { }   // ремонт удалён вместе с поломками
 			case ACT_GLOVE_PUT -> glovePut(p);
 			case ACT_GLOVE_TAKE -> gloveTake(p);
 			case ACT_SENS_DOWN -> sens = Math.max(SENS_MIN, Math.round((sens - SENS_STEP) * 10f) / 10f);
 			case ACT_SENS_UP -> sens = Math.min(SENS_MAX, Math.round((sens + SENS_STEP) * 10f) / 10f);
-			case ACT_GEARS -> {   // выкл -> ручная -> автомат -> выкл
-				if (!vs.gears.mode) { vs.gears.mode = true; vs.gears.auto = false; }
-				else if (!vs.gears.auto) { vs.gears.auto = true; if (vs.gears.rawGear() > 6) vs.gears.setGear(6); }
-				else { vs.gears.mode = false; vs.gears.auto = false; }
-			}
+			case ACT_GEARS -> { }   // режим передач удалён
 			default -> { }
 		}
 		syncState();

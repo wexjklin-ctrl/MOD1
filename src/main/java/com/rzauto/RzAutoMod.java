@@ -23,7 +23,7 @@ public class RzAutoMod implements ModInitializer {
 		LOG.info("RZ Auto: зарегистрировано сущностей и предметов: {}", VehicleRegistry.entries().size());
 		// яйца призыва: ключи всех машин во вкладке творческого режима «Spawn Eggs»
 		net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents.modifyOutputEvent(net.minecraft.world.item.CreativeModeTabs.SPAWN_EGGS)
-				.register(entries -> { entries.accept(VehicleRegistry.BENCH_ITEM); entries.accept(VehicleRegistry.PASSPORT_DESK_ITEM); entries.accept(VehicleRegistry.GEAR); entries.accept(VehicleRegistry.LICENSE); for (VehicleRegistry.Entry e : VehicleRegistry.entries()) entries.accept(e.item()); });
+				.register(entries -> { entries.accept(VehicleRegistry.PASSPORT_DESK_ITEM); entries.accept(VehicleRegistry.LICENSE); for (VehicleRegistry.Entry e : VehicleRegistry.entries()) entries.accept(e.item()); });
 		net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry.serverboundPlay().register(com.rzauto.net.VehicleActionPayload.TYPE, com.rzauto.net.VehicleActionPayload.CODEC);
 		net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.registerGlobalReceiver(com.rzauto.net.VehicleActionPayload.TYPE, (payload, ctx) -> {
 			net.minecraft.world.entity.Entity ent = ctx.player().level().getEntity(payload.entityId());
@@ -32,13 +32,24 @@ public class RzAutoMod implements ModInitializer {
 		net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry.serverboundPlay().register(com.rzauto.net.BenchCraftPayload.TYPE, com.rzauto.net.BenchCraftPayload.CODEC);
 		net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.registerGlobalReceiver(com.rzauto.net.BenchCraftPayload.TYPE, (payload, ctx) -> benchCraft(ctx.player(), payload));
 		com.rzauto.passport.PassportNet.register();
+		// /avtoRZ: меню крафта машин (верстак удалён), только для администрации сервера
+		net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry.clientboundPlay().register(com.rzauto.net.OpenBenchPayload.TYPE, com.rzauto.net.OpenBenchPayload.CODEC);
+		net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
+			dispatcher.register(net.minecraft.commands.Commands.literal("avtoRZ")
+				.requires(src -> src.getEntity() instanceof net.minecraft.server.level.ServerPlayer sp && com.rzauto.passport.PassportNet.isAdmin(sp))
+				.executes(ctx -> {
+					if (ctx.getSource().getEntity() instanceof net.minecraft.server.level.ServerPlayer sp && com.rzauto.passport.PassportNet.isAdmin(sp)) {
+						net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(sp, new com.rzauto.net.OpenBenchPayload());
+						return 1;
+					}
+					return 0;
+				})));
 		if (System.getProperty("rz.smoke") != null) installSmokeTest();
 	}
 
-	/** Крафт на верстаке: проверка близости к верстаку, наличия материалов в инвентаре, списание и выдача. */
+	/** Крафт из меню /avtoRZ: проверка прав администратора, наличия материалов в инвентаре, списание и выдача. */
 	private static void benchCraft(net.minecraft.server.level.ServerPlayer p, com.rzauto.net.BenchCraftPayload pl) {
-		net.minecraft.core.BlockPos pos = net.minecraft.core.BlockPos.of(pl.pos());
-		if (p.distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5) > 64 || !p.level().getBlockState(pos).is(VehicleRegistry.BENCH)) return;
+		if (!com.rzauto.passport.PassportNet.isAdmin(p)) return;   // крафт машин только у администрации
 		com.rzauto.bench.BenchRecipes.Recipe r = com.rzauto.bench.BenchRecipes.byId(pl.recipe());
 		if (r == null) return;
 		net.minecraft.world.Container inv = p.getInventory();

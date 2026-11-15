@@ -38,7 +38,7 @@ public class RzAutoClient implements ClientModInitializer {
 		}
 		VehicleEntity.CLIENT_POSE = VehicleRenderer::poseOf;
 		CamMode.load();
-		com.rzauto.block.BenchBlock.CLIENT_OPEN = pos -> Minecraft.getInstance().setScreenAndShow(new BenchScreen(pos));
+		ClientPlayNetworking.registerGlobalReceiver(com.rzauto.net.OpenBenchPayload.TYPE, (payload, ctx) -> Minecraft.getInstance().execute(() -> Minecraft.getInstance().setScreenAndShow(new BenchScreen(net.minecraft.core.BlockPos.ZERO))));
 		com.rzauto.block.PassportDeskBlock.CLIENT_OPEN = pos -> Minecraft.getInstance().setScreenAndShow(new DeskScreen(pos));
 		ClientPlayNetworking.registerGlobalReceiver(com.rzauto.net.PassportInfoPayload.TYPE, (payload, ctx) -> Minecraft.getInstance().execute(() -> PassportClient.receive(payload)));
 		ClientPlayNetworking.registerGlobalReceiver(com.rzauto.net.DeskDataPayload.TYPE, (payload, ctx) -> Minecraft.getInstance().execute(() -> PassportClient.receiveDesk(payload)));

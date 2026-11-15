@@ -90,6 +90,7 @@ public final class PassportStore {
 	}
 
 	public static void touchCar(VehicleEntity v) {
+		if (true) return;   // машины больше не отслеживаются
 		UUID o = v.getOwner();
 		if (o == null) return;
 		CarRec n = new CarRec(v.getName().getString(), (int) v.getX(), (int) v.getY(), (int) v.getZ());
@@ -101,7 +102,7 @@ public final class PassportStore {
 		Map<UUID, CarRec> m = CARS.get(owner);
 		if (m != null && m.remove(car) != null) dirty = true;
 	}
-	public static List<CarRec> cars(UUID owner) { return new ArrayList<>(CARS.getOrDefault(owner, Map.of()).values()); }
+	public static List<CarRec> cars(UUID owner) { return new ArrayList<>(); }   // вкладка машин удалена
 
 	public static String clean(String s) { return s.replace('\u0001', ' ').replace('\u0002', ' '); }
 

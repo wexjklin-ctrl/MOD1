@@ -17,11 +17,11 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Окно паспорта (клавиша I с паспортом в руке): вкладки ИНФО, НАРУШЕНИЯ, МАШИНЫ на задниках из pasport.zip (PassportUi).
+ * Окно паспорта (клавиша I с паспортом в руке): вкладки ИНФО, НАРУШЕНИЯ на задниках из pasport.zip (PassportUi).
  * Страна, герб и дата регистрации берутся из профиля игрока на сервере: все паспорта одного игрока показывают одно и то же.
  */
 final class DocumentScreen extends net.minecraft.client.gui.screens.Screen {
-	private static final String[] TABS = { "ИНФО", "НАРУШЕНИЯ", "МАШИНЫ" };
+	private static final String[] TABS = { "ИНФО", "НАРУШЕНИЯ" };
 	private final ItemStack doc;
 	private final PassportUi ui = new PassportUi();
 	private int tab, scroll;
@@ -46,7 +46,7 @@ final class DocumentScreen extends net.minecraft.client.gui.screens.Screen {
 	@Override
 	public boolean mouseClicked(MouseButtonEvent e, boolean dbl) {
 		if (signed()) {
-			for (int i = 0; i < 3; i++) {
+			for (int i = 0; i < TABS.length; i++) {
 				if (ui.tabHit(e.x(), e.y(), i, false)) { tab = i; scroll = 0; return true; }
 			}
 		}
@@ -94,7 +94,7 @@ final class DocumentScreen extends net.minecraft.client.gui.screens.Screen {
 		g.fillGradient(0, 0, width, height, 0xB004100A, 0xD006180F);
 		ui.layout(width, height);
 		boolean ok = signed();
-		ui.background(g, ok ? (tab == 0 ? PassportUi.GREEN : tab == 1 ? PassportUi.RED : PassportUi.BLUE) : PassportUi.BEIGE);
+		ui.background(g, ok ? (tab == 0 ? PassportUi.GREEN : PassportUi.RED) : PassportUi.BEIGE);
 		ui.tabLabels(g, font, TABS, ok ? tab : -1, !ok);
 		if (!ok) {
 			PassportUi.big(g, font, "ПАСПОРТ", ui.ax() + 4, ui.ay() + 10, 2f, PassportUi.INK);
@@ -107,7 +107,7 @@ final class DocumentScreen extends net.minecraft.client.gui.screens.Screen {
 		switch (tab) {
 			case 0 -> info(g);
 			case 1 -> violations(g);
-			default -> cars(g);
+			default -> violations(g);
 		}
 		super.extractRenderState(g, mx, my, pt);
 	}

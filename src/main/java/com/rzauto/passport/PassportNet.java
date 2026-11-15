@@ -44,7 +44,7 @@ public final class PassportNet {
 	private static void say(ServerPlayer p, String text) { p.sendSystemMessage(Component.literal(text), true); }
 
 	/** Админ сервера: выдавать и отменять нарушения, вписывать страну и герб в паспортном столе могут только они. */
-	static boolean isAdmin(ServerPlayer p) { return p.permissions().hasPermission(Permissions.COMMANDS_ADMIN); }
+	public static boolean isAdmin(ServerPlayer p) { return p.permissions().hasPermission(Permissions.COMMANDS_ADMIN); }
 
 	private static boolean nearDesk(ServerPlayer p, long posL) {
 		BlockPos pos = BlockPos.of(posL);

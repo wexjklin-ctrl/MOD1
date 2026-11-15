@@ -22,7 +22,7 @@ final class BenchScreen extends net.minecraft.client.gui.screens.Screen {
 	private List<BenchRecipes.Recipe> shown = new ArrayList<>();
 
 	BenchScreen(BlockPos pos) {
-		super(Component.literal("Верстак"));
+		super(Component.literal("Крафт машин (админ)"));
 		this.pos = pos;
 		groups.add("");
 		TreeSet<String> g = new TreeSet<>();
@@ -107,7 +107,7 @@ final class BenchScreen extends net.minecraft.client.gui.screens.Screen {
 	@Override
 	public void tick() {
 		super.tick();
-		if (minecraft.player == null || minecraft.player.distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5) > 64) onClose();
+		if (minecraft.player == null) onClose();
 	}
 
 	@Override
