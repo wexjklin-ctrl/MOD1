@@ -147,14 +147,7 @@ public final class PassportStore {
 				}
 				VIOL.put(UUID.fromString(e.getKey()), l);
 			}
-			if (root.has("cars")) for (var e : root.getAsJsonObject("cars").entrySet()) {
-				Map<UUID, CarRec> m = new LinkedHashMap<>();
-				for (var c : e.getValue().getAsJsonObject().entrySet()) {
-					JsonObject o = c.getValue().getAsJsonObject();
-					m.put(UUID.fromString(c.getKey()), new CarRec(o.get("name").getAsString(), o.get("x").getAsInt(), o.get("y").getAsInt(), o.get("z").getAsInt()));
-				}
-				CARS.put(UUID.fromString(e.getKey()), m);
-			}
+			// старые записи "cars" не читаем: машины больше не отслеживаются, при следующем сохранении они исчезнут из файла
 			if (root.has("names")) for (var e : root.getAsJsonObject("names").entrySet()) NAMES.put(e.getKey(), UUID.fromString(e.getValue().getAsString()));
 		} catch (Throwable t) { com.rzauto.RzAutoMod.LOG.error("rz_auto_passports.json не прочитался", t); }
 		dirty = false;

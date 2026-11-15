@@ -51,6 +51,7 @@ public class VehicleEntity extends Entity {
 	private final double[] vel = new double[2];
 	/** Состояние (передачи и т.д.); режим передач включён по умолчанию, чтобы скорость не была сразу 100%. */
 	private final VehicleState vs = newState();
+	private int gear7Cool;
 	private final GearDriver gearDriver = new GearDriver();
 	private final GearDriver.Out gearOut = new GearDriver.Out();
 	private boolean lastJump;
@@ -275,7 +276,8 @@ public class VehicleEntity extends Entity {
 		initFuel();
 		// поломки удалены: машина всегда исправна; 7-я передача (если есть у модели) доступна сразу
 		if (vs.wear.broken) vs.wear.broken = false;
-		if (vs.gears.gear7Locked) vs.gears.unlockGear7();
+		// 7-я передача держится ограниченное время; без поломок она «перезаряжается» через 30 с после окончания
+		if (vs.gears.gear7Locked) { if (++gear7Cool >= 600) { vs.gears.unlockGear7(); gear7Cool = 0; } } else gear7Cool = 0;
 		if (owner != null && tickCount % 40 == 0 && (ownerName.isEmpty() || !ownerName.equals(entityData.get(DATA_OWNER_NAME)))) refreshOwnerName();
 		if (hp >= 0 && hp < maxHp() && tickCount - lastHitTick > 100 && tickCount % 10 == 0) { hp = Math.min(maxHp(), hp + maxHp() * 0.01f); syncState(); }
 
@@ -334,14 +336,14 @@ public class VehicleEntity extends Entity {
 		if (isInWater()) max *= 0.1;   // по воде только 10% скорости
 		// 1-я передача (режим передач включён): «ползёт» без штрафов покрытия, буксовки и склона, чтобы выбраться с травы и холма
 		boolean crawl = vs.gears.mode && vs.gears.gear(s) == 1;
+		final String under = Terrain.supportId(level(), this);   // один поиск опоры за тик (раньше два)
 		if (!crawl && !(s.offroadExempt() || s.hasSiren() || s.bedrockId().startsWith("jeep:"))) {
-			var fx = com.rzauto.logic.Surface.effect(Terrain.supportId(level(), this));
+			var fx = com.rzauto.logic.Surface.effect(under);
 			if (fx != null) max *= OFFROAD_MULT;   // земля, песок, грязь: -40% (джипы и полиция не страдают)
 		}
 		if (canDrive) lastMax = max;
 		final double yaw0 = st.yawDeg;
 		if (vs.gta) {
-			String under = Terrain.supportId(level(), this);
 			double slope = Math.max(-0.5, Math.min(0.5, -Math.sin(Math.toRadians(tiltPitch))));
 			if (stepGrace > 0) { stepGrace--; slope = 0; }
 			Physics.Env env = com.rzauto.logic.Surface.env(under, slope);
