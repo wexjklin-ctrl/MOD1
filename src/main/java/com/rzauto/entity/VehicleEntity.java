@@ -273,8 +273,9 @@ public class VehicleEntity extends Entity {
 		VehicleSpec s = spec();
 		if (s == null) return;
 		initFuel();
-		// передачи и поломки удалены: машина всегда исправна и едет без режима передач
-		if (vs.gears.mode || vs.gears.auto || vs.wear.broken) { vs.gears.mode = false; vs.gears.auto = false; vs.wear.broken = false; }
+		// поломки удалены: машина всегда исправна; 7-я передача (если есть у модели) доступна сразу
+		if (vs.wear.broken) vs.wear.broken = false;
+		if (vs.gears.gear7Locked) vs.gears.unlockGear7();
 		if (owner != null && tickCount % 40 == 0 && (ownerName.isEmpty() || !ownerName.equals(entityData.get(DATA_OWNER_NAME)))) refreshOwnerName();
 		if (hp >= 0 && hp < maxHp() && tickCount - lastHitTick > 100 && tickCount % 10 == 0) { hp = Math.min(maxHp(), hp + maxHp() * 0.01f); syncState(); }
 
@@ -531,8 +532,8 @@ public class VehicleEntity extends Entity {
 			sens = Float.parseFloat(in.getStringOr("sens", Float.toString(SENS_DEFAULT)));
 			lights = !"0".equals(in.getStringOr("lights", "1"));
 			roof = !"0".equals(in.getStringOr("roof", "1"));
-			vs.gears.mode = false;
-			vs.gears.auto = false;
+			vs.gears.mode = "1".equals(in.getStringOr("gears", "0"));
+			vs.gears.auto = vs.gears.mode && "1".equals(in.getStringOr("gearsAuto", "0"));
 			glove = in.read("glove", ItemStack.OPTIONAL_CODEC).orElse(ItemStack.EMPTY);
 			gloveDirty = true;
 			entityData.set(DATA_GLOVE, glove.copy());
@@ -656,7 +657,11 @@ public class VehicleEntity extends Entity {
 			case ACT_GLOVE_TAKE -> gloveTake(p);
 			case ACT_SENS_DOWN -> sens = Math.max(SENS_MIN, Math.round((sens - SENS_STEP) * 10f) / 10f);
 			case ACT_SENS_UP -> sens = Math.min(SENS_MAX, Math.round((sens + SENS_STEP) * 10f) / 10f);
-			case ACT_GEARS -> { }   // режим передач удалён
+			case ACT_GEARS -> {   // выкл -> ручная -> автомат -> выкл
+				if (!vs.gears.mode) { vs.gears.mode = true; vs.gears.auto = false; }
+				else if (!vs.gears.auto) { vs.gears.auto = true; if (vs.gears.rawGear() > 6) vs.gears.setGear(6); }
+				else { vs.gears.mode = false; vs.gears.auto = false; }
+			}
 			default -> { }
 		}
 		syncState();

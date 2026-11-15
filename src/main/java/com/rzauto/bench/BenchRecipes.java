@@ -26,7 +26,6 @@ public final class BenchRecipes {
 			JsonArray arr = JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8)).getAsJsonArray();
 			for (JsonElement e : arr) {
 				JsonObject o = e.getAsJsonObject();
-				if (o.get("id").getAsString().equals("carworkshop:craft_gear")) continue;   // шестерёнок больше нет
 				JsonObject r = o.getAsJsonObject("result");
 				String srcItem = r.get("item").getAsString();
 				String res = r.has("java_item") ? r.get("java_item").getAsString() : mapItem(srcItem);
