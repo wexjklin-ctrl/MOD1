@@ -51,7 +51,7 @@ public class VehicleEntity extends Entity {
 	private final double[] vel = new double[2];
 	/** Состояние (передачи и т.д.); режим передач включён по умолчанию, чтобы скорость не была сразу 100%. */
 	private final VehicleState vs = newState();
-	private int gear7Cool;
+	private long gear7At;   // игровое время, когда 7-я передача перезарядится (0 = не ждём)
 	private final GearDriver gearDriver = new GearDriver();
 	private final GearDriver.Out gearOut = new GearDriver.Out();
 	private boolean lastJump;
@@ -271,13 +271,15 @@ public class VehicleEntity extends Entity {
 		super.tick();
 		tiltTick();
 		if (level().isClientSide()) return;
+		// Припаркованная машина (без пассажиров, на земле, стоит): быстрый выход, служебные дела раз в 16 тиков
+		if (getPassengers().isEmpty() && onGround() && st.speed == 0 && st.lat == 0 && (tickCount & 15) != 0) return;
 		VehicleSpec s = spec();
 		if (s == null) return;
 		initFuel();
 		// поломки удалены: машина всегда исправна; 7-я передача (если есть у модели) доступна сразу
 		if (vs.wear.broken) vs.wear.broken = false;
 		// 7-я передача держится ограниченное время; без поломок она «перезаряжается» через 30 с после окончания
-		if (vs.gears.gear7Locked) { if (++gear7Cool >= 600) { vs.gears.unlockGear7(); gear7Cool = 0; } } else gear7Cool = 0;
+		if (vs.gears.gear7Locked) { long now = level().getGameTime(); if (gear7At == 0) gear7At = now + 600; else if (now >= gear7At) { vs.gears.unlockGear7(); gear7At = 0; } } else gear7At = 0;
 		if (owner != null && tickCount % 40 == 0 && (ownerName.isEmpty() || !ownerName.equals(entityData.get(DATA_OWNER_NAME)))) refreshOwnerName();
 		if (hp >= 0 && hp < maxHp() && tickCount - lastHitTick > 100 && tickCount % 10 == 0) { hp = Math.min(maxHp(), hp + maxHp() * 0.01f); syncState(); }
 
