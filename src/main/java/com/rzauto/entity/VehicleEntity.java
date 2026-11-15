@@ -347,6 +347,7 @@ public class VehicleEntity extends Entity {
 		final double yaw0 = st.yawDeg;
 		if (vs.gta) {
 			double slope = Math.max(-0.5, Math.min(0.5, -Math.sin(Math.toRadians(tiltPitch))));
+			if (slope > 0 && s.bedrockId().startsWith("jeep:")) slope *= 2.0 / 3.0;   // джипы: подъём в холм на 1/3 легче
 			if (stepGrace > 0) { stepGrace--; slope = 0; }
 			Physics.Env env = com.rzauto.logic.Surface.env(under, slope);
 			if (crawl) env = new Physics.Env(env.grip(), 1.0, 0.0);

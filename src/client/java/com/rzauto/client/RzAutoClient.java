@@ -47,9 +47,24 @@ public class RzAutoClient implements ClientModInitializer {
 	}
 
 	/** Режим GTA: персонаж всегда смотрит по ходу машины (на поворотах не остаётся в старом направлении). */
+	private static int followId = -1;
+	private static float followYaw;
+
 	private static void faceForward(Minecraft mc) {
 		VehicleEntity ve = VehicleHud.riding(mc);
-		if (ve == null || !CamMode.gta || mc.options.getCameraType().isFirstPerson()) return;
+		if (ve == null) { followId = -1; return; }
+		// как в лодке: персонаж (и взгляд) поворачиваются вместе с машиной на величину её поворота за тик
+		float cur = ve.getYRot();
+		if (ve.getId() != followId) { followId = ve.getId(); followYaw = cur; }
+		else {
+			float d = net.minecraft.util.Mth.wrapDegrees(cur - followYaw);
+			followYaw = cur;
+			if (d != 0f) {
+				mc.player.setYRot(mc.player.getYRot() + d); mc.player.yRotO += d;
+				mc.player.setYHeadRot(mc.player.getYHeadRot() + d); mc.player.setYBodyRot(mc.player.getYRot());
+			}
+		}
+		if (!CamMode.gta || mc.options.getCameraType().isFirstPerson()) return;
 		float yaw = ve.getYRot();
 		mc.player.setYRot(yaw); mc.player.yRotO = yaw;
 		mc.player.setYHeadRot(yaw); mc.player.setYBodyRot(yaw);
