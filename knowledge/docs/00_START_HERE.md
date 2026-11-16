@@ -7,7 +7,7 @@
 **Read order**
 1. `01_ARCHITECTURE.md` — layers, tick order, data flow.
 2. `02_PHYSICS_CORE.md` — cannon-es runtime, constants, how bodies reach the screen.
-3. `03_CONTRAPTIONS_SESSIONS.md` — assembly, session object, persistence format, render batching. Then `03b_ASSEMBLY_SPLIT_GLUE.md` — assemble/place/break/split/glue/rot; `03c_ROPES_MACHINES.md` — ropes, drill/harvester/saw/deployer/funnel.
+3. `03_CONTRAPTIONS_SESSIONS.md` — assembly, session object, persistence format, render batching. Then `03b_ASSEMBLY_SPLIT_GLUE.md` — assemble/place/break/split/glue/rot; `03c_ROPES_MACHINES.md` — ropes, drill/harvester/saw/deployer/funnel; `03d_TOWER_TURRET.md` — башня, пульт, пушки на башне.
 4. `04_VEHICLES.md` + `04b_WHEEL_GROUND_MODEL.md` + `04c_DRIVE_STEERING.md` + `04d_ENGINE_GRAPH.md` + `04e_AIRCRAFT_PROPELLERS.md` + `04f_SUSPENSION_TRACKS_HUD.md` — RZ Lite drive/suspension/wheels (kinematic vehicles).
 5. `05b_CBC_CONFIG_BALLISTICS.md` + `05c_CBC_PROJECTILES_IMPACT.md` + `05e_CBC_WORLD_RECOIL_EFFECTS_ADMIN.md` + `05f_CBC_TWIN_AUTOCANNON.md` + `05g_CBC_ON_STRUCTURES.md` + `05h_IRONS_ARTIFICE.md` (CBC, Iron's), `05_CBC_AND_IRONS.md`, `06_RESOURCE_PACK.md`, `07_DATA_FORMATS.md` — coverage notes (see honesty table).
 6. `08_REWRITE_GUIDE.md` — how to rewrite the core, `09_GOTCHAS.md`, `10_WORKFLOW.md`, `GLOSSARY.md`.
@@ -24,7 +24,7 @@
 | applyPhysicsWheelForces (main.js L1508-1924) | READ → `04b_WHEEL_GROUND_MODEL.md` |
 | car_drive.js, wheel_surface.js, stepRzDrive, rzCarDrive, traction | READ → `04c_DRIVE_STEERING.md` |
 | rz_drive.js tables + build() drivetrain graph | READ → `04d_ENGINE_GRAPH.md` |
-| aircraft RZ (airplane_flight, rz_air_*, rz_flap_pose, rz_block_mass, AirRig), andesite_propeller thrust | READ → `04e_AIRCRAFT_PROPELLERS.md` (airplane_throttle, propeller_bearing, applyGuidingWind*: indexed only) |
+| aircraft RZ (airplane_flight, rz_air_*, rz_flap_pose, rz_block_mass, AirRig), andesite_propeller thrust | READ → `04e_AIRCRAFT_PROPELLERS.md` (airplane_throttle, propeller_bearing, applyGuidingWindSteering — читан в 03d §4, но guidingWindSailGroups/руль Guiding Wind: indexed only) |
 | rz_susp.js (flip/lying/air/tip/hull), track_belt.js, rz_hud.js, rzInteract/rzHud | READ → `04f_SUSPENSION_TRACKS_HUD.md` |
 | assembly (activatePhysicsBlockBelow), place/remove block, split into pieces, glue, rz_rot.js | READ → `03b_ASSEMBLY_SPLIT_GLUE.md` (createPhysicsControllerAssembly, refreshPhysicsStructureConnections, tower helpers: indexed only) |
 | «break planner» / fallen-physics = tree felling, appears to be DEAD CODE (no callers of prepare/executePhysicsBreak/register) | PARTLY READ (planner, executePhysicsBreak, handleCollision, tick) → 03b §7; register/decay/settlement/topology: indexed only |
@@ -37,6 +37,7 @@
 | cbc/cmMount.js (пушки на конструкциях, РАБОЧИЙ); core/cbcMount.js и core/cbcLooks.js (**мёртвые, битые импорты**) | READ → `05g_CBC_ON_STRUCTURES.md` |
 | irons/main.js (Iron's Arms, огнестрел) | READ → `05h_IRONS_ARTIFICE.md` |
 | Граф импортов: 118 из 124 файлов достижимы от main.js; недостижимы wheel_marks, cbc/types, config.js, ContraptionSailRenderer, core/cbcLooks, core/cbcMount | STATIC (`tools/reach.py`) → 05g §0 |
+| blocks/tower.js (башня-шарнир), propeller_bearing.js, airplane_throttle.js, aircraft_motion.js, интеграция в main.js | READ → `03d_TOWER_TURRET.md` (tower_batch client: indexed only) |
 | In-game behavior | NOT TESTED |
 
 **Rule for future Claudes:** upgrade a row to READ only after reading it line by line; update this table when you do.
