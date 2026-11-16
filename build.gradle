@@ -66,7 +66,8 @@ tasks.register('apiDump') {
 			def javap = new File(System.getProperty('java.home'), 'bin/javap').absolutePath
 			q.readLines().findAll { it.trim() && !it.startsWith('#') }.each { c ->
 				println "=== CLASS ${c}"
-				def pr = new ProcessBuilder(javap, '-protected', '-cp', cp, c.trim()).redirectErrorStream(true).start()
+				boolean deep = c.trim().startsWith('!')
+				def pr = (deep ? new ProcessBuilder(javap, '-p', '-c', '-cp', cp, c.trim().substring(1)) : new ProcessBuilder(javap, '-protected', '-cp', cp, c.trim())).redirectErrorStream(true).start()
 				println pr.inputStream.text
 				pr.waitFor()
 			}
