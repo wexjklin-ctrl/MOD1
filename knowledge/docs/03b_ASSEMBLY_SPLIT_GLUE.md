@@ -42,7 +42,7 @@
 - Гниение (RZ): если у части компонент есть ядро, а у других нет — безъядерные помечаются `rzRotMark` (также если сессия уже гнила, или режим башни).
 
 ## 6. Гниение обломков `blocks/rz_rot.js` (56 строк, READ)
-`ROT.ON`=1, `STAGE_TICKS`=14: стадии темнения 1..3, на 4*14=56 тике `finish` (без выпадения блоков; содержимое сундуков выпадает). Таблица `dying` в памяти (не сохраняется). Команды `scriptevent rzlite:rot on|off|stage <n>`; настройки в world dynamic property `rzlite:rot`. Реализация `smoke/finish` передаётся из main.js (я их не читал).
+`ROT.ON`=1, `STAGE_TICKS`=14: стадии темнения 1..3, на 4*14=56 тике `finish` (без выпадения блоков; содержимое сундуков выпадает). Таблица `dying` в памяти (не сохраняется). Команды `scriptevent rzlite:rot on|off|stage <n>`; настройки в world dynamic property `rzlite:rot`. Реализации `smoke/finish` (main.js L19242–19286) прочитаны: см. `05d` §4 (потемнение блоков deepslate→blackstone→coal_block; finish выбрасывает содержимое хранилищ, снимает сущности и сессию).
 
 ## 7. «Рубка деревьев» (planner разлома) и fallen-physics — ПОХОЖЕ НА МЁРТВЫЙ КОД
 Классы `PhysicsBreakPlanner` (L16451) и `FallenPhysicsLifecycle` (L12408) — наследие мода физики падающих деревьев (logs/leaves/roots, `createChopMotion`, `getPhysicsFellingToolProfile`), а НЕ разлом машин. Статический grep по main.js и по остальным .js: `physicsBreakPlanner.prepare`, `executePhysicsBreak` и `fallenPhysicss.register` НЕ вызываются нигде, кроме собственных определений (planner используется лишь через `invalidateNear` при поршнях; `pendingBreaks` объявлен и не используется). Подписки живы: `collision`, `waterEntry`, `lavaEntry`, `step` → `fallenPhysicss.tick`, но при пустых таблицах tick выходит сразу (L12738). Значит дерево физически не падает, если только состояние не загружено из старого сохранения (`create_physics:fallen_physicss`). Не проверено в игре. Прочитано: `prepare`/`invalidateNear`/`commitBreak`, `executePhysicsBreak`, `handleCollision`, `tick`. НЕ прочитано: `register`, `tickDecay`, `tickSettlement`, `damageEntities`, топология (`collectConnectedLogs`, `analyzeRoots`).
@@ -55,4 +55,4 @@
 - `syncHandrailControllerSession` / `handrailAssemblyOptions` (L24736–24780): поручень-рельса: тело `dynamic`, `allowSleep:false`, linearFactor 1 только по оси рельсы, angularFactor 0, базовый блок `handrail_panel` (масса 2, без рендера, без collisionResponse). Остальное в поручнях не читал.
 
 ## 9. Всё ещё не прочитано
-`physicsBlocksWithAttachedWheels` (L614), `capturePhysicsStorageEntities`, `restorePhysicsBlockBelow`, `handlePhysicsGlueAreaUse` (UI выделения), `rzAssembleNotify`, `blocks/tower.js`, реализации `smoke/finish` гниения.
+`physicsBlocksWithAttachedWheels` (L614), `capturePhysicsStorageEntities`, `restorePhysicsBlockBelow`, `handlePhysicsGlueAreaUse` (UI выделения), `rzAssembleNotify`, `blocks/tower.js`, 

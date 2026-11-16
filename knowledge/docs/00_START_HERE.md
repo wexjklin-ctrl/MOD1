@@ -31,7 +31,8 @@
 | rope/rope_hook (rope_simulation.js, tick, towing), drill, harvester, saw, deployer, funnel | READ → `03c_ROPES_MACHINES.md` (vault/tank/chest, handrail, handle interaction entities: indexed only) |
 | CBC: main, settings, config/*, ballistics, multiblock, loading, fire, casings, perf | READ → `05b_CBC_CONFIG_BALLISTICS.md` |
 | CBC: projectiles.js, impact.js | READ → `05c_CBC_PROJECTILES_IMPACT.md` |
-| CBC: twin, world, recoil, fuze, admin, effects, cmMount, twin_scan, core/cbcMount, core/cbcLooks; irons/main.js | INDEXED ONLY |
+| CBC: fuze.js, цепная детонация, rzExplodeSessions и хук конструкций (main.js L19105–19286), гниение smoke/finish | READ → `05d_CBC_FUZE_STRUCTURE_DAMAGE.md` |
+| CBC: twin, twin_scan, world, recoil, admin, effects, cmMount, core/cbcMount, core/cbcLooks; irons/main.js | INDEXED ONLY |
 | In-game behavior | NOT TESTED |
 
 **Rule for future Claudes:** upgrade a row to READ only after reading it line by line; update this table when you do.
