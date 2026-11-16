@@ -9,7 +9,7 @@
 2. `02_PHYSICS_CORE.md` — cannon-es runtime, constants, how bodies reach the screen.
 3. `03_CONTRAPTIONS_SESSIONS.md` — assembly, session object, persistence format, render batching. Then `03b_ASSEMBLY_SPLIT_GLUE.md` — assemble/place/break/split/glue/rot; `03c_ROPES_MACHINES.md` — ropes, drill/harvester/saw/deployer/funnel.
 4. `04_VEHICLES.md` + `04b_WHEEL_GROUND_MODEL.md` + `04c_DRIVE_STEERING.md` + `04d_ENGINE_GRAPH.md` + `04e_AIRCRAFT_PROPELLERS.md` + `04f_SUSPENSION_TRACKS_HUD.md` — RZ Lite drive/suspension/wheels (kinematic vehicles).
-5. `05b_CBC_CONFIG_BALLISTICS.md` + `05c_CBC_PROJECTILES_IMPACT.md` + `05e_CBC_WORLD_RECOIL_EFFECTS_ADMIN.md` (CBC), `05_CBC_AND_IRONS.md`, `06_RESOURCE_PACK.md`, `07_DATA_FORMATS.md` — coverage notes (see honesty table).
+5. `05b_CBC_CONFIG_BALLISTICS.md` + `05c_CBC_PROJECTILES_IMPACT.md` + `05e_CBC_WORLD_RECOIL_EFFECTS_ADMIN.md` + `05f_CBC_TWIN_AUTOCANNON.md` (CBC), `05_CBC_AND_IRONS.md`, `06_RESOURCE_PACK.md`, `07_DATA_FORMATS.md` — coverage notes (see honesty table).
 6. `08_REWRITE_GUIDE.md` — how to rewrite the core, `09_GOTCHAS.md`, `10_WORKFLOW.md`, `GLOSSARY.md`.
 7. `_generated/*.md` — machine-made tables (modules, blocks, events, strings `__t(id)`, recipes, step journal).
 8. `annotated_src/` — all 124 scripts with a `CLAUDE-MAP` header; code unchanged (`tools/strip_annotations.py` restores bytes).
@@ -33,7 +33,8 @@
 | CBC: projectiles.js, impact.js | READ → `05c_CBC_PROJECTILES_IMPACT.md` |
 | CBC: fuze.js, цепная детонация, rzExplodeSessions и хук конструкций (main.js L19105–19286), гниение smoke/finish | READ → `05d_CBC_FUZE_STRUCTURE_DAMAGE.md` |
 | CBC: world.js (заряжание/выстрел/редстоун), recoil.js, effects.js, admin.js | READ → `05e_CBC_WORLD_RECOIL_EFFECTS_ADMIN.md` |
-| CBC: twin, twin_scan, cmMount, core/cbcMount, core/cbcLooks; irons/main.js | INDEXED ONLY |
+| CBC: twin.js, twin_scan.js (бронзовая спаренная автопушка) | READ → `05f_CBC_TWIN_AUTOCANNON.md` |
+| CBC: cmMount, core/cbcMount, core/cbcLooks; irons/main.js | INDEXED ONLY |
 | In-game behavior | NOT TESTED |
 
 **Rule for future Claudes:** upgrade a row to READ only after reading it line by line; update this table when you do.
