@@ -1,0 +1,474 @@
+{
+ "main.js": [
+  {
+   "module": "src/PhysicsPhysics/main.ts",
+   "start": 96,
+   "end": 2838,
+   "lines": 2743
+  },
+  {
+   "module": "src/PhysicsPhysics/gameplay/artificial-physics-registry.ts",
+   "start": 2839,
+   "end": 2841,
+   "lines": 3
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/blocks.ts",
+   "start": 2842,
+   "end": 3013,
+   "lines": 172
+  },
+  {
+   "module": "src/PhysicsPhysics/gameplay/artificial-physics-registry.ts",
+   "start": 3014,
+   "end": 3096,
+   "lines": 83
+  },
+  {
+   "module": "src/PhysicsPhysics/gameplay/assembly-external-effects.ts",
+   "start": 3097,
+   "end": 3099,
+   "lines": 3
+  },
+  {
+   "module": "src/PhysicsPhysics/gameplay/assembly-contact-query.ts",
+   "start": 3100,
+   "end": 3344,
+   "lines": 245
+  },
+  {
+   "module": "src/PhysicsPhysics/gameplay/assembly-external-effects.ts",
+   "start": 3345,
+   "end": 3677,
+   "lines": 333
+  },
+  {
+   "module": "src/PhysicsPhysics/gameplay/explosion-assembly-physics.ts",
+   "start": 3678,
+   "end": 3758,
+   "lines": 81
+  },
+  {
+   "module": "src/PhysicsPhysics/gameplay/fallen-physics-lifecycle.ts",
+   "start": 3759,
+   "end": 3769,
+   "lines": 11
+  },
+  {
+   "module": "src/PhysicsPhysics/persistence/dynamic-property-json-store.ts",
+   "start": 3770,
+   "end": 3886,
+   "lines": 117
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/assembly-mesher.ts",
+   "start": 3887,
+   "end": 3955,
+   "lines": 69
+  },
+  {
+   "module": "src/PhysicsPhysics/gameplay/fallen-physics-lifecycle.ts",
+   "start": 3956,
+   "end": 3960,
+   "lines": 5
+  },
+  {
+   "module": "src/PhysicsPhysics/data/generated/block-physics-properties.generated.ts",
+   "start": 3961,
+   "end": 3994,
+   "lines": 34
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/assembly-visual.ts",
+   "start": 3995,
+   "end": 4226,
+   "lines": 232
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/fragment-layout.ts",
+   "start": 4227,
+   "end": 4545,
+   "lines": 319
+  },
+  {
+   "module": "src/PhysicsPhysics/data/generated/biome-foliage.generated.ts",
+   "start": 4546,
+   "end": 4638,
+   "lines": 93
+  },
+  {
+   "module": "src/PhysicsPhysics/data/generated/vanilla-foliage-colormap.generated.ts",
+   "start": 4639,
+   "end": 9038,
+   "lines": 4400
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/foliage-tint.ts",
+   "start": 9039,
+   "end": 9286,
+   "lines": 248
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/assembly-visual-renderer.ts",
+   "start": 9287,
+   "end": 9325,
+   "lines": 39
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/assembly-block.ts",
+   "start": 9326,
+   "end": 9387,
+   "lines": 62
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/leaf-physics-quality.ts",
+   "start": 9388,
+   "end": 9881,
+   "lines": 494
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/leaf-physics-runtime.ts",
+   "start": 9882,
+   "end": 9887,
+   "lines": 6
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/assembly-collider-index.ts",
+   "start": 9888,
+   "end": 10031,
+   "lines": 144
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/leaf-physics-runtime.ts",
+   "start": 10032,
+   "end": 10196,
+   "lines": 165
+  },
+  {
+   "module": "src/PhysicsPhysics/ui/physics-physics-settings.ts",
+   "start": 10197,
+   "end": 10340,
+   "lines": 144
+  },
+  {
+   "module": "src/PhysicsPhysics/data/generated/vanilla-block-sounds.generated.ts",
+   "start": 10341,
+   "end": 11464,
+   "lines": 1124
+  },
+  {
+   "module": "src/PhysicsPhysics/data/block-sound.ts",
+   "start": 11465,
+   "end": 11489,
+   "lines": 25
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/rotation-continuity.ts",
+   "start": 11490,
+   "end": 11517,
+   "lines": 28
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/indexed-world-sensor-batch.ts",
+   "start": 11518,
+   "end": 11523,
+   "lines": 6
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/log-breakage.ts",
+   "start": 11524,
+   "end": 12247,
+   "lines": 724
+  },
+  {
+   "module": "src/PhysicsPhysics/gameplay/physics-item-drop-batching.ts",
+   "start": 12248,
+   "end": 12317,
+   "lines": 70
+  },
+  {
+   "module": "src/PhysicsPhysics/gameplay/world-block-probe-batch.ts",
+   "start": 12318,
+   "end": 12340,
+   "lines": 23
+  },
+  {
+   "module": "src/PhysicsPhysics/gameplay/fallen-physics-lifecycle.ts",
+   "start": 12341,
+   "end": 15945,
+   "lines": 3605
+  },
+  {
+   "module": "src/PhysicsPhysics/main.ts",
+   "start": 15946,
+   "end": 15951,
+   "lines": 6
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/attachment-performance.ts",
+   "start": 15952,
+   "end": 16064,
+   "lines": 113
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/low-performance-branch-pruning.ts",
+   "start": 16065,
+   "end": 16197,
+   "lines": 133
+  },
+  {
+   "module": "src/PhysicsPhysics/gameplay/physics-world-removal.ts",
+   "start": 16198,
+   "end": 16265,
+   "lines": 68
+  },
+  {
+   "module": "src/PhysicsPhysics/gameplay/piston-assembly-physics.ts",
+   "start": 16266,
+   "end": 16437,
+   "lines": 172
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/types.ts",
+   "start": 16438,
+   "end": 16440,
+   "lines": 3
+  },
+  {
+   "module": "src/PhysicsPhysics/gameplay/physics-selection.ts",
+   "start": 16441,
+   "end": 17228,
+   "lines": 788
+  },
+  {
+   "module": "src/PhysicsPhysics/gameplay/physics-settlement.ts",
+   "start": 17229,
+   "end": 17264,
+   "lines": 36
+  },
+  {
+   "module": "src/PhysicsPhysics/gameplay/physics-player-interaction.ts",
+   "start": 17265,
+   "end": 17878,
+   "lines": 614
+  },
+  {
+   "module": "src/PhysicsPhysics/ui/physics-settings.ts",
+   "start": 17879,
+   "end": 17885,
+   "lines": 7
+  },
+  {
+   "module": "src/PhysicsPhysics/ui/physics-settings-form.ts",
+   "start": 17886,
+   "end": 18102,
+   "lines": 217
+  },
+  {
+   "module": "src/PhysicsPhysics/ui/physics-settings.ts",
+   "start": 18103,
+   "end": 18126,
+   "lines": 24
+  },
+  {
+   "module": "src/PhysicsPhysics/main.ts",
+   "start": 18127,
+   "end": 24992,
+   "lines": 6866
+  }
+ ],
+ "physics.js": [
+  {
+   "module": "src/PhysicsPhysics/physics.ts",
+   "start": 20,
+   "end": 38,
+   "lines": 19
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/assembly-mesher.ts",
+   "start": 39,
+   "end": 107,
+   "lines": 69
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/assembly-collider-index.ts",
+   "start": 108,
+   "end": 254,
+   "lines": 147
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/types.ts",
+   "start": 255,
+   "end": 257,
+   "lines": 3
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/blocks.ts",
+   "start": 258,
+   "end": 267,
+   "lines": 10
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/assembly-visual.ts",
+   "start": 268,
+   "end": 357,
+   "lines": 90
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/fragment-layout.ts",
+   "start": 358,
+   "end": 676,
+   "lines": 319
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/foliage-tint.ts",
+   "start": 677,
+   "end": 791,
+   "lines": 115
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/indexed-world-sensor-batch.ts",
+   "start": 792,
+   "end": 797,
+   "lines": 6
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/physics-collision-proxy.ts",
+   "start": 798,
+   "end": 803,
+   "lines": 6
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/obb/internal/activation.ts",
+   "start": 804,
+   "end": 924,
+   "lines": 121
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/obb/internal/collision.ts",
+   "start": 925,
+   "end": 1216,
+   "lines": 292
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/obb/internal/geometry.ts",
+   "start": 1217,
+   "end": 2668,
+   "lines": 1452
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/obb/internal/motion.ts",
+   "start": 2669,
+   "end": 2832,
+   "lines": 164
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/obb/types.ts",
+   "start": 2833,
+   "end": 2858,
+   "lines": 26
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/obb/solid-obb.ts",
+   "start": 2859,
+   "end": 3604,
+   "lines": 746
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/obb/data/collision-presets.ts",
+   "start": 3605,
+   "end": 3671,
+   "lines": 67
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/rotation-continuity.ts",
+   "start": 3672,
+   "end": 3767,
+   "lines": 96
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/physics-collision-proxy.ts",
+   "start": 3768,
+   "end": 4775,
+   "lines": 1008
+  },
+  {
+   "module": "src/PhysicsPhysics/data/generated/vanilla-block-sounds.generated.ts",
+   "start": 4776,
+   "end": 4839,
+   "lines": 64
+  },
+  {
+   "module": "src/PhysicsPhysics/data/block-sound.ts",
+   "start": 4840,
+   "end": 4847,
+   "lines": 8
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/assembly-visual-renderer.ts",
+   "start": 4848,
+   "end": 5586,
+   "lines": 739
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/cannon-kernel.ts",
+   "start": 5587,
+   "end": 5589,
+   "lines": 3
+  },
+  {
+   "module": "node_modules/cannon-es/dist/cannon-es.js",
+   "start": 5590,
+   "end": 12632,
+   "lines": 7043
+  },
+  {
+   "module": "src/PhysicsPhysics/data/generated/bedrock-block-collision.generated.ts",
+   "start": 12633,
+   "end": 12636,
+   "lines": 4
+  },
+  {
+   "module": "src/PhysicsPhysics/data/generated/sable-collision-reference.generated.ts",
+   "start": 12637,
+   "end": 12642,
+   "lines": 6
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/block-collision-shape-resolver.ts",
+   "start": 12643,
+   "end": 14395,
+   "lines": 1753
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/oriented-box-aabb-sat.ts",
+   "start": 14396,
+   "end": 14469,
+   "lines": 74
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/indexed-world-sensor-chunk-index.ts",
+   "start": 14470,
+   "end": 14493,
+   "lines": 24
+  },
+  {
+   "module": "src/PhysicsPhysics/physics/cannon-kernel.ts",
+   "start": 14494,
+   "end": 18968,
+   "lines": 4475
+  },
+  {
+   "module": "src/PhysicsPhysics/ui/physics-physics-settings.ts",
+   "start": 18969,
+   "end": 19053,
+   "lines": 85
+  },
+  {
+   "module": "src/PhysicsPhysics/physics.ts",
+   "start": 19054,
+   "end": 20904,
+   "lines": 1851
+  }
+ ]
+}

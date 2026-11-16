@@ -1,0 +1,2 @@
+# Glossary
+contraption = assembled structure; controller = root block `create_physics:controller`; session = runtime object per contraption; snapshot = saved block record; assembly = physics handle of a session; world mesh = terrain collider cache; batch = packed render entity (20 slots); RZ Lite = vehicle layer (rz_*.js); CM = Create/“Create Mod” reference behavior used as speed baseline (`CM_FULL_SPEED`); CBC = Create Big Cannons; SABLE = reference physics mod whose constants/tables were copied; "шаг N" = author's numbered change log in comments.

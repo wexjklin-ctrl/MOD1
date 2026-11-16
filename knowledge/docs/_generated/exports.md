@@ -1,0 +1,122 @@
+# Exports per module
+
+- `api/physics.js`: `PhysicsAssembly`, `PhysicsBody`, `PhysicsDimension`, `PhysicsWorld`, `createDefaultAssemblyBuoyancyPoints`, `createDefaultAssemblyCollider`, `handlePhysicsCollisionProxyLoad`, `physicsWorld`, `resolveBlockCollisionShape`
+- `blocks/aircraft_motion.js`: `applyGuidingWindSteering`
+- `blocks/airplane_flight.js`: `addAirplaneFlight`
+- `blocks/airplane_landing_gear.js`: `AIRPLANE_GROUND_REACH`, `airplaneRestReady`, `airplaneWheelSupport`
+- `blocks/airplane_math.js`: `AIRPLANE_THROTTLE`, `AIRPLANE_WING`, `ROLL_STATE`, `ACTIVE_STATE`, `key`, `clamp`, `dot`, `forwardFor`, `machineFront`, `bearingPushDirection`, `orientAirplaneSails`, `airplaneGroups`, `airplaneSailPose`, `wingDeflection`, `hasSymmetricWings`, `flightForces`
+- `blocks/airplane_stop.js`: `airplaneStoppingForce`, `restrictUnpoweredFlight`, `stoppedAirplaneGroundVelocity`
+- `blocks/airplane_takeoff.js`: `AIRPLANE_TAKEOFF_DISTANCE`, `AIRPLANE_TAKEOFF_SPEED`, `airplaneTakeoffState`, `airplaneTakeoffPitch`, `airplaneGroundRollVelocity`
+- `blocks/airplane_throttle.js`: `registerAirplaneThrottle`, `showAirplaneThrottle`, `setAirplaneVisualAngles`
+- `blocks/airplane_wing_control.js`: `registerAirplaneWingControl`, `updateAirplaneWingSails`
+- `blocks/armchair.js`: `ARMCHAIR_COLORS`, `PASSENGER_ARMCHAIR_IDS`, `isArmchairBlock`, `registerArmchairBlock`
+- `blocks/articulated_pose_cache.js`: `sameArticulatedPoses`
+- `blocks/balloon_flight.js`: `applyHotAirBalloonLift`
+- `blocks/barrel.js`: `BARREL_FACES`, `barrelRotation`, `barrelPlacementFacing`
+- `blocks/block_hardness.js`: `getBlockHardness`
+- `blocks/block_orientation.js`: `addonBlockRotation`, `addonFacingPlayer`, `restoredAddonDirection`
+- `blocks/car_directions.js`: `carDirectionFrame`, `carDriveCommand`, `carMountDirection`, `carDriveFrame`
+- `blocks/car_drive.js`: `surfaceSpeedCapKmh`, `surfaceSpeedCap`, `carMovementInput`, `applySteeringWheelDrive`
+- `blocks/car_orientation.js`: `carFacingForward`, `isCarFacingBlock`, `restoredCarFacing`
+- `blocks/chest.js`: `isPhysicsAnimatedChest`, `physicsChestVariant`, `physicsChestInventoryTitle`, `physicsChestRotation`, `initializePhysicsChestAnimation`
+- `blocks/controller.js`: `registerControllerBlock`
+- `blocks/copycat.js`: `copycatMaterialState`
+- `blocks/create_doors.js`: `CREATE_DOORS`, `isCreateDoor`, `createDoorState`, `createDoorProperties`, `createDoorCollision`, `raycastCreateDoors`, `doorContactCenter`, `createDoorPlayerSupports`, `configureCreateDoors`, `toggleCreateDoor`
+- `blocks/create_ladders.js`: `CREATE_LADDERS`, `isPhysicsLadder`, `createLadderDirection`, `setPhysicsLadderFacing`
+- `blocks/deployer.js`: `deployerTarget`, `isDeployerTool`, `deployerHand`, `ensurePhysicsDeployerHands`, `queuePhysicsDeployerUse`, `takeDeployerBlock`, `deployerHoeGround`, `tickPhysicsDeployers`
+- `blocks/deployer_tools.js`: `damageDeployerTool`, `usePhysicsDeployerTool`
+- `blocks/double_chest.js`: `physicsChestPartner`, `syncPhysicsChestHitbox`, `configurePhysicsChests`, `detachPhysicsChest`
+- `blocks/funnel.js`: `isPhysicsFunnel`, `syncPhysicsFunnelVisuals`, `queuePhysicsFunnelUse`, `tickPhysicsFunnels`
+- `blocks/girder.js`: `GIRDER_ID`, `updateGirderConnections`, `girderProperties`, `girderRotation`, `girderCollision`, `syncPhysicsGirders`
+- `blocks/glass_pane_collision.js`: `glassPaneCollision`
+- `blocks/glue_filter.js`: `CORE_ID`, `isTerrainBlock`
+- `blocks/handles.js`: `registerHandlesBlock`
+- `blocks/handrail_cargo.js`: `configureHandrailCargo`, `ensureCargoVisual`, `moveCargo`, `cargoPathClear`, `captureCargo`, `queueCargoPlacement`, `settleCargo`, `forgetCargoVisual`, `releaseCargoFromBrokenPanel`, `removeStaleCargoVisual`
+- `blocks/hatch.js`: `HATCH_ID`, `hatchPlacementFacing`, `hatchVisualProperties`, `physicsHatchInventories`, `syncPhysicsHatchVisuals`, `depositPhysicsHatch`, `queuePhysicsHatchUse`
+- `blocks/hot_air_burner.js`: `registerHotAirBurnerBlock`
+- `blocks/hot_air_envelope.js`: `HOT_AIR_ENVELOPE_IDS`, `isHotAirEnvelope`
+- `blocks/index.js`: `THROTTLE_LEVER_BLOCK_ID`, `THROTTLE_LEVER_ENTITY_ID`, `showThrottleLeverControl`, `syncThrottleLeverEntities`, `registerPhysicsGlueItem`, `registerControllerBlock`, `registerHotAirBurnerBlock`, `registerArmchairBlock`, `registerHandlesBlock`, `PORTABLE_ENGINE_BLOCK_ID`, `interactWithPortableEngine`, `portableEngineFuelFromPermutation`, `syncPortableEngineEntities`
+- `blocks/mechanical_drill.js`: `drillFacing`, `drillForward`, `canDrill`, `tickPhysicsDrills`
+- `blocks/mechanical_harvester.js`: `matureCrop`, `structureInventories`, `insertHarvestStack`, `collectHarvestDrops`, `tickPhysicsHarvesters`
+- `blocks/mechanical_saw.js`: `isSawLog`, `isSawLeaves`, `sawTarget`, `createSawJob`, `cutSawBlock`, `tickPhysicsSaws`
+- `blocks/physics_glue.js`: `damagePhysicsGlue`, `registerPhysicsGlueItem`
+- `blocks/physics_performance.js`: `physicsSnapshotsOfType`, `assemblyVisualEntitiesOfType`, `setPhysicsVisualProperty`, `assemblyBlocksByLocation`, `syncPhysicsAttachmentPose`, `nearbySupportSnapshots`, `syncPhysicsAttachmentPosition`
+- `blocks/portable_engine.js`: `PORTABLE_ENGINE_BLOCK_ID`, `PORTABLE_ENGINE_ENTITY_ID`, `PORTABLE_ENGINE_BLOCK_SHAFT_ENTITY_ID`, `PORTABLE_ENGINE_RPM`, `registerPortableEngineBlock`, `interactWithPortableEngine`, `syncPortableEngineEntities`, `portableEngineFuelFromPermutation`
+- `blocks/propeller_bearing.js`: `PROPELLER_BEARING`, `SAILS_PER_BLADE`, `ROTOR_MAX_SPEED`, `placedRotorSailPermutation`, `sailPlacementNormal`, `orientPropellerSails`, `propellerGroups`, `multiply`, `quaternion`, `euler`, `continuousRotorRotation`, `rotorPose`, `addPropellerBearingMotion`
+- `blocks/propeller_bearing_control.js`: `registerPropellerBearingControl`, `showPropellerBearingControl`
+- `blocks/restore_entity_visibility.js`: `restoreEntityVisibility`
+- `blocks/rope_simulation.js`: `MAX_ROPE_LENGTH`, `ROPE_SNAP_EXTRA`, `initialRopeLength`, `ropeVisualPoints`, `enforceRopeLength`, `stopRopePull`, `stepRope`
+- `blocks/rz_air_control.js`: `stepRzAirControl`, `installRzAirControl`
+- `blocks/rz_air_lever.js`: `rzLeverInteract`, `stepRzAirLever`
+- `blocks/rz_air_mode.js`: `PROP_SPEC`, `PROP_SIZE`, `RZ_PROP_IDS`, `AIRCFG`, `propAxis`, `rzAirInfo`, `rzSymmetric`, `rzVirtualThrottle`
+- `blocks/rz_air_rig.js`: `AIR`, `AirRig`, `RZ_AIR_LITE`, `rzAirModel`, `rzForward2`, `rzAirFly`
+- `blocks/rz_block_mass.js`: `RZW`, `rzBlockMass`, `rzBlockBuoyVolume`, `rzWeightMass`, `rzWeightBuoy`, `rzMassOf`, `installRzWeight`
+- `blocks/rz_block_strength.js`: `DEFAULT_STRENGTH`, `breakProgressPerTick`, `canHarvest`, `getBlockStrength`, `isEffective`, `registerBlockStrength`, `toolOf`
+- `blocks/rz_drive.js`: `FUEL_ITEM`, `BURNER_ID`, `STEAM_TANK_ID`, `STEAM_ENGINE_ID`, `SHAFT_ID`, `RADIATOR_ID`, `FUEL_TANK_ID`, `GEARBOX_IDS`, `ENGINES`, `DRIVE`, `STEAM`, `clusterMult`, `rzMarkTrackBroken`, `analyze`, `stepRzDrive`, `rzCarDrive`, `rzCanDrive`, `rzTrackTurnScale`, `rzAirplane`, `rzInteract`, `installRzDrive`
+- `blocks/rz_flap_pose.js`: `FLAP_CFG`, `eulerToQuat`, `quatToEuler`, `flapRotation`, `stepFlapPoses`
+- `blocks/rz_hud.js`: `hudPacket`, `sendHud`, `installRzHud`
+- `blocks/rz_parts.js`: `RZ_SEAT_IDS`, `rzVisualEntityId`, `rzBlockRotation`
+- `blocks/rz_rot.js`: `ROT`, `rzHasCore`, `rzRotActive`, `rzRotMark`, `stepRzRot`, `installRzRot`
+- `blocks/rz_sound.js`: `rzEngineSound`, `rzEngineSoundCleanup`, `installRzSound`
+- `blocks/rz_susp.js`: `SUSP`, `suspSpring`, `suspOffset`, `suspReset`, `rzGroundVel`, `rzFlipStep`, `rzLie`, `rzLyingStep`, `rzAirTrack`, `rzRideOf`, `rzRideRecalc`, `rzTipBias`, `rzHullProbes`, `installRzSusp`
+- `blocks/seat_exit.js`: `findSeatExit`
+- `blocks/seat_persistence.js`: `installSeatPersistence`
+- `blocks/seat_transport.js`: `transportPhysicsSeat`
+- `blocks/structure_placement.js`: `isBlockedStructureItem`
+- `blocks/structure_plants.js`: `isStructurePlant`
+- `blocks/symmetric_sails.js`: `SAIL_COLORS`, `SAIL_MATERIALS`, `SYMMETRIC_SAIL_IDS`, `symmetricSailBase`, `symmetricSailProperties`
+- `blocks/tank.js`: `isPhysicsTank`, `updateTankConnections`, `tankVisualProperties`, `tankFluidVisualType`, `captureTankFluids`, `clearCapturedTankFluids`, `restoreTankFluids`, `connectedTankBlocks`
+- `blocks/tank_storage_bridge.js`: `sendTankStorage`
+- `blocks/throttle_lever.js`: `THROTTLE_LEVER_BLOCK_ID`, `THROTTLE_LEVER_ENTITY_ID`, `showThrottleLeverControl`, `syncThrottleLeverEntities`
+- `blocks/tower.js`: `TOWER`, `TOWER_PANEL`, `TOWER_RANGE`, `TOWER_RATE`, `PITCH_MIN`, `PITCH_MAX`, `PITCH_RATE`, `TOWER_MAX_BLOCKS`, `towerHasCannon`, `towerAxis`, `markTowerHeads`, `towerForPanel`, `addTowerMotion`, `towerTurnOf`, `showTowerPanel`
+- `blocks/track_belt.js`: `analyzeTrackBelts`, `installTrackBelts`
+- `blocks/track_layouts.js`: `TRACK_KIND`, `TRACK_BLOCKS`, `TRACK_CODE`, `TRACK_SOLO`, `TRACK_KEYS`
+- `blocks/universal_block_orientation.js`: `universalBlockRotation`
+- `blocks/vanilla_doors.js`: `VANILLA_DOORS`, `isVanillaDoor`, `vanillaDoorState`, `setVanillaDoorState`, `vanillaDoorCollision`, `vanillaDoorRotation`, `normalizeVanillaDoorPairs`
+- `blocks/vault.js`: `VAULT_ID`, `VAULT_ANCHOR_ID`, `VAULT_MOVING_TAG`, `VAULT_RESTORED_TAG`, `physicsVaultSnapshots`, `vaultAxis`, `updateVaultConnections`, `vaultVisualProperties`, `connectedVaultBlocks`, `vaultBlockTag`
+- `blocks/vehicle_systems.js`: `vehicleSystems`, `vehicleSessions`, `airEngineOn`
+- `blocks/wheel_marks.js`: `emitWheelMarks`
+- `blocks/wheel_mount_ids.js`: `WHEEL_MOUNT_IDS`, `isWheelMountId`
+- `blocks/wheel_surface.js`: `wheelSurfaceGrip`, `wheelContactGrip`, `wheelSurfaceVelocity`, `wheelCoastFactor`
+- `blocks/wheel_suspension.js`: `aircraftStructureCenterOfMass`
+- `blocks/wheel_variants.js`: `isWheelItem`, `wheelItemVariant`, `normalizeWheelVariant`, `wheelVariantItem`, `wheelVariantRadius`, `registerWheelPlacement`
+- `blocks/windmill_sails.js`: `WINDMILL_SAIL_IDS`, `isWindmillSail`, `windmillRotorFacing`, `windmillSailFacing`, `windmillSailProperties`, `windmillSailRotation`
+- `cbc/admin.js`: `openMenu`, `registerAdminCommand`
+- `cbc/ballistics.js`: `stepFlight`, `applySpread`, `orientation`
+- `cbc/casings.js`: `CASING_ENTITY`, `ejectCasing`
+- `cbc/cmMount.js`: `installCbcMount`, `cbcQueueUse`, `cbcOnAssemble`, `cbcOnDisassemble`, `cbcAimVersion`, `cbcAimPoses`
+- `cbc/cmVisuals.js`: `cbcVisualEntityId`, `cbcVisualProperties`
+- `cbc/config/materials.generated.js`: `MATERIALS`
+- `cbc/config/munitions.generated.js`: `MUNITIONS`
+- `cbc/config/overrides.js`: `MUNITION_OVERRIDES`, `LIMITS`, `SPEED_PER_POWER`, `CHARGES_PER_CHAMBER`, `CANNON_RULES`, `SHORT_BARREL`, `LONG_BARREL`, `MORTAR`, `MORTAR_BREECH_RULES`, `rulesOf`, `rulesFor`, `BARREL_SPEED`, `DEBUG`, `LONG_RANGE`, `RESTRICT_AMMO`, `ALLOWED_AMMO`, `AMMO_NAMES`, `IMPACT`, `AREA_COVER_FACTOR`, `ARMOR_MODEL`, `PIERCE_DROPS`, `FUZE`, `CHAIN`, `CRATER`, `AUTOCANNON`, `AUTOCANNON_MODS`, `AUTOCANNON_HIT_PAD`, `FLYBY`, `POISON_CLOUD`
+- `cbc/config/propellants.generated.js`: `PROPELLANTS`
+- `cbc/effects.js`: `muzzleBlast`, `poisonCloud`, `impactEffects`, `fuseSpark`, `trail`, `shake`
+- `cbc/fire.js`: `planShot`, `chargeGain`, `estimateRange`, `barrelFactor`, `rangeAt45`, `rangeAtDeg`, `speedForRange`, `speedForTarget`, `flightParams`, `impactPlan`, `mortarScatter`
+- `cbc/fuze.js`: `SHELL_ID`, `fuzeLore`, `fuzeFromItem`, `fuzeHint`, `fugasInfo`, `setFugasKnown`, `chainDetonate`, `registerFuze`
+- `cbc/impact.js`: `classify`, `mitigation`, `targetable`, `hurt`, `findEntityHit`, `areaHit`, `removeBlock`, `breakBlocks`, `tryPierce`, `setTwinHooks`, `probeTwin`, `hurtCannons`, `setStructureHook`, `structureRay`, `applyImpact`, `setChainHook`
+- `cbc/loading.js`: `ammoName`, `PROJECTILE_BLOCKS`, `CHARGE_BLOCK`, `ammoKind`, `emptyLoad`, `chargeCapacity`, `applyLoad`, `itemOfMunition`, `unloadFor`, `describeLoad`
+- `cbc/multiblock.js`: `MAX_CANNON_LENGTH`, `dirVec`, `parsePart`, `scanCannon`, `findBreech`, `findCannon`
+- `cbc/perf.js`: `classify`, `sampleTps`, `measureTps`, `tpsInfo`, `slowFactor`, `degrade`
+- `cbc/projectiles.js`: `PROJECTILE_TYPE`, `liveCount`, `liveProjectiles`, `areaCount`, `clearProjectiles`, `spawnProjectile`, `cleanupOrphans`, `startFlightLoop`
+- `cbc/recoil.js`: `RECOIL_TICKS`, `clampElevation`, `canElevate`, `setElevation`, `fireRecoil`, `releaseByPos`, `healHidden`, `isRaised`, `raiseRemaining`, `restoreRecoil`, `parsePart`
+- `cbc/settings.js`: `DEFAULTS`, `S`, `loadSettings`, `saveSettings`, `resetSettings`
+- `cbc/twin.js`: `SEAT_ENTITY`, `TWIN_ENTITY`, `ROUND_ID`, `ROUNDS`, `TRIGGER_ID`, `applyTwinLoad`, `registerTwinComponent`, `restoreTwins`, `registerTwin`
+- `cbc/twin_scan.js`: `TWIN_PREFIX`, `TWIN_LETTER`, `TWIN_PARTS`, `TWIN_MAX_LEN`, `TWIN_LAYOUTS`, `HDIRS`, `twinDirVec`, `TWIN_YAW`, `twinPart`, `boxSlot`, `validLayout`, `scanTwin`, `findTwin`
+- `cbc/world.js`: `makeReader`, `fireCannon`, `registerBreechComponent`, `setCannonsFrozen`, `armedCount`, `dischargeAll`, `registerInteraction`, `getLoadAt`, `setLoadAt`, `getElevAt`, `setElevAt`, `clearLoadAt`
+- `config.js`: `CONFIG`, `TEXT`, `format`, `__stretchK`
+- `contraptions/ContraptionBuilder.js`: `validateContraptionSnapshots`, `validateContraptionSources`, `restoreContraptionCells`
+- `contraptions/ContraptionInteraction.js`: `INTERACTION_ENTITY`, `ContraptionInteraction`
+- `contraptions/ContraptionManager.js`: `ContraptionManager`
+- `contraptions/ContraptionMovement.js`: `assertVector`, `contraptionPose`, `moveContraption`, `localToWorld`, `worldToLocal`, `inheritSeparatedBodyMotion`
+- `contraptions/ContraptionPhysics.js`: `validateContraptionAssembly`, `stopContraption`
+- `contraptions/ContraptionRenderer.js`: `BATCH_ENTITY`, `TOWER_BATCH_ENTITY`, `BATCH_SLOTS`, `BATCH_EDGE`, `BATCH_POSITION_VALUES`, `encodeBatchSlot`, `BATCH_PALETTE`, `shouldRebatchContraption`, `batchTextureIndex`, `planContraptionVisuals`, `createContraptionBatch`, `hideContraptionSlot`
+- `contraptions/ContraptionSailRenderer.js`: `SAIL_BATCH_ENTITY`, `sailBatchStyle`, `sailRigidMotion`, `createSailBatch`, `hideSailBatchSlot`, `hasPendingSailBatches`, `syncSailBatchTransforms`
+- `contraptions/ContraptionStorage.js`: `MAX_CONTRAPTION_BLOCKS`, `DEFAULT_CONTRAPTION_BLOCKS`, `normalizeBlockLimit`, `getContraptionBlockLimit`, `setContraptionBlockLimit`, `cachedContraptionStore`, `persistedContraptionKey`, `recoverPreparedContraption`
+- `core/cbcLooks.js`: `CBC`, `PARTS`, `LIFT_KIND`, `DIR_VEC`, `fixForFacing`, `setCbcFlip`, `LIFT_LOOK`, `cbcName`, `LIFT_KEY`, `cbcLook`
+- `core/cbcMount.js`: `fireOnStructure`, `syncMount`, `tickCbc`, `cbcIsUse`, `cbcUse`, `cbcAssembled`, `cbcDisassembled`, `cbcBeforeRelease`
+- `core/gauntlet.js`: `GLOVE_ID`, `gauntletInfo`, `isGauntletTypeId`, `effectiveTypeId`, `heldGauntlet`, `setModeChangeHandler`, `setMode`, `openModeMenu`
+- `i18n/i18n.js`: `LANGS`, `langName`, `getDefaultLang`, `setDefaultLang`, `getLang`, `setLang`, `__t`, `resolve`, `deep`, `T`, `__R`, `ActionFormData`, `ModalFormData`, `MessageFormData`, `ui`
+- `i18n/strings.js`: `S`
+- `main.js`: `contraptions`
+- `physics.js`: `PhysicsAssembly`, `PhysicsBody`, `PhysicsDimension`, `PhysicsWorld`, `createDefaultAssemblyBuoyancyPoints`, `createDefaultAssemblyCollider`, `handlePhysicsCollisionProxyLoad`, `physicsWorld`, `resolveBlockCollisionShape`
+- `ponder/settings.js`: `VEHICLE_CAMERA_DISTANCES`, `vehicleCameraDistance`, `saveVehicleCameraDistance`, `configurePonderSettings`, `showPonderSettings`, `normalizeStructureDistance`, `structureStreamOutDistance`, `structureStreamInDistance`, `saveStructureDistance`

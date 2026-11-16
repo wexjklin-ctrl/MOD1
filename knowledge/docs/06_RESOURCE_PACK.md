@@ -1,0 +1,2 @@
+# Resource pack — coverage note
+Counts and client-entity list: `_generated/resource_pack.md`. Key contract with scripts: visual entities get `create_physics:pitch/yaw/roll` properties; the RP animations rotate models; `contraption_batch` render controllers decode the packed slot numbers (see 03). Wheel/steering visuals use entity properties set by `syncPhysicsWheelAttachments`. Not read: render controllers, animation controllers, Molang expressions. TODO.

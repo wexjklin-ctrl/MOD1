@@ -1,0 +1,4 @@
+# Rewrite guide (core)
+Minimal viable re-implementation order: (1) a rigid-body engine behind an interface like `PhysicsBody` (`applyForceAt`, `setCollider`, `teleport`, sleeping, events step/collision); (2) terrain colliders from blocks with chunk cache + invalidation; (3) assembly: snapshot blocks → air, body with compound box collider, visuals = entities moved by `teleport` + rotation properties; (4) persistence in chunked dynamic properties (append-only tuple); (5) RZ layer as per-tick hooks that set velocity/forces (kinematic wheels + spring); (6) batch renderer.
+Keep these invariants: 3×1/60 s substeps per tick; gravity −11; one session persisted per 10 ticks; render batch palette order = RP order; never reorder save tuple.
+Reusable without change: `suspSpring`, `DRIVE`/`SUSP` tables, `encodeBatchSlot`.
