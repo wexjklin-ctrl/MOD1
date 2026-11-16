@@ -26,7 +26,7 @@
 - Ловушка: из-за подстрок правило «камня» (`stone|cobble|brick|…`) цепляет и посторонние блоки (например, всё с `brick`, `quartz`, `terracotta`), а дальше поздние правила правят. Итог для конкретного id надо считать вызовом, не «на глаз».
 - Инструменты: `toolOf("minecraft:iron_pickaxe") → {kind, tier (wooden1, golden1, stone2, copper2, iron3, diamond4, netherite4), speed (2,12,4,5,6,8,9; sword 1.5; shears tier1 speed 5)}`.
 - `breakProgressPerTick(strength, tool, {efficiency, haste, fatigue, inWater, inAir})`: 0 для hardness<0; ∞ для 0; скорость = скорость инструмента (если «эффективен»), +eff²+1, ×(1+0.2·haste), ×0.3^fatigue (≤4), /5 в воде и /5 в воздухе; делится на hardness и на 30 (можно добыть) или 100 (нельзя). Как ваниль.
-- Потребители: main.js L19116 (сопротивление/твёрдость для взрывов, 05d), `rz_block_mass.js` L8/138 (вес/броня; команда `block <id>`). `breakProgressPerTick/canHarvest` отдельно в коде не используются (grep).
+- Потребители (grep проверен): `getBlockStrength` — main.js L19116 (сопротивление/твёрдость для взрывов, 05d) и `rz_block_mass.js` L138 только в отладочной команде `/scriptevent rzlite:weight block <id>` (печатает массу, вытеснение, твёрдость, сопротивление). `registerBlockStrength`, `breakProgressPerTick`, `canHarvest`, `isEffective`, `toolOf` **нигде не вызываются** (мёртвый экспорт).
 - Не путать с `block_hardness.js` (03f §7), это другая таблица.
 
 ## 5. airplane_landing_gear.js и колёса самолёта в main.js
