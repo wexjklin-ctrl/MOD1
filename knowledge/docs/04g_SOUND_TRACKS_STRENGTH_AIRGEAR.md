@@ -1,0 +1,42 @@
+# 04g — rz_sound, track_layouts, rz_block_strength, airplane_landing_gear, airplane_math (остаток), rzAutoDriver
+
+Статус: **READ построчно** `blocks/rz_sound.js` (96), `blocks/track_layouts.js` (12 строк, 171 запись таблицы; ключи разобраны скриптом, но смысл схем не разбирал), `blocks/rz_block_strength.js` (1 строка, 9883 символа, прочитана целиком), `blocks/airplane_landing_gear.js` (53), `blocks/airplane_math.js` (190), `rzSeatedPilot/carDriverInput/rzAutoDriver/rzCarSteering/rzAssignDrivers` (main.js L1196–1281). Использование в main.js L1660–1800 сверено. Поведение в игре НЕ проверено. `flightForces` уже описан в 04e (здесь только перекрёстная проверка, что функция вызывается из `airplane_flight.js` L125).
+
+## 1. Авто-водитель (rzAutoDriver, main.js L1236)
+- Водитель = игрок, сидящий в `armchair`-сиденье конструкции (по `armchairSeatEntities`), кроме `phys:seat_passenger*`. Рулевой блок CM (`create_physics:steering_contro_wheel`) необязателен: если его нет, `rzCarSteering` создаёт **виртуальный** снапшот-руль в `session.rzVirtualSteering` (поля `virtual:true`, `wheelDriveSpeed`, `wheelSteeringAngle`, `location` = сиденье).
+- `rzAssignDrivers` (каждый тик из `applySteeringWheelDrive`) для машин (`vehicleSessions(...,"car")`, кроме самолётов): нет водителя в кресле → счётчик `rzGone`; через **10 тиков** (`carDriverId` сбрасывается; двигатель замолкает, HUD гаснет). Есть водитель и `carDriverId` пуст и не `rzNoAuto` → назначается. Если включён `RZ_DRIVE.REQUIRE_ENGINE` и нет `rz.info` — раз в 80 тиков подсказка в actionbar «Нет двигателя…».
+- `rzSeatedPilot`: для самолёта RZ (`vehicleSystems.rzAir`) пилот = только `rzAutoDriver(session).player`; для машин — сначала `carDriverId`, потом любой игрок в кресле.
+- Ввод: `carDriverInput` берёт `inputInfo.getMovementVector()` игрока и (для armchair-кресла) режим `carMovementInput(vec, armchair)`.
+
+## 2. Звук двигателя (rz_sound.js, порт core/engineSound.js)
+`playSound` играет один звук в точке, поэтому запись заранее нарезана на куски: холостой ход 24×0.4 с (`phys.eng.idle.<профиль>.NN`), движение 25×0.2 с (`phys.eng.move.<профиль>.NN`); скрипт запускает очередной кусок раз в 8 / 4 тика в точке **впереди машины по скорости** (`lead`). Состояние на машину по ключу (`states`), начальные курсоры от хеша ключа (чтобы машины не звучали синхронно).
+- Профили по типу двигателя (`profileOf`: у самого мощного подключённого кластера `info.clusters`): `tfmg:simple_large_engine` idle `v8classic`/move `normal`; `tfmg:large_engine` `c2`/`normal`; `cdg:diesel_engine` `yj`/`jeep`; `cdg:modular_diesel_engine` `xj`/`jeep`; по умолчанию `v8classic`/`normal`. Профиль пересчитывается раз в 40 тиков.
+- Микс: `rev = clamp01(max(speed/max(vmax,1), throttle*0.35))`, `x = smoothstep(0.03,0.30,rev)`; громкость холостого ∝ cos(x·π/2), движения ∝ sin(x·π/2) (плавные `approach` с разными up/down), питч 0.94→1.12 (потолок 1.25). Громкости 1.25/1.45 × `master`.
+- Управление: `/scriptevent rzlite:sound on|off|vol <0..2>`; хранится в `world` dynamic properties `rzlite:snd_on`, `rzlite:snd_vol`. Состояние машины удаляется, когда двигатель выключен и громкости <0.01; чистка зависших раз в 40 тиков (`rzEngineSoundCleanup`, >60 тиков без обновления). Вызывается из `rz_drive.js` (L407 cleanup, L465 звук, L626 install).
+- Для самолёта вместо нагрузки передаётся `session.airplaneEnginePower`.
+- Звуковые файлы (`phys.eng.*`) в RP не проверял.
+
+## 3. track_layouts.js (автогенерация `tools/gen_tracks.py`, руками не править)
+`TRACK_KIND = 37`; `TRACK_BLOCKS` (trackwork:track_cog_small/medium/large → cogs_s/m/l, trackwork:track_wheel → wheel_s), `TRACK_CODE` (a/b/c/w), `TRACK_SOLO` (индексы 0–3 для одиночных), `TRACK_KEYS`: **171 ключ → индекс геометрии 4…177**; ключ — строка вида `"0.1.w;0.2.w;1.0.a;1.3.b"` (цепочка «ряд.позиция.тип»). Используется только в `track_belt.js` L49–50: если ключа нет, пробуется **зеркальный** (`t1−t0−c[1]`) и флаг `mirrored`. Схемы и сам скрипт `tools/gen_tracks.py` не читал.
+
+## 4. rz_block_strength.js (= `getBlockStrength`, «броня» блока)
+Минифицированный модуль RZ. Экспорт: `getBlockStrength(id)`, `registerBlockStrength(id, partial)` (переопределение, сбрасывает кэш), `breakProgressPerTick`, `canHarvest`, `isEffective`, `toolOf`, `DEFAULT_STRENGTH = {hardness:1, resistance:1, tool:"", tier:0, ignite:0, burn:0}`.
+- Только `minecraft:*` идёт по правилам: массив `[регулярка, поля]`, **все подходящие применяются по порядку, поздние перекрывают ранние** (`Object.assign`), затем явная регистрация. Для других пространств имён — значения по умолчанию (1/1), если не зарегистрировано.
+- Примеры: камень/кирпич/бетон `hardness 1.5 resistance 6 pickaxe tier1`; обсидиан/незерит/якорь возрождения `50/1200 tier4`; `reinforced_deepslate` 55/1200 tier 0 (не добывается); дерево `hardness 2 resistance 3 axe, ignite 5 burn 20`; листья 0.2; шерсть 0.8; стекло 0.3; земля/песок 0.5 лопата; `bedrock/barrier/portal/command_block/structure_block/light_block…` → `hardness −1, resistance 3.6e6`.
+- Ловушка: из-за подстрок правило «камня» (`stone|cobble|brick|…`) цепляет и посторонние блоки (например, всё с `brick`, `quartz`, `terracotta`), а дальше поздние правила правят. Итог для конкретного id надо считать вызовом, не «на глаз».
+- Инструменты: `toolOf("minecraft:iron_pickaxe") → {kind, tier (wooden1, golden1, stone2, copper2, iron3, diamond4, netherite4), speed (2,12,4,5,6,8,9; sword 1.5; shears tier1 speed 5)}`.
+- `breakProgressPerTick(strength, tool, {efficiency, haste, fatigue, inWater, inAir})`: 0 для hardness<0; ∞ для 0; скорость = скорость инструмента (если «эффективен»), +eff²+1, ×(1+0.2·haste), ×0.3^fatigue (≤4), /5 в воде и /5 в воздухе; делится на hardness и на 30 (можно добыть) или 100 (нельзя). Как ваниль.
+- Потребители: main.js L19116 (сопротивление/твёрдость для взрывов, 05d), `rz_block_mass.js` L8/138 (вес/броня; команда `block <id>`). `breakProgressPerTick/canHarvest` отдельно в коде не используются (grep).
+- Не путать с `block_hardness.js` (03f §7), это другая таблица.
+
+## 5. airplane_landing_gear.js и колёса самолёта в main.js
+- `AIRPLANE_GROUND_REACH = 0.08`: самолётное колесо считается опорой, только если ниже его центра до земли ≤ 0.08 (main.js L1673; у машин допуск 0.35/0.38).
+- `airplaneRestReady(rest, pose, grounded, commanded)`: «самолёт спокойно стоит», если не в воздухе и без команд, а поза остаётся в пределах 0.06 по позиции и 1.5° по углам относительно якоря **20 тиков подряд**; иначе якорь сбрасывается.
+- `airplaneWheelSupport(points, center)`: выпуклая оболочка (Эндрю) проекций колёс на XZ; если центр масс внутри — реакция опоры прикладывается прямо под ЦМ (`balanced:true`), иначе в ближайшую точку контура (самолёт кренится вокруг ближайшей оси); `balanced` и вне контура, если расстояние ≤0.05.
+- В `applyPhysicsWheelForces` (04b) для самолёта: опоры отфильтрованы по `AIRPLANE_GROUND_REACH`; `targetY` пересчитывается только по ним; при `leavingGround` (`airplaneLift>11` или `vy>0.03`) коррекция только вверх; поддержка `m·max(0, 11−airplaneLift)` прикладывается в точку `airplaneSupport` (`applyForceAt`), а не в ЦМ; вертикальная скорость при опоре обнуляется только вниз (`max(0, vy)`). Пружина подвески (`SUSP`) для самолётов не применяется.
+
+## 6. airplane_math.js (190) — что делает
+`AIRPLANE_THROTTLE/WING/ROLL_STATE/ACTIVE_STATE` (константы; `AIRPLANE_WING = create_physics:airplane_wing_control`), `forwardFor`, `machineFront` (поворот на фронт у физических сущностей, отличается от блока мира), `bearingPushDirection` (легаси подшипника, мёртв, см. 03d), `orientAirplaneSails` (BFS от «блока управления крылом» по горизонтальным парусам: помечает `create_physics:horizontal=true` и `cardinal_direction`; зовётся из main.js L19745 и L23202; RZ-комментарий: ориентацию вне блока управления задаёт игрок, по соседям не распространяется), `airplaneGroups` (то же BFS: `{control, members, center, yaw}`), `airplaneSailPose`, `wingDeflection` (±30° × вход × знак стороны × знак ориентации), `hasSymmetricWings` (зеркальность по правой оси), `flightForces` (04e).
+
+## 7. Для переписывания
+(1) Водитель = пассажир кресла, виртуальный руль вместо блока; (2) звук нарезать на куски и стартовать впереди по скорости; (3) таблицу прочности держать как «правила по порядку» + явные переопределения; (4) опора самолёта = выпуклая оболочка колёс, реакция в ближайшую точку.

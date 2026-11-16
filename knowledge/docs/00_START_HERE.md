@@ -8,7 +8,7 @@
 1. `01_ARCHITECTURE.md` — layers, tick order, data flow.
 2. `02_PHYSICS_CORE.md` — cannon-es runtime, constants, how bodies reach the screen.
 3. `03_CONTRAPTIONS_SESSIONS.md` — assembly, session object, persistence format, render batching. Then `03b_ASSEMBLY_SPLIT_GLUE.md` — assemble/place/break/split/glue/rot; `03c_ROPES_MACHINES.md` — ropes, drill/harvester/saw/deployer/funnel; `03d_TOWER_TURRET.md` — башня, пульт, пушки на башне; `03e_STORAGE_VAULT_TANK_CHEST.md` — сундуки, vault, баки, мост между паками; `03f_GLUE_UI_HANDRAIL_CARGO.md` — UI клея, фильтр ландшафта, поручень-груз.
-4. `04_VEHICLES.md` + `04b_WHEEL_GROUND_MODEL.md` + `04c_DRIVE_STEERING.md` + `04d_ENGINE_GRAPH.md` + `04e_AIRCRAFT_PROPELLERS.md` + `04f_SUSPENSION_TRACKS_HUD.md` — RZ Lite drive/suspension/wheels (kinematic vehicles).
+4. `04_VEHICLES.md` + `04b_WHEEL_GROUND_MODEL.md` + `04c_DRIVE_STEERING.md` + `04d_ENGINE_GRAPH.md` + `04e_AIRCRAFT_PROPELLERS.md` + `04f_SUSPENSION_TRACKS_HUD.md` + `04g_SOUND_TRACKS_STRENGTH_AIRGEAR.md` — RZ Lite drive/suspension/wheels (kinematic vehicles).
 5. `05b_CBC_CONFIG_BALLISTICS.md` + `05c_CBC_PROJECTILES_IMPACT.md` + `05e_CBC_WORLD_RECOIL_EFFECTS_ADMIN.md` + `05f_CBC_TWIN_AUTOCANNON.md` + `05g_CBC_ON_STRUCTURES.md` + `05h_IRONS_ARTIFICE.md` (CBC, Iron's), `05_CBC_AND_IRONS.md`, `06_RESOURCE_PACK.md`, `07_DATA_FORMATS.md` — coverage notes (see honesty table).
 6. `08_REWRITE_GUIDE.md` — how to rewrite the core, `09_GOTCHAS.md`, `10_WORKFLOW.md`, `GLOSSARY.md`.
 7. `_generated/*.md` — machine-made tables (modules, blocks, events, strings `__t(id)`, recipes, step journal).
@@ -40,6 +40,7 @@
 | blocks/tower.js (башня-шарнир), propeller_bearing.js, airplane_throttle.js, aircraft_motion.js, интеграция в main.js | READ → `03d_TOWER_TURRET.md` (tower_batch client: indexed only) |
 | blocks/vault.js, tank.js, tank_storage_bridge.js, chest.js, double_chest.js; capturePhysicsStorageEntities и соседи (main.js L23456–23750); resolveStoredHandlesEndpoint; createPhysicsHandleInteractionEntities | READ → `03e_STORAGE_VAULT_TANK_CHEST.md` (UI handles_interaction: indexed only) |
 | UI клея (handlePhysicsGlueAreaUse и визуалы, main.js L23848–24408), physics_glue.js, glue_filter.js, handrail_cargo.js + фабрика configureHandrailCargo, block_hardness.js | READ → `03f_GLUE_UI_HANDRAIL_CARGO.md` (слайдер handrailEntry: драйвера в сборке нет, см. 03f §4b; фабрика L24787–24923 прочитана целиком) |
+| rz_sound.js, track_layouts.js, rz_block_strength.js (getBlockStrength), airplane_landing_gear.js, airplane_math.js, rzAutoDriver/rzAssignDrivers (main.js L1196–1281) | READ → `04g_SOUND_TRACKS_STRENGTH_AIRGEAR.md` (схемы gen_tracks.py и файлы phys.eng.* в RP: не проверялись) |
 | In-game behavior | NOT TESTED |
 
 **Rule for future Claudes:** upgrade a row to READ only after reading it line by line; update this table when you do.
