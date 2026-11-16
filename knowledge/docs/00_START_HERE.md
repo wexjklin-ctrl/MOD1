@@ -7,7 +7,7 @@
 **Read order**
 1. `01_ARCHITECTURE.md` — layers, tick order, data flow.
 2. `02_PHYSICS_CORE.md` — cannon-es runtime, constants, how bodies reach the screen.
-3. `03_CONTRAPTIONS_SESSIONS.md` — assembly, session object, persistence format, render batching. Then `03b_ASSEMBLY_SPLIT_GLUE.md` — assemble/place/break/split/glue/rot; `03c_ROPES_MACHINES.md` — ropes, drill/harvester/saw/deployer/funnel; `03d_TOWER_TURRET.md` — башня, пульт, пушки на башне.
+3. `03_CONTRAPTIONS_SESSIONS.md` — assembly, session object, persistence format, render batching. Then `03b_ASSEMBLY_SPLIT_GLUE.md` — assemble/place/break/split/glue/rot; `03c_ROPES_MACHINES.md` — ropes, drill/harvester/saw/deployer/funnel; `03d_TOWER_TURRET.md` — башня, пульт, пушки на башне; `03e_STORAGE_VAULT_TANK_CHEST.md` — сундуки, vault, баки, мост между паками.
 4. `04_VEHICLES.md` + `04b_WHEEL_GROUND_MODEL.md` + `04c_DRIVE_STEERING.md` + `04d_ENGINE_GRAPH.md` + `04e_AIRCRAFT_PROPELLERS.md` + `04f_SUSPENSION_TRACKS_HUD.md` — RZ Lite drive/suspension/wheels (kinematic vehicles).
 5. `05b_CBC_CONFIG_BALLISTICS.md` + `05c_CBC_PROJECTILES_IMPACT.md` + `05e_CBC_WORLD_RECOIL_EFFECTS_ADMIN.md` + `05f_CBC_TWIN_AUTOCANNON.md` + `05g_CBC_ON_STRUCTURES.md` + `05h_IRONS_ARTIFICE.md` (CBC, Iron's), `05_CBC_AND_IRONS.md`, `06_RESOURCE_PACK.md`, `07_DATA_FORMATS.md` — coverage notes (see honesty table).
 6. `08_REWRITE_GUIDE.md` — how to rewrite the core, `09_GOTCHAS.md`, `10_WORKFLOW.md`, `GLOSSARY.md`.
@@ -28,7 +28,7 @@
 | rz_susp.js (flip/lying/air/tip/hull), track_belt.js, rz_hud.js, rzInteract/rzHud | READ → `04f_SUSPENSION_TRACKS_HUD.md` |
 | assembly (activatePhysicsBlockBelow), place/remove block, split into pieces, glue, rz_rot.js | READ → `03b_ASSEMBLY_SPLIT_GLUE.md` (createPhysicsControllerAssembly, refreshPhysicsStructureConnections, tower helpers: indexed only) |
 | «break planner» / fallen-physics = tree felling, appears to be DEAD CODE (no callers of prepare/executePhysicsBreak/register) | PARTLY READ (planner, executePhysicsBreak, handleCollision, tick) → 03b §7; register/decay/settlement/topology: indexed only |
-| rope/rope_hook (rope_simulation.js, tick, towing), drill, harvester, saw, deployer, funnel | READ → `03c_ROPES_MACHINES.md` (vault/tank/chest, handrail, handle interaction entities: indexed only) |
+| rope/rope_hook (rope_simulation.js, tick, towing), drill, harvester, saw, deployer, funnel | READ → `03c_ROPES_MACHINES.md` (vault/tank/chest, handle interaction entities → 03e; handrail: indexed only) |
 | CBC: main, settings, config/*, ballistics, multiblock, loading, fire, casings, perf | READ → `05b_CBC_CONFIG_BALLISTICS.md` |
 | CBC: projectiles.js, impact.js | READ → `05c_CBC_PROJECTILES_IMPACT.md` |
 | CBC: fuze.js, цепная детонация, rzExplodeSessions и хук конструкций (main.js L19105–19286), гниение smoke/finish | READ → `05d_CBC_FUZE_STRUCTURE_DAMAGE.md` |
@@ -38,6 +38,7 @@
 | irons/main.js (Iron's Arms, огнестрел) | READ → `05h_IRONS_ARTIFICE.md` |
 | Граф импортов: 118 из 124 файлов достижимы от main.js; недостижимы wheel_marks, cbc/types, config.js, ContraptionSailRenderer, core/cbcLooks, core/cbcMount | STATIC (`tools/reach.py`) → 05g §0 |
 | blocks/tower.js (башня-шарнир), propeller_bearing.js, airplane_throttle.js, aircraft_motion.js, интеграция в main.js | READ → `03d_TOWER_TURRET.md` (tower_batch client: indexed only) |
+| blocks/vault.js, tank.js, tank_storage_bridge.js, chest.js, double_chest.js; capturePhysicsStorageEntities и соседи (main.js L23456–23750); resolveStoredHandlesEndpoint; createPhysicsHandleInteractionEntities | READ → `03e_STORAGE_VAULT_TANK_CHEST.md` (UI handles_interaction: indexed only) |
 | In-game behavior | NOT TESTED |
 
 **Rule for future Claudes:** upgrade a row to READ only after reading it line by line; update this table when you do.
