@@ -39,7 +39,7 @@
 | Граф импортов: 118 из 124 файлов достижимы от main.js; недостижимы wheel_marks, cbc/types, config.js, ContraptionSailRenderer, core/cbcLooks, core/cbcMount | STATIC (`tools/reach.py`) → 05g §0 |
 | blocks/tower.js (башня-шарнир), propeller_bearing.js, airplane_throttle.js, aircraft_motion.js, интеграция в main.js | READ → `03d_TOWER_TURRET.md` (tower_batch client: indexed only) |
 | blocks/vault.js, tank.js, tank_storage_bridge.js, chest.js, double_chest.js; capturePhysicsStorageEntities и соседи (main.js L23456–23750); resolveStoredHandlesEndpoint; createPhysicsHandleInteractionEntities | READ → `03e_STORAGE_VAULT_TANK_CHEST.md` (UI handles_interaction: indexed only) |
-| UI клея (handlePhysicsGlueAreaUse и визуалы, main.js L23848–24408), physics_glue.js, glue_filter.js, handrail_cargo.js + фабрика configureHandrailCargo, block_hardness.js | READ → `03f_GLUE_UI_HANDRAIL_CARGO.md` (логика самого слайдера handrailEntry и queuePlacement L24860+: indexed only) |
+| UI клея (handlePhysicsGlueAreaUse и визуалы, main.js L23848–24408), physics_glue.js, glue_filter.js, handrail_cargo.js + фабрика configureHandrailCargo, block_hardness.js | READ → `03f_GLUE_UI_HANDRAIL_CARGO.md` (слайдер handrailEntry: драйвера в сборке нет, см. 03f §4b; фабрика L24787–24923 прочитана целиком) |
 | In-game behavior | NOT TESTED |
 
 **Rule for future Claudes:** upgrade a row to READ only after reading it line by line; update this table when you do.

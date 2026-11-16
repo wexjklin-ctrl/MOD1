@@ -31,6 +31,9 @@
 - `removeStaleCargoVisual(entity)`: визуал с тегом `handrail_cargo_<parentId>`, которого нет в `visualIds` родителя — удаляется.
 - Синхронизация: `syncHandrailControllerSession` переписывает `cargo.blocks` из снапшотов сессии (после слома/склейки), обновляет `visualIds`, чистит структуры убранных блоков.
 
+## 4b. Handrail в этой сборке — «осиротевший» код (статический вывод)
+Проверено grep по всему аддону: (а) в BP нет ни блока, ни сущности `create_physics:handrail`, `handrail_panel`, `handrail_lamp` (в `blocks/` 49 файлов без handrail; в `entities/` их нет), есть только клиентские `RP/entity/create_physics/handrail_panel.json` и `handrail_lamp.json`; (б) функции `captureCargo/settleCargo/moveCargo/cargoPathClear/releaseCargoFromBrokenPanel/removeStaleCargoVisual/forgetCargoVisual/queueCargoPlacement` не вызываются нигде вне `handrail_cargo.js`; из модуля main.js импортирует только `configureHandrailCargo` и `ensureCargoVisual`, а `entry` (с `state`, `entity`) никто не создаёт; (в) остальное — только «следы»: коллизия `handrail` (12/16 высоты) и `handrail_panel` (по `create_physics:panel_deployed`) в `physics.js` L12893–12900, `LAMP_ID` в main.js L63/20531/20596/21666 (форма и поворот лампы), ветки `session.handrailEntry` в разломе/разборке (L19287–19430, L20262–20283, `removeRestoredHandrailAssembly` L20294), ключ сессии `handrail|dim|id` в ContraptionStorage.js L19. Драйвер слайдера (движение, ПКМ, сохранение `handrail_motion`) в этой сборке **отсутствует**. Возможно, блоки живут в другом паке с тем же пространством имён; из этого пака проверить нельзя. Для переписывания всё это можно не переносить.
+
 ## 5. Для переписывания
 (1) Склейка — булев флаг на блок в мире + рантайм-области только для подсветки; (2) область ≤32768 клеток и ≤ лимита блоков; (3) сначала сохранить, потом проверить рендер, потом удалять блоки мира — всегда с откатом; (4) никогда не заменять чужие блоки при возврате груза.
 

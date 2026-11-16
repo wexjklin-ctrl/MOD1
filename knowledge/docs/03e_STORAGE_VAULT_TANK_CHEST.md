@@ -53,4 +53,4 @@
 (1) Носитель инвентаря + `storageEntityId` как единственная связь; (2) копировать с откатом при ошибке; (3) не считать незагруженную сущность пустой; (4) мультиблоки (vault, tank) пересчитывать только при смене топологии, хранить состояния в permutation; (5) жидкость бака — общая сумма, хранить по клеткам делением, при слиянии суммировать; (6) мост между паками только через scriptevent, dynamic properties изолированы.
 
 ## 7. Не прочитано
-UI-реакция `handles_interaction`/посадка; `ensurePhysicsDeployerHands` (деплоер, 03c: indexed); `block.visualProperties` и как рендер передаёт их в сущность (ContraptionRenderer, 03).
+UI-реакция `handles_interaction`/посадка; `ensurePhysicsDeployerHands` — прочитан (deployer.js L58, см. дополнение в 03c); `block.visualProperties` и как рендер передаёт их в сущность (ContraptionRenderer, 03).
