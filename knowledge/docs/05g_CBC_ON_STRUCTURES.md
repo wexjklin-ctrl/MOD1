@@ -25,7 +25,7 @@
 Наводка (`adjustElevation`): шаг 5°, диапазон из `rulesOf(scan)`; **на башне (`towerTurnOf(session, breech)`, blocks/tower.js) отказ**: «поднимайте и поворачивайте её пультом башни» (русская строка прямо в коде, не через `__t`).
 
 ### 1.4 Выстрел (`fire`)
-`S.frozen`, кулдаун `LIMITS.fireCooldownTicks`, `planShot(scan, load)`, `liveCount() < LIMITS.maxProjectilesAlive`. Отличия от мирового `fireCannon`: нет отложенного выстрела до конца подъёма и нет разрыва при перегрузе (`plan.overloaded` не обработан отдельно: просто `!plan.ok`); нет визуального отката (`fireRecoil`). Геометрия: направление ствола `d` с учётом наводки `th` (0, если башня), `p0` центр казённика (локально), точка вылета `atWorld(n+1.2)` через `body.localPointToWorld`. Если пушка на башне (`towerTurnOf(...).active`) — точки/направления переводятся `tw.point/tw.dir`. Скорость снаряда = направление (мировое) × `plan.velocity` + скорость точки дула `body.getVelocityAt(origin)/20` (шаг 150: физика даёт блоки/с, снаряд летит в блоках/тик). `spawnProjectile(dim, origin, vel, munitionId, fuze, {owner: session})`: `owner` позволяет снаряду не бить собственную конструкцию (см. 05c/05d). Отдача: импульс `min(speed·(2+charges), 3·mass)/20` через `body.applyImpulseAt(point, vec)` в точке казённика против ствола.
+`S.frozen`, кулдаун `LIMITS.fireCooldownTicks`, `planShot(scan, load)`, `liveCount() < LIMITS.maxProjectilesAlive`. Отличия от мирового `fireCannon`: нет отложенного выстрела до конца подъёма и нет разрыва при перегрузе (`plan.overloaded` не обработан отдельно: просто `!plan.ok`); нет визуального отката (`fireRecoil`). Геометрия: направление ствола `d` с учётом наводки `th` (0, если башня), `p0` центр казённика (локально), точка вылета `atWorld(n+1.2)` через `body.localPointToWorld`. Если пушка на башне (`towerTurnOf(...).active`) — точки/направления переводятся `tw.point/tw.dir`. Скорость снаряда = направление (мировое) × `plan.velocity` + скорость точки дула `body.getVelocityAt(origin)/20` (шаг 150: физика даёт блоки/с, снаряд летит в блоках/тик). `spawnProjectile(dim, origin, vel, munitionId, fuze, {owner: session})`: `owner` (сессия-стрелок) нужен `projectiles.js` L386: пока возраст снаряда < `OWN_STRUCT_GRACE_TICKS` = 25 тиков (шаг 150), луч по конструкциям игнорирует свою конструкцию (иначе снаряд бьёт стоящие в луче блоки башни); дальше своя конструкция уже цель. Отдача: импульс `min(speed·(2+charges), 3·mass)/20` через `body.applyImpulseAt(point, vec)` в точке казённика против ствола.
 Заряд после выстрела сбрасывается (`putLoad(empty)`), звук/дым/тряска как в мире.
 
 ### 1.5 Перенос между миром и конструкцией
@@ -43,5 +43,7 @@
 - Не путать `cbc/cmMount.js` (рабочий) и `core/cbcMount.js` (мёртвый): имена похожи.
 - Пушка на конструкции не имеет визуального отката и отложенного выстрела; перегруз не взрывает казённик (в мировой версии взрывает).
 - Ключ заряда = `<сессия>|<клетка>`; при переименовании формата ключа чистка по `lastIndexOf('|')` сломается.
+
+*Проверено после написания:* роль `owner` сверена по `cbc/projectiles.js` L386, `setStructureHook` в живом коде действительно в `main.js` L19183 (L6 импорт из `cbc/impact.js`).
 
 *Исправление прошлых утверждений:* в `00_START_HERE.md` строка про `core/cbcMount`, `core/cbcLooks` была «INDEXED ONLY» без пометки, что они мёртвые; теперь исправлено.
