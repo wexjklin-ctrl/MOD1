@@ -8,7 +8,7 @@
 1. `01_ARCHITECTURE.md` — layers, tick order, data flow.
 2. `02_PHYSICS_CORE.md` — cannon-es runtime, constants, how bodies reach the screen.
 3. `03_CONTRAPTIONS_SESSIONS.md` — assembly, session object, persistence format, render batching.
-4. `04_VEHICLES.md` + `04b_WHEEL_GROUND_MODEL.md` + `04c_DRIVE_STEERING.md` + `04d_ENGINE_GRAPH.md` + `04e_AIRCRAFT_PROPELLERS.md` — RZ Lite drive/suspension/wheels (kinematic vehicles).
+4. `04_VEHICLES.md` + `04b_WHEEL_GROUND_MODEL.md` + `04c_DRIVE_STEERING.md` + `04d_ENGINE_GRAPH.md` + `04e_AIRCRAFT_PROPELLERS.md` + `04f_SUSPENSION_TRACKS_HUD.md` — RZ Lite drive/suspension/wheels (kinematic vehicles).
 5. `05_CBC_AND_IRONS.md`, `06_RESOURCE_PACK.md`, `07_DATA_FORMATS.md` — coverage notes (see honesty table).
 6. `08_REWRITE_GUIDE.md` — how to rewrite the core, `09_GOTCHAS.md`, `10_WORKFLOW.md`, `GLOSSARY.md`.
 7. `_generated/*.md` — machine-made tables (modules, blocks, events, strings `__t(id)`, recipes, step journal).
@@ -25,6 +25,7 @@
 | car_drive.js, wheel_surface.js, stepRzDrive, rzCarDrive, traction | READ → `04c_DRIVE_STEERING.md` |
 | rz_drive.js tables + build() drivetrain graph | READ → `04d_ENGINE_GRAPH.md` |
 | aircraft RZ (airplane_flight, rz_air_*, rz_flap_pose, rz_block_mass, AirRig), andesite_propeller thrust | READ → `04e_AIRCRAFT_PROPELLERS.md` (airplane_throttle, propeller_bearing, applyGuidingWind*: indexed only) |
+| rz_susp.js (flip/lying/air/tip/hull), track_belt.js, rz_hud.js, rzInteract/rzHud | READ → `04f_SUSPENSION_TRACKS_HUD.md` |
 | rope, fallen-physics, break planner, CBC, Iron's | INDEXED ONLY (AST catalog) |
 | In-game behavior | NOT TESTED |
 
