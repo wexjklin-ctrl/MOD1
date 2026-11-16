@@ -19,6 +19,8 @@ public abstract class CameraMixin {
 	@org.spongepowered.asm.mixin.Shadow protected abstract void setPosition(Vec3 v);
 	@org.spongepowered.asm.mixin.Shadow protected abstract void setRotation(float yaw, float pitch);
 
+	@org.spongepowered.asm.mixin.Shadow private int matrixPropertiesDirty;   // как в Camera.setRotation: |= 3 сбрасывает кэш матрицы вида
+
 	private static float rzYaw, rzDist = 6f;
 	private static long rzNs;
 	private static int rzId = -1;
@@ -49,6 +51,7 @@ public abstract class CameraMixin {
 		// та же цепочка, что в VehicleRenderer.submit: Ry(-yaw) * Rx(pitch) * Rz(roll), но в мировых осях (Ry(-yaw) * M * Ry(yaw))
 		RZ_BODY.rotationY(-yaw).rotateX((float) Math.toRadians(pr[0])).rotateZ((float) Math.toRadians(pr[1])).rotateY(yaw);
 		self.rotation().premul(RZ_BODY);
+		matrixPropertiesDirty |= 3;   // без этого игра использует матрицу вида, посчитанную до наклона (наклона не было видно)
 	}
 
 	@Inject(method = "update", at = @At("TAIL"))
