@@ -60,7 +60,7 @@ public class RzAutoClient implements ClientModInitializer {
 			float d = net.minecraft.util.Mth.wrapDegrees(cur - followYaw);
 			followYaw = cur;
 			if (d != 0f) {
-				mc.player.setYRot(mc.player.getYRot() + d); mc.player.yRotO += d;
+				mc.player.setYRot(mc.player.getYRot() + d);   // yRotO не трогаем: тогда между тиками вид плавно интерполируется (без рубцов)
 				mc.player.setYHeadRot(mc.player.getYHeadRot() + d); mc.player.setYBodyRot(mc.player.getYRot());
 			}
 		}

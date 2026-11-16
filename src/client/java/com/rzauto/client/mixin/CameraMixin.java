@@ -34,6 +34,23 @@ public abstract class CameraMixin {
 		return false;
 	}
 
+	private static final org.joml.Quaternionf RZ_BODY = new org.joml.Quaternionf();
+
+	/** Первое лицо в машине: камера наклоняется вместе с кузовом (тангаж и крен те же, что у нарисованной машины). */
+	@Inject(method = "update", at = @At("TAIL"))
+	private void rz$tilt(DeltaTracker dt, CallbackInfo ci) {
+		Camera self = (Camera) (Object) this;
+		Minecraft mc = Minecraft.getInstance();
+		if (mc.level == null || mc.player == null || !mc.options.getCameraType().isFirstPerson()) return;
+		if (!(mc.player.getVehicle() instanceof VehicleEntity ve) || VehicleEntity.CLIENT_POSE == null) return;
+		float[] pr = VehicleEntity.CLIENT_POSE.apply(ve);
+		if (pr == null || (Math.abs(pr[0]) < 0.01f && Math.abs(pr[1]) < 0.01f)) return;
+		float yaw = (float) Math.toRadians(ve.getYRot(self.getCameraEntityPartialTicks(dt)));
+		// та же цепочка, что в VehicleRenderer.submit: Ry(-yaw) * Rx(pitch) * Rz(roll), но в мировых осях (Ry(-yaw) * M * Ry(yaw))
+		RZ_BODY.rotationY(-yaw).rotateX((float) Math.toRadians(pr[0])).rotateZ((float) Math.toRadians(pr[1])).rotateY(yaw);
+		self.rotation().premul(RZ_BODY);
+	}
+
 	@Inject(method = "update", at = @At("TAIL"))
 	private void rz$chase(DeltaTracker dt, CallbackInfo ci) {
 		Camera self = (Camera) (Object) this;
