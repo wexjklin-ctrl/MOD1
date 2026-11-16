@@ -8,7 +8,7 @@
 1. `01_ARCHITECTURE.md` — layers, tick order, data flow.
 2. `02_PHYSICS_CORE.md` — cannon-es runtime, constants, how bodies reach the screen.
 3. `03_CONTRAPTIONS_SESSIONS.md` — assembly, session object, persistence format, render batching.
-4. `04_VEHICLES.md` + `04b_WHEEL_GROUND_MODEL.md` + `04c_DRIVE_STEERING.md` — RZ Lite drive/suspension/wheels (kinematic vehicles).
+4. `04_VEHICLES.md` + `04b_WHEEL_GROUND_MODEL.md` + `04c_DRIVE_STEERING.md` + `04d_ENGINE_GRAPH.md` — RZ Lite drive/suspension/wheels (kinematic vehicles).
 5. `05_CBC_AND_IRONS.md`, `06_RESOURCE_PACK.md`, `07_DATA_FORMATS.md` — coverage notes (see honesty table).
 6. `08_REWRITE_GUIDE.md` — how to rewrite the core, `09_GOTCHAS.md`, `10_WORKFLOW.md`, `GLOSSARY.md`.
 7. `_generated/*.md` — machine-made tables (modules, blocks, events, strings `__t(id)`, recipes, step journal).
@@ -23,6 +23,7 @@
 | blocks/rz_drive.js (DRIVE/STEAM config), rz_susp.js (SUSP, spring) | READ (config + spring) |
 | applyPhysicsWheelForces (main.js L1508-1924) | READ → `04b_WHEEL_GROUND_MODEL.md` |
 | car_drive.js, wheel_surface.js, stepRzDrive, rzCarDrive, traction | READ → `04c_DRIVE_STEERING.md` |
+| rz_drive.js tables + build() drivetrain graph | READ → `04d_ENGINE_GRAPH.md` |
 | propeller thrust, rope, fallen-physics, break planner, CBC, Iron's, aircraft | INDEXED ONLY (AST catalog) |
 | In-game behavior | NOT TESTED |
 
