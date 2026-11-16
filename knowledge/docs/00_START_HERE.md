@@ -7,7 +7,7 @@
 **Read order**
 1. `01_ARCHITECTURE.md` — layers, tick order, data flow.
 2. `02_PHYSICS_CORE.md` — cannon-es runtime, constants, how bodies reach the screen.
-3. `03_CONTRAPTIONS_SESSIONS.md` — assembly, session object, persistence format, render batching.
+3. `03_CONTRAPTIONS_SESSIONS.md` — assembly, session object, persistence format, render batching. Then `03b_ASSEMBLY_SPLIT_GLUE.md` — assemble/place/break/split/glue/rot.
 4. `04_VEHICLES.md` + `04b_WHEEL_GROUND_MODEL.md` + `04c_DRIVE_STEERING.md` + `04d_ENGINE_GRAPH.md` + `04e_AIRCRAFT_PROPELLERS.md` + `04f_SUSPENSION_TRACKS_HUD.md` — RZ Lite drive/suspension/wheels (kinematic vehicles).
 5. `05_CBC_AND_IRONS.md`, `06_RESOURCE_PACK.md`, `07_DATA_FORMATS.md` — coverage notes (see honesty table).
 6. `08_REWRITE_GUIDE.md` — how to rewrite the core, `09_GOTCHAS.md`, `10_WORKFLOW.md`, `GLOSSARY.md`.
@@ -26,7 +26,9 @@
 | rz_drive.js tables + build() drivetrain graph | READ → `04d_ENGINE_GRAPH.md` |
 | aircraft RZ (airplane_flight, rz_air_*, rz_flap_pose, rz_block_mass, AirRig), andesite_propeller thrust | READ → `04e_AIRCRAFT_PROPELLERS.md` (airplane_throttle, propeller_bearing, applyGuidingWind*: indexed only) |
 | rz_susp.js (flip/lying/air/tip/hull), track_belt.js, rz_hud.js, rzInteract/rzHud | READ → `04f_SUSPENSION_TRACKS_HUD.md` |
-| rope, fallen-physics, break planner, CBC, Iron's | INDEXED ONLY (AST catalog) |
+| assembly (activatePhysicsBlockBelow), place/remove block, split into pieces, glue, rz_rot.js | READ → `03b_ASSEMBLY_SPLIT_GLUE.md` (createPhysicsControllerAssembly, refreshPhysicsStructureConnections, tower helpers: indexed only) |
+| «break planner» / fallen-physics = tree felling, appears to be DEAD CODE (no callers of prepare/executePhysicsBreak/register) | PARTLY READ (planner, executePhysicsBreak, handleCollision, tick) → 03b §7; register/decay/settlement/topology: indexed only |
+| rope, CBC, Iron's | INDEXED ONLY (AST catalog) |
 | In-game behavior | NOT TESTED |
 
 **Rule for future Claudes:** upgrade a row to READ only after reading it line by line; update this table when you do.
