@@ -4,6 +4,7 @@
 // Visual style follows Diorama (MIT, (c) Dara Adedeji): dark frame, relief shading, fog for unknown areas.
 
 #include <climits>
+#include <set>
 #include "mod/Minimap.h"
 #include "mod/DioramaMod.h"
 
@@ -61,8 +62,9 @@ namespace {
 constexpr uint32_t FOG = 0xFFE8EBF0u; // white fog of war (unexplored / not saved)
 
 // Wall profile: colour of the block at (top - depth) for each depth; used to paint real building/cliff faces.
-constexpr int NW = 8;
-constexpr int kWallDepth[NW] = {0, 1, 2, 4, 7, 11, 16, 24};
+constexpr int NW = 16;
+constexpr int kWallDepth[NW] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 17, 21, 26, 32};
+constexpr int kOldWallDepth[8] = {0, 1, 2, 4, 7, 11, 16, 24}; // DBM3 files
 
 struct ChunkData {
     std::array<uint32_t, 256> color{}; // 0 = unknown, else 0xFFRRGGBB
@@ -166,6 +168,13 @@ uint32_t blockRgb(std::string const& full) {
     }
 
     static constexpr NamedRgb rules[] = {
+        {"brick_block", 0xA0574A}, {"red_nether_brick", 0x450709}, {"stonebrick", 0x7B7B7B}, {"purpur", 0xA77BA7},
+        {"end_stone", 0xDBDE9E}, {"end_brick", 0xDBDE9E}, {"bookshelf", 0x6B5230}, {"polished_blackstone", 0x353036},
+        {"chiseled_deepslate", 0x3A3A3E}, {"deepslate_brick", 0x474749}, {"deepslate_tile", 0x363638},
+        {"smooth_red_sandstone", 0xB6652A}, {"cut_sandstone", 0xD9CF9B}, {"cut_red_sandstone", 0xB6652A},
+        {"stone_stairs", 0x7F7F7F}, {"cobblestone_wall", 0x7A7A7A}, {"nether_wart_block", 0x730E0E}, {"warped_wart", 0x167E86},
+        {"glowstone", 0xAB8654}, {"sea_lantern", 0xACC7BC}, {"shroomlight", 0xF09340}, {"bone_block", 0xE3DFC8},
+        {"honeycomb", 0xE5A31A}, {"slime", 0x70C05A}, {"sponge", 0xC4C14A}, {"tnt", 0xC03A2A},
         {"grass_block", 0x62A83A}, {"grass_path", 0x95804A}, {"dirt_path", 0x95804A}, {"mycelium", 0x6F6369},
         {"podzol", 0x5B4020}, {"farmland", 0x6A4A2E}, {"coarse_dirt", 0x77553B}, {"rooted_dirt", 0x80583F},
         {"mud_brick", 0x8A6B5A}, {"mud", 0x3C3A3F}, {"dirt", 0x866043}, {"moss", 0x596E2C},
@@ -193,6 +202,16 @@ bool isWater(std::string const& n) { return n == "minecraft:water" || n == "mine
 
 std::unordered_map<::Block const*, uint32_t> gBlockCol; // per-block-state colour cache (avoids string work per column)
 
+std::filesystem::path rootDir();
+std::set<std::string> gLoggedNames;
+void logUnmapped(std::string const& name, uint32_t col) {
+    if (gLoggedNames.size() > 600 || !gLoggedNames.insert(name).second) return;
+    std::error_code ec;
+    std::filesystem::create_directories(rootDir(), ec);
+    std::ofstream f(rootDir() / "unmapped_blocks.txt", std::ios::app);
+    if (f) { char b[64]; std::snprintf(b, sizeof(b), " -> %06X (engine map colour)\n", unsigned(col & 0xFFFFFF)); f << name << b; }
+}
+
 uint32_t colorOfBlock(::BlockSource& region, ::BlockPos const& pos, ::Block const& block) {
     auto it = gBlockCol.find(&block);
     if (it != gBlockCol.end()) return it->second;
@@ -212,6 +231,7 @@ uint32_t colorOfBlock(::BlockSource& region, ::BlockPos const& pos, ::Block cons
             b = 0.30f + float((hh >> 16) & 255) / 255.0f * 0.30f;
         }
         col = pack(0.09f + r * 0.91f, 0.09f + g * 0.91f, 0.09f + b * 0.91f);
+        logUnmapped(name, col);
     }
     gBlockCol[&block] = col;
     return col;
@@ -363,7 +383,7 @@ void saveRegion(int rx, int rz) {
             auto it = gCache.find(key(rx * 32 + dx, rz * 32 + dz));
             if (it != gCache.end()) { ++count; }
         }
-    f.write("DBM3", 4);
+    f.write("DBM4", 4);
     f.write(reinterpret_cast<char const*>(&count), 4);
     for (int dz = 0; dz < 32; ++dz)
         for (int dx = 0; dx < 32; ++dx) {
@@ -392,15 +412,24 @@ void loadWorld() {
         std::ifstream f(e.path(), std::ios::binary);
         char          magic[4] = {};
         uint32_t      count    = 0;
-        if (!f.read(magic, 4) || (std::string(magic, 4) != "DBM2" && std::string(magic, 4) != "DBM3") || !f.read(reinterpret_cast<char*>(&count), 4)) continue;
+        if (!f.read(magic, 4) || (std::string(magic, 4) != "DBM2" && std::string(magic, 4) != "DBM3" && std::string(magic, 4) != "DBM4") || !f.read(reinterpret_cast<char*>(&count), 4)) continue;
         for (uint32_t i = 0; i < count && i < 1024; ++i) {
             int       cx = 0, cz = 0;
             ChunkData cd;
             if (!f.read(reinterpret_cast<char*>(&cx), 4) || !f.read(reinterpret_cast<char*>(&cz), 4)) break;
             if (!f.read(reinterpret_cast<char*>(cd.color.data()), 256 * 4)) break;
             if (!f.read(reinterpret_cast<char*>(cd.height.data()), 256 * 2)) break;
-            if (magic[3] == '3') {
+            if (magic[3] == '4') {
                 if (!f.read(reinterpret_cast<char*>(cd.wall.data()), 256 * NW * 4)) break;
+            } else if (magic[3] == '3') {
+                std::array<uint32_t, 256 * 8> old{};
+                if (!f.read(reinterpret_cast<char*>(old.data()), 256 * 8 * 4)) break;
+                for (int i2 = 0; i2 < 256; ++i2)
+                    for (int k = 0; k < NW; ++k) {
+                        int o = 0;
+                        while (o + 1 < 8 && kOldWallDepth[o + 1] <= kWallDepth[k]) ++o;
+                        cd.wall[size_t(i2) * NW + k] = old[size_t(i2) * 8 + o];
+                    }
             } else {
                 for (int i = 0; i < 256; ++i)
                     for (int k = 0; k < NW; ++k) cd.wall[size_t(i) * NW + k] = cd.color[i];
@@ -780,6 +809,49 @@ void rasterize(Baked const& b, int W, std::vector<uint32_t>& px, bool soft) {
                 hb[size_t(y) * W + x] = r.h;
             }
     }
+    // fill small enclosed unknown areas (chunks not loaded yet inside explored terrain) from their surroundings
+    {
+        std::vector<int8_t> lab(size_t(W) * W, 0);
+        size_t              maxArea = size_t(std::pow(24.0f * sc, 2.0f));
+        std::vector<size_t> stack, comp;
+        for (size_t st = 0; st < px.size(); ++st) {
+            if ((px[st] >> 24) || lab[st]) continue;
+            comp.clear(); stack.assign(1, st); lab[st] = 1;
+            bool border = false;
+            while (!stack.empty()) {
+                size_t i = stack.back(); stack.pop_back(); comp.push_back(i);
+                int x = int(i % size_t(W)), y = int(i / size_t(W));
+                if (x == 0 || y == 0 || x == W - 1 || y == W - 1) border = true;
+                size_t nbs[4]; int cnt = 0;
+                if (x > 0) nbs[cnt++] = i - 1;
+                if (x < W - 1) nbs[cnt++] = i + 1;
+                if (y > 0) nbs[cnt++] = i - W;
+                if (y < W - 1) nbs[cnt++] = i + W;
+                for (int k = 0; k < cnt; ++k) if (!(px[nbs[k]] >> 24) && !lab[nbs[k]]) { lab[nbs[k]] = 1; stack.push_back(nbs[k]); }
+            }
+            if (border || comp.size() > maxArea) continue;
+            std::vector<size_t> todo = comp;
+            std::vector<std::pair<size_t, std::pair<uint32_t, int16_t>>> pend;
+            while (!todo.empty()) {
+                pend.clear();
+                std::vector<size_t> rest;
+                for (size_t i : todo) {
+                    int x = int(i % size_t(W)), y = int(i / size_t(W));
+                    uint32_t r = 0, g = 0, bl = 0; int hs = 0, c = 0;
+                    auto add = [&](size_t j) { if (px[j] >> 24) { r += (px[j] >> 16) & 255; g += (px[j] >> 8) & 255; bl += px[j] & 255; hs += hb[j]; ++c; } };
+                    if (x > 0) add(i - 1);
+                    if (x < W - 1) add(i + 1);
+                    if (y > 0) add(i - W);
+                    if (y < W - 1) add(i + W);
+                    if (c) pend.push_back({i, {0xFF000000u | ((r / c) << 16) | ((g / c) << 8) | (bl / c), int16_t(hs / c)}});
+                    else rest.push_back(i);
+                }
+                if (pend.empty()) break;
+                for (auto& p : pend) { px[p.first] = p.second.first; hb[p.first] = p.second.second; }
+                todo.swap(rest);
+            }
+        }
+    }
     // soft rounded blocks: convex corners of colour regions are blended with their neighbours, region edges get a light blend
     {
         std::vector<uint32_t> src = px;
@@ -815,32 +887,73 @@ void rasterize(Baked const& b, int W, std::vector<uint32_t>& px, bool soft) {
             bool edge = (hu != INT16_MIN && std::abs(h - hu) >= 2 && h < hu) || (hl != INT16_MIN && std::abs(h - hl) >= 2 && h < hl);
             if (edge) px[i] = shade(px[i], 0.72f);
         }
-    // soft fog edge: unknown pixels take fog colour, alpha is blurred so the explored area fades out smoothly
+    // ---- volumetric cartoon fog ----
+    // chamfer distance from explored pixels to the unknown area; the edge is eroded by world-anchored noise, shaded as puffy clouds
     {
-        auto hash = [](int x, int y) { uint32_t h = uint32_t(x) * 374761393u + uint32_t(y) * 668265263u; h = (h ^ (h >> 13)) * 1274126177u; return float((h ^ (h >> 16)) & 0xFFFF) / 65535.0f; };
-        auto vnoise = [&](float fx, float fy) {
-            int ix = int(std::floor(fx)), iy = int(std::floor(fy)); float tx = fx - float(ix), ty = fy - float(iy);
-            tx = tx * tx * (3 - 2 * tx); ty = ty * ty * (3 - 2 * ty);
-            float a = hash(ix, iy), b2 = hash(ix + 1, iy), c = hash(ix, iy + 1), d = hash(ix + 1, iy + 1);
-            return (a + (b2 - a) * tx) * (1 - ty) + (c + (d - c) * tx) * ty;
-        };
-        int   wx0 = b.cx - (b.n / 2) * b.step, wz0 = b.cz - (b.n / 2) * b.step;
-        float ws  = float(b.step) / float(PPC);
-        for (int y = 0; y < W; ++y)
-            for (int x = 0; x < W; ++x) {
-                uint32_t& p = px[size_t(y) * W + x];
-                if (p >> 24) continue;
-                float wxp = float(wx0) + float(x) * ws, wzp = float(wz0) + float(y) * ws / KY;
-                float nz = 0.6f * vnoise(wxp * 0.045f, wzp * 0.045f) + 0.4f * vnoise(wxp * 0.11f, wzp * 0.11f);
-                float k  = 0.90f + 0.10f * nz;                       // puffy light/shadow
-                uint32_t r = uint32_t(std::min(255.0f, float((FOG >> 16) & 255) * k)), g = uint32_t(std::min(255.0f, float((FOG >> 8) & 255) * k)),
-                         bl = uint32_t(std::min(255.0f, float(FOG & 255) * (k + 0.03f)));
-                p = (r << 16) | (g << 8) | bl;
+        size_t N = size_t(W) * W;
+        bool   any = false;
+        for (size_t i = 0; i < N; ++i) if (!(px[i] >> 24)) { any = true; break; }
+        if (any) {
+            std::vector<float> dIn(N); // for known px: distance to nearest unknown px
+            {
+                const float INF = 1e9f, D1 = 1.0f, D2 = 1.4142f;
+                for (size_t i = 0; i < N; ++i) dIn[i] = (px[i] >> 24) ? INF : 0.0f;
+                for (int y = 0; y < W; ++y)
+                    for (int x = 0; x < W; ++x) {
+                        size_t i = size_t(y) * W + x; float v = dIn[i];
+                        if (x > 0) v = std::min(v, dIn[i - 1] + D1);
+                        if (y > 0) { v = std::min(v, dIn[i - W] + D1); if (x > 0) v = std::min(v, dIn[i - W - 1] + D2); if (x < W - 1) v = std::min(v, dIn[i - W + 1] + D2); }
+                        dIn[i] = v;
+                    }
+                for (int y = W - 1; y >= 0; --y)
+                    for (int x = W - 1; x >= 0; --x) {
+                        size_t i = size_t(y) * W + x; float v = dIn[i];
+                        if (x < W - 1) v = std::min(v, dIn[i + 1] + D1);
+                        if (y < W - 1) { v = std::min(v, dIn[i + W] + D1); if (x < W - 1) v = std::min(v, dIn[i + W + 1] + D2); if (x > 0) v = std::min(v, dIn[i + W - 1] + D2); }
+                        dIn[i] = v;
+                    }
             }
+            auto hash = [](int x, int y) { uint32_t h = uint32_t(x) * 374761393u + uint32_t(y) * 668265263u; h = (h ^ (h >> 13)) * 1274126177u; return float((h ^ (h >> 16)) & 0xFFFF) / 65535.0f; };
+            auto vnoise = [&](float fx, float fy) {
+                int ix = int(std::floor(fx)), iy = int(std::floor(fy)); float tx = fx - float(ix), ty = fy - float(iy);
+                tx = tx * tx * (3 - 2 * tx); ty = ty * ty * (3 - 2 * ty);
+                float a0 = hash(ix, iy), b2 = hash(ix + 1, iy), c = hash(ix, iy + 1), d = hash(ix + 1, iy + 1);
+                return (a0 + (b2 - a0) * tx) * (1 - ty) + (c + (d - c) * tx) * ty;
+            };
+            int   wx0 = b.cx - (b.n / 2) * b.step, wz0 = b.cz - (b.n / 2) * b.step;
+            float ws  = float(b.step) / float(PPC);
+            std::vector<float> H(N);
+            for (int y = 0; y < W; ++y)
+                for (int x = 0; x < W; ++x) {
+                    float wxp = float(wx0) + float(x) * ws, wzp = float(wz0) + float(y) * ws / KY;
+                    H[size_t(y) * W + x] = 0.55f * vnoise(wxp * 0.035f, wzp * 0.035f) + 0.30f * vnoise(wxp * 0.09f, wzp * 0.09f) + 0.15f * vnoise(wxp * 0.21f, wzp * 0.21f);
+                }
+            float fadeW = 16.0f * sc, amp = 8.0f * sc; // pixels
+            for (int y = 0; y < W; ++y)
+                for (int x = 0; x < W; ++x) {
+                    size_t i     = size_t(y) * W + x;
+                    bool   known = (px[i] >> 24) != 0;
+                    float  f     = 1.0f; // fog coverage
+                    if (known) {
+                        float t = (dIn[i] + (H[i] - 0.5f) * 2.0f * amp) / fadeW;
+                        t       = std::clamp(t, 0.0f, 1.0f);
+                        f       = 1.0f - t * t * (3.0f - 2.0f * t);
+                        if (f <= 0.003f) continue;
+                    }
+                    // puffy 3D shading: light from north-west on the noise height field
+                    float hx  = H[i + (x < W - 1 ? 1 : 0)] - H[i - (x > 0 ? 1 : 0)];
+                    float hy  = H[i + (y < W - 1 ? size_t(W) : 0)] - H[i - (y > 0 ? size_t(W) : 0)];
+                    float lit = std::clamp(1.0f - (hx + hy) * 9.0f, 0.80f, 1.10f);
+                    float k   = (0.91f + 0.12f * H[i]) * lit;
+                    float fr = float((FOG >> 16) & 255) * k, fg = float((FOG >> 8) & 255) * k, fb = float(FOG & 255) * std::min(1.0f, k + 0.04f);
+                    float tr = known ? float((px[i] >> 16) & 255) : fr, tg = known ? float((px[i] >> 8) & 255) : fg, tb = known ? float(px[i] & 255) : fb;
+                    auto  mixc = [&](float a1, float b1) { return uint32_t(std::clamp(a1 + (b1 - a1) * f, 0.0f, 255.0f)); };
+                    px[i] = 0xFF000000u | (mixc(tr, fr) << 16) | (mixc(tg, fg) << 8) | mixc(tb, fb);
+                }
+        }
+        for (auto& p : px) p |= 0xFF000000u;
     }
-    bool anyUnknown = false;
-    for (size_t i = 0; i < hb.size(); ++i) if (hb[i] == INT16_MIN) { anyUnknown = true; break; }
-    if (soft && anyUnknown) blurAlpha(px, W, std::max(5, int(sc * 3.0f)));
+    (void)soft;
 }
 
 bool fillImage(::mce::Image& img, std::vector<uint32_t> const& px, int W) {
