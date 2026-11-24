@@ -20,6 +20,9 @@
 #include "mc/deps/minecraft_renderer/renderer/TexturePtr.h"
 #include "mc/deps/minecraft_renderer/renderer/BedrockTextureData.h"
 #include "mc/deps/minecraft_renderer/resources/ClientTexture.h"
+#include "mc/client/gui/GuiData.h"
+#include "mc/util/HudElement.h"
+#include "mc/util/HudVisibility.h"
 #include "mc/world/level/BlockPos.h"
 #include "mc/world/level/BlockSource.h"
 #include "mc/world/level/Level.h"
@@ -54,7 +57,7 @@ namespace diorama_bedrock::minimap {
 
 namespace {
 
-constexpr uint32_t FOG = 0xFF0D0F17u;
+constexpr uint32_t FOG = 0xFFE8EBF0u; // white fog of war (unexplored / not saved)
 
 // Wall profile: colour of the block at (top - depth) for each depth; used to paint real building/cliff faces.
 constexpr int NW = 8;
@@ -513,7 +516,18 @@ void bake(Baked& b, int cx, int cz, int h0, int n, int step, uint64_t version, u
         r.col.assign(size_t(n), 0u); r.h.assign(size_t(n), 0); r.wp.assign(size_t(n), nullptr);
         for (int i = 0; i < n; ++i) {
             uint32_t c = 0; int h = 0; uint32_t const* w = nullptr;
-            if (sampleCell(s, x0 + i * step, z, step, c, h, &w)) { r.col[size_t(i)] = c; r.h[size_t(i)] = h; r.wp[size_t(i)] = w; }
+            if (sampleCell(s, x0 + i * step, z, step, c, h, &w)) {
+                // sun shadows (like Diorama): sun to the west / slightly south; a taller block towards the sun darkens this cell
+                float m = -1e9f;
+                for (int d = step; d <= 12; d += step) {
+                    int ox = x0 + i * step + int(std::lround(-0.878f * float(d))), oz = z + int(std::lround(0.479f * float(d)));
+                    uint32_t c2; int h2;
+                    if (!sample(s, ox, oz, c2, h2)) continue;
+                    m = std::max(m, float(h2 - h) - float(d) * 0.9f);
+                }
+                if (m >= 2.0f) c = shade(c, 0.72f); else if (m >= 0.5f) c = shade(c, 0.85f);
+                r.col[size_t(i)] = c; r.h[size_t(i)] = h; r.wp[size_t(i)] = w;
+            }
         }
     };
     std::vector<uint32_t> wh(size_t(n), 0u);
@@ -611,12 +625,49 @@ constexpr Glyph kGlyphs[] = {
     {'N', 0b110101101101101}, {'O', 0b010101101101010}, {'P', 0b110101110100100}, {'R', 0b110101110101101},
     {'S', 0b011100010001110}, {'T', 0b111010010010010}, {'U', 0b101101101101111}, {'V', 0b101101101101010},
     {'W', 0b101101111111101}, {'Y', 0b101101010010010}, {'Z', 0b111001010100111}, {'X', 0b101101010101101},
-    {'Q', 0b010101101111011}, {'J', 0b001001001101010}};
+    {'Q', 0b010101101111011}, {'J', 0b001001001101010}, {'|', 0b010010010010010},
+    // Cyrillic letters that differ from Latin (А В Е К М Н О Р С Т Х are mapped to Latin ones in drawPixText)
+    {'\x01', 0b111101101101101}, /* П */ {'\x02', 0b011101101111101}, /* Д */ {'\x03', 0b101010111010101}, /* Ж */
+    {'\x04', 0b011101101101101}, /* Л */ {'\x05', 0b101101111001001}, /* Ч */ {'\x06', 0b101101101111001}, /* Ц */
+    {'\x07', 0b100100110101110}, /* Ь */ {'\x08', 0b111100111101111}, /* Б */ {'\x09', 0b111001011001111}, /* З */
+    {'\x0B', 0b101101111011101}, /* И */ {'\x0C', 0b011101011101101}, /* Я */ {'\x0E', 0b101101111001110}, /* У */
+    {'\x0F', 0b101101101101111}, /* Ш */};
+
+// decode UTF-8 to glyph keys (Latin upper-case, Cyrillic mapped to Latin look-alikes or private keys 0x01..0x0F)
+std::vector<char> glyphKeys(std::string const& t) {
+    std::vector<char> out;
+    for (size_t i = 0; i < t.size();) {
+        uint8_t c = uint8_t(t[i]);
+        if (c < 0x80) { out.push_back(char(std::toupper(c))); ++i; continue; }
+        if ((c == 0xD0 || c == 0xD1) && i + 1 < t.size()) {
+            int cp = ((c & 0x1F) << 6) | (uint8_t(t[i + 1]) & 0x3F);
+            i += 2;
+            if (cp >= 0x430 && cp <= 0x44F) cp -= 0x20; // lower -> upper
+            switch (cp) {
+            case 0x410: out.push_back('A'); break; case 0x412: out.push_back('B'); break; case 0x415: out.push_back('E'); break;
+            case 0x41A: out.push_back('K'); break; case 0x41C: out.push_back('M'); break; case 0x41D: out.push_back('H'); break;
+            case 0x41E: out.push_back('O'); break; case 0x420: out.push_back('P'); break; case 0x421: out.push_back('C'); break;
+            case 0x422: out.push_back('T'); break; case 0x425: out.push_back('X'); break;
+            case 0x41F: out.push_back('\x01'); break; case 0x414: out.push_back('\x02'); break; case 0x416: out.push_back('\x03'); break;
+            case 0x41B: out.push_back('\x04'); break; case 0x427: out.push_back('\x05'); break; case 0x426: out.push_back('\x06'); break;
+            case 0x42C: out.push_back('\x07'); break; case 0x411: out.push_back('\x08'); break; case 0x417: out.push_back('\x09'); break;
+            case 0x418: out.push_back('\x0B'); break; case 0x42F: out.push_back('\x0C'); break; case 0x423: out.push_back('\x0E'); break;
+            case 0x428: out.push_back('\x0F'); break;
+            case 0x42B: out.push_back('\x07'); out.push_back('|'); break; // Ы = Ь + bar
+            default: out.push_back(' '); break;
+            }
+            continue;
+        }
+        ++i; // skip unknown byte
+    }
+    return out;
+}
+
+float textWidth(std::string const& t, float px) { return float(glyphKeys(t).size()) * 4.0f * px; }
 
 void drawPixText(::MinecraftUIRenderContext& ctx, std::string const& t, float x, float y, float px, ::mce::Color const& col) {
     float cx = x;
-    for (char ch : t) {
-        char u = char(std::toupper(uint8_t(ch)));
+    for (char u : glyphKeys(t)) {
         for (auto const& g : kGlyphs) {
             if (g.ch != u) continue;
             for (int r = 0; r < 5; ++r)
@@ -864,17 +915,44 @@ void vignette(::MinecraftUIRenderContext& ctx, float x, float y, float size) {
     }
 }
 
+struct V2 { float x, y; };
+
+// filled triangle drawn as thin horizontal strips
+void fillTri(::MinecraftUIRenderContext& ctx, V2 p0, V2 p1, V2 p2, ::mce::Color const& col) {
+    V2 p[3] = {p0, p1, p2};
+    float ymin = std::min({p0.y, p1.y, p2.y}), ymax = std::max({p0.y, p1.y, p2.y});
+    constexpr float H = 0.5f;
+    for (float y = std::floor(ymin / H) * H; y < ymax; y += H) {
+        float yc = y + H * 0.5f, xl = 1e9f, xr = -1e9f;
+        for (int i = 0; i < 3; ++i) {
+            V2 a = p[i], b = p[(i + 1) % 3];
+            if ((a.y <= yc && b.y > yc) || (b.y <= yc && a.y > yc)) {
+                float x = a.x + (yc - a.y) / (b.y - a.y) * (b.x - a.x);
+                xl = std::min(xl, x); xr = std::max(xr, x);
+            }
+        }
+        if (xr > xl) rect(ctx, xl, y, xr, y + H, col, 1.0f);
+    }
+}
+
+// arrow-head player marker pointing where the player looks (like Diorama): white with dark outline
 void marker(::MinecraftUIRenderContext& ctx, float cx, float cy, float s, float yawDeg) {
     float rad = yawDeg * 3.14159265f / 180.0f;
-    float dx = -std::sin(rad), dy = std::cos(rad) * KY;
-    for (int t = 1; t <= 3; ++t) {
-        float px = cx + dx * s * 1.8f * float(t), py = cy + dy * s * 1.8f * float(t);
-        float hs = s * 0.55f;
-        rect(ctx, px - hs - 0.8f, py - hs - 0.8f, px + hs + 0.8f, py + hs + 0.8f, ::mce::Color{0, 0, 0, 1});
-        rect(ctx, px - hs, py - hs, px + hs, py + hs, ::mce::Color{1.0f, 0.85f, 0.25f, 1.0f});
-    }
-    rect(ctx, cx - s - 1, cy - s - 1, cx + s + 1, cy + s + 1, ::mce::Color{0.0f, 0.0f, 0.0f, 1.0f});
-    rect(ctx, cx - s, cy - s, cx + s, cy + s, ::mce::Color{1.0f, 1.0f, 1.0f, 1.0f});
+    V2    f{-std::sin(rad), std::cos(rad)}; // forward on the map (x, z)
+    V2    q{-f.y, f.x};
+    float r = s * 3.4f;
+    auto  poly = [&](float k, V2 out[4]) {
+        out[0] = {cx + f.x * r * 1.15f * k, cy + f.y * r * 1.15f * k};                                   // tip
+        out[1] = {cx - f.x * r * 0.75f * k + q.x * r * 0.80f * k, cy - f.y * r * 0.75f * k + q.y * r * 0.80f * k}; // right
+        out[2] = {cx - f.x * r * 0.25f * k, cy - f.y * r * 0.25f * k};                                    // notch
+        out[3] = {cx - f.x * r * 0.75f * k - q.x * r * 0.80f * k, cy - f.y * r * 0.75f * k - q.y * r * 0.80f * k}; // left
+    };
+    V2 o[4], i[4];
+    poly(1.35f, o);
+    poly(1.0f, i);
+    ::mce::Color dark{0.05f, 0.06f, 0.08f, 1.0f}, white{1.0f, 1.0f, 1.0f, 1.0f};
+    fillTri(ctx, o[0], o[1], o[2], dark); fillTri(ctx, o[0], o[2], o[3], dark);
+    fillTri(ctx, i[0], i[1], i[2], white); fillTri(ctx, i[0], i[2], i[3], white);
 }
 
 // --- input (polled, edge detected; only while our window is focused) ---
@@ -1184,11 +1262,24 @@ void reset() {
     gBigMap = false;
 }
 
+bool gHudHidden = false;
+void setBigMapHud(::IClientInstance& client, bool hide) {
+    if (gHudHidden == hide) return;
+    gHudHidden = hide;
+    auto gui = client.getGuiData();
+    // Crosshair stays visible: our draw hook runs inside the crosshair renderer
+    std::vector<::HudElement> els = {::HudElement::HotBar,       ::HudElement::Health,        ::HudElement::Hunger,
+                                     ::HudElement::Armor,        ::HudElement::ProgressBar,   ::HudElement::AirBubbles,
+                                     ::HudElement::HorseHealth,  ::HudElement::StatusEffects, ::HudElement::ItemText,
+                                     ::HudElement::ToolTips,     ::HudElement::PaperDoll};
+    gui->setHudVisibilityState(els, hide ? ::HudVisibility::Hide : ::HudVisibility::Reset);
+}
+
 void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
     ::LocalPlayer* player = client.getLocalPlayer();
     ::BlockSource* region = client.getRegion();
     if (!player || !region) return;
-    if (int(region->getDimensionId()) != 0) return; // Overworld only
+    if (int(region->getDimensionId()) != 0) { setBigMapHud(client, false); return; } // Overworld only
 
     ++gFrame;
     uint64_t tick = GetTickCount64();
@@ -1212,6 +1303,7 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
         saveRegion(int(k >> 32), int(int32_t(uint32_t(k & 0xFFFFFFFFu))));
     }
     pollInput();
+    setBigMapHud(client, gBigMap);
     float dtf = frameDt();
     {
         static float maxDt = 0, sumDt = 0;
@@ -1281,16 +1373,17 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
         // top bar
         float bar = 30.0f;
         rect(ctx, 0, 0, sw, bar, ::mce::Color{0.02f, 0.03f, 0.05f, 1.0f}, 0.72f);
-        rect(ctx, 6, 5, 6 + 92, 25, ::mce::Color{0.05f, 0.07f, 0.10f, 1.0f}, 0.95f);
-        rect(ctx, 6, 24, 98, 26, ::mce::Color{0.95f, 0.97f, 1.0f, 1.0f}, 1.0f);
+        float tabW = textWidth("ПОВЕРХНОСТЬ", 2.0f) + 12.0f;
+        rect(ctx, 6, 5, 6 + tabW, 25, ::mce::Color{0.05f, 0.07f, 0.10f, 1.0f}, 0.95f);
+        rect(ctx, 6, 24, 6 + tabW, 26, ::mce::Color{0.95f, 0.97f, 1.0f, 1.0f}, 1.0f);
         ::mce::Color white{0.95f, 0.97f, 1.0f, 1.0f};
-        drawPixText(ctx, "SURFACE", 12, 9, 2.0f, white);
+        drawPixText(ctx, "ПОВЕРХНОСТЬ", 12, 9, 2.0f, white);
         char info[96];
-        std::snprintf(info, sizeof(info), "%d, %d, %d   CHUNKS: %d", px, int(pos.y), pz, int(gCache.size()));
-        drawPixText(ctx, info, 120, 9, 2.0f, white);
+        std::snprintf(info, sizeof(info), "%d, %d, %d   ЧАНКОВ: %d", px, int(pos.y), pz, int(gCache.size()));
+        drawPixText(ctx, info, tabW + 20.0f, 9, 2.0f, white);
         // bottom hint
         rect(ctx, 0, sh - 22, sw, sh, ::mce::Color{0.02f, 0.03f, 0.05f, 1.0f}, 0.72f);
-        drawPixText(ctx, "ARROWS - MOVE   +/- - ZOOM   HOME - CENTER   M - CLOSE", 8, sh - 16, 2.0f, white);
+        drawPixText(ctx, "СТРЕЛКИ - ДВИЖЕНИЕ   +/- - МАСШТАБ   HOME - В ЦЕНТР   M - ЗАКРЫТЬ", 8, sh - 16, 2.0f, white);
     } else {
         constexpr float SIZE   = 96.0f;
         constexpr int   VIEW   = 64;          // blocks visible
