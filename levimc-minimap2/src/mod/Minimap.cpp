@@ -1545,12 +1545,18 @@ bool gBigMap    = false;
 bool gRound     = false; // F7: square <-> round minimap (rotating modes: TODO)
 bool gF7WasDown = false;
 bool gMWasDown  = false;
-int  gBigBlocks = 256;
+float gZoom = 256.0f; // blocks visible across the big map (continuous: wheel zoom)
+std::atomic<int> gWheel{0};
+HWND    gHwnd     = nullptr;
+WNDPROC gOldProc  = nullptr;
+bool    gHwndUni  = true;
+bool    gDragging = false, gMouseReleased = false;
+float   gLastMX = 0, gLastMY = 0;
 int  gBigBias   = 0;      // extra sampling step when the rectangle budget is exceeded
-int  gBigLastBlocks = 256;
+int  gBigLastQ = 0;
 constexpr size_t kBigBudget = 60000;
-int  gPanX      = 0;
-int  gPanZ      = 0;
+float gPanX = 0.0f;
+float gPanZ = 0.0f;
 
 bool windowFocused() {
     HWND fg = GetForegroundWindow();
@@ -1560,25 +1566,56 @@ bool windowFocused() {
     return pid == GetCurrentProcessId();
 }
 
+LRESULT CALLBACK wheelProc(HWND h, UINT m, WPARAM w, LPARAM l) {
+    if (m == WM_MOUSEWHEEL && gBigMap) { // swallow: the hotbar must not scroll while the map is open
+        gWheel += int(GET_WHEEL_DELTA_WPARAM(w));
+        return 0;
+    }
+    return gHwndUni ? CallWindowProcW(gOldProc, h, m, w, l) : CallWindowProcA(gOldProc, h, m, w, l);
+}
+
+void installWheelHook() {
+    if (gHwnd) return;
+    HWND fg = GetForegroundWindow();
+    if (!fg) return;
+    gHwndUni = IsWindowUnicode(fg) != 0;
+    LONG_PTR old = gHwndUni ? SetWindowLongPtrW(fg, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(&wheelProc))
+                            : SetWindowLongPtrA(fg, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(&wheelProc));
+    if (!old) return;
+    gOldProc = reinterpret_cast<WNDPROC>(old);
+    gHwnd    = fg;
+}
+
+void removeWheelHook() {
+    if (!gHwnd || !gOldProc) return;
+    LONG_PTR cur = gHwndUni ? GetWindowLongPtrW(gHwnd, GWLP_WNDPROC) : GetWindowLongPtrA(gHwnd, GWLP_WNDPROC);
+    if (cur == reinterpret_cast<LONG_PTR>(&wheelProc)) {
+        if (gHwndUni) SetWindowLongPtrW(gHwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(gOldProc));
+        else SetWindowLongPtrA(gHwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(gOldProc));
+    }
+    gHwnd = nullptr; gOldProc = nullptr;
+}
+
 bool down(int vk) { return (GetAsyncKeyState(vk) & 0x8000) != 0; }
 
 void pollInput() {
     if (!windowFocused()) { gMWasDown = false; gF7WasDown = false; return; }
+    installWheelHook();
     bool f7 = down(VK_F7);
     if (f7 && !gF7WasDown) gRound = !gRound;
     gF7WasDown = f7;
     bool m = down('M');
-    if (m && !gMWasDown) { gBigMap = !gBigMap; gPanX = gPanZ = 0; }
+    if (m && !gMWasDown) { gBigMap = !gBigMap; gPanX = gPanZ = 0.0f; gDragging = false; gWheel = 0; }
     gMWasDown = m;
     if (!gBigMap) return;
-    if (down(VK_OEM_PLUS) || down(VK_ADD)) gBigBlocks = std::max(32, gBigBlocks - std::max(4, gBigBlocks / 40));
-    if (down(VK_OEM_MINUS) || down(VK_SUBTRACT)) gBigBlocks = std::min(2304, gBigBlocks + std::max(4, gBigBlocks / 40));
-    int step = std::max(1, gBigBlocks / 60) * (down(VK_SHIFT) ? 3 : 1);
+    if (down(VK_OEM_PLUS) || down(VK_ADD)) gZoom = std::max(40.0f, gZoom * 0.975f);
+    if (down(VK_OEM_MINUS) || down(VK_SUBTRACT)) gZoom = std::min(2400.0f, gZoom * 1.025f);
+    float step = std::max(1.0f, gZoom / 60.0f) * (down(VK_SHIFT) ? 3.0f : 1.0f);
     if (down(VK_LEFT)) gPanX -= step;
     if (down(VK_RIGHT)) gPanX += step;
     if (down(VK_UP)) gPanZ -= step;
     if (down(VK_DOWN)) gPanZ += step;
-    if (down(VK_HOME)) gPanX = gPanZ = 0;
+    if (down(VK_HOME)) gPanX = gPanZ = 0.0f;
 }
 
 
@@ -1626,11 +1663,22 @@ void smoothPlayer(float x, float y, float z, bool reset, float dt) {
     gSY += (gCurY - gSY) * a;
 }
 
-struct Scroll { float u0, v0, uw, vh, pcx, pcy; int nb, nview, step, cx, cz, h0; bool ready; };
+struct Scroll { float u0, v0, uw, vh, pcx, pcy; int nb, nview, step, cx, cz, h0; bool ready; float vcells; };
+
+// Show exactly viewBlocks blocks of an already baked window: a pure UV crop, the GPU scales it (no re-bake while zooming).
+void retarget(Scroll& sc, float viewBlocks) {
+    if (!sc.ready) { sc.vcells = float(sc.nview); return; }
+    float vc  = std::min(viewBlocks / float(sc.step), float(sc.nb));
+    sc.vcells = vc;
+    sc.uw = sc.vh = vc / float(sc.nb);
+    sc.u0 = std::clamp((sc.pcx - vc * 0.5f) / float(sc.nb), 0.0f, 1.0f - sc.uw);
+    sc.v0 = std::clamp((sc.pcy - vc * 0.5f) / float(sc.nb), 0.0f, 1.0f - sc.vh);
+}
 
 // Window geometry of an already baked map (b) and the smooth target (tx,tz,smoothH): sub-cell scrolling is a UV crop.
 Scroll makeScroll(Baked const& b, float tx, float tz, float smoothH) {
     Scroll sc{};
+    sc.vcells = float(b.view);
     sc.ready = b.cx != INT32_MIN && b.n > 0 && b.view > 0;
     if (!sc.ready) { sc.nb = b.n; sc.nview = b.view; sc.step = 1; return sc; }
     sc.nb = b.n; sc.nview = b.view; sc.step = b.step; sc.cx = b.cx; sc.cz = b.cz; sc.h0 = b.h0;
@@ -1828,6 +1876,7 @@ float gBigSH = -99999.0f;
 } // namespace
 
 void shutdown() {
+    removeWheelHook();
     {
         std::lock_guard<std::mutex> lk(gAsyncMx);
         gStop = true;
@@ -1871,7 +1920,7 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
     ::LocalPlayer* player = client.getLocalPlayer();
     ::BlockSource* region = client.getRegion();
     if (!player || !region) return;
-    if (int(region->getDimensionId()) != 0) { setBigMapHud(client, false); return; } // Overworld only
+    if (int(region->getDimensionId()) != 0) { setBigMapHud(client, false); if (gMouseReleased) { client.grabMouse(); gMouseReleased = false; } return; } // Overworld only
 
     ++gFrame;
     uint64_t tick = GetTickCount64();
@@ -1896,6 +1945,7 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
     }
     pollInput();
     setBigMapHud(client, gBigMap);
+    if (!gBigMap && gMouseReleased) { client.grabMouse(); gMouseReleased = false; gDragging = false; }
     float dtf = frameDt();
     {
         static float maxDt = 0, sumDt = 0;
@@ -1923,11 +1973,36 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
         float size = std::max(sw, sh);
         float x    = (sw - size) * 0.5f;
         float y    = (sh - size) * 0.5f;
-        if (gBigBlocks != gBigLastBlocks) { gBigLastBlocks = gBigBlocks; gBigBias = 0; }
-        int   step  = std::max(1, (gBigBlocks + 191) / 192) + gBigBias;
-        int   nview = std::min(192, gBigBlocks / step) & ~1;
+        // --- input: wheel zoom (toward the cursor), left-drag pan ---
+        {
+            POINT cp{}; RECT cr{};
+            bool  mv = gHwnd && GetCursorPos(&cp) && ScreenToClient(gHwnd, &cp) && GetClientRect(gHwnd, &cr) && cr.right > 0 && cr.bottom > 0;
+            float mx = mv ? float(cp.x) * sw / float(cr.right) : sw * 0.5f, my = mv ? float(cp.y) * sh / float(cr.bottom) : sh * 0.5f;
+            int   wh = gWheel.exchange(0);
+            if (wh != 0) {
+                float nz = std::clamp(gZoom * std::pow(0.87f, float(wh) / 120.0f), 40.0f, 2400.0f);
+                gPanX += (mx - sw * 0.5f) * (gZoom - nz) / size;
+                gPanZ += (my - sh * 0.5f) * (gZoom - nz) / (size * KY);
+                gZoom = nz;
+            }
+            bool lmb = mv && down(VK_LBUTTON) && windowFocused();
+            if (lmb && my > 30.0f && my < sh - 22.0f) {
+                if (gDragging) {
+                    gPanX -= (mx - gLastMX) * gZoom / size;
+                    gPanZ -= (my - gLastMY) * gZoom / (size * KY);
+                }
+                gDragging = true; gLastMX = mx; gLastMY = my;
+            } else gDragging = false;
+        }
+        // bake geometry follows a ladder (x1.5): between rungs the baked picture is only cropped/scaled, so zooming never re-bakes
+        constexpr float kLadder[] = {64, 96, 144, 216, 324, 486, 729, 1094, 1640, 2461};
+        int Q = 2461;
+        for (float q : kLadder) if (gZoom <= q) { Q = int(q); break; }
+        if (Q != gBigLastQ) { gBigLastQ = Q; gBigBias = 0; }
+        int   step  = std::max(1, (Q + 191) / 192) + gBigBias;
+        int   nview = std::min(192, ((Q + step - 1) / step + 1) & ~1);
         int   nb    = nview + 32;
-        float tx    = gSX + float(gPanX), tz = gSZ + float(gPanZ);
+        float tx    = gSX + gPanX, tz = gSZ + gPanZ;
         float sH    = gSY - 1.6f; // eye -> feet
         {
             int g = groundHeight(int(std::floor(tx)), int(std::floor(tz)), gH0Big);
@@ -1939,9 +2014,12 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
         if (!gCfgRead) readConfig();
         Scroll sc{};
         bool   texOk = false;
+        client.releaseMouse(); // free cursor for dragging
+        gMouseReleased = true;
         rect(ctx, 0, 0, sw, sh, toColor(FOG), 1.0f);
         if (gTexEnabled && !gTexFailed) {
             sc = prepareAsync(gSlots[1], gBigTex, client, nb, nview, step, tx, tz, gBigSH, 90, 8);
+            retarget(sc, gZoom);
             if (!gTexFailed) {
                 if (!sc.ready) texOk = true; // first bake still running in the background: fog only
                 else texOk = drawTexAsync(ctx, gBigTex, x, y, size, sc.u0, sc.v0, sc.uw, sc.vh);
@@ -1950,17 +2028,18 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
         if (!texOk) {
             // fallback: rectangles (synchronous bake)
             sc = prepareScroll(gBig, nb, nview, step, tx, tz, gBigSH, 90, 8);
+            retarget(sc, gZoom);
             if (gBig.rects.size() > kBigBudget && gBigBias < 6) ++gBigBias;
-            float k = size / float(nview);
+            float k = size / sc.vcells;
             drawBaked(ctx, gBig, x - sc.u0 * float(nb) * k, y - sc.v0 * float(nb) * k, k * float(nb));
         }
         // player marker: smoothed position relative to the same view window
         if (sc.ready) {
-            float cell = size / float(sc.nview);
+            float cell = size / sc.vcells;
             float ppx = float(sc.nb) * 0.5f + (gSX - float(sc.cx)) / float(sc.step);
             float ppy = float(sc.nb) * 0.5f + (gSZ - float(sc.cz)) / float(sc.step) * KY - (gSY - 1.6f - float(sc.h0)) * HS / float(sc.step);
             float mx = x + (ppx - sc.u0 * float(sc.nb)) * cell, my = y + (ppy - sc.v0 * float(sc.nb)) * cell;
-            if (mx > 0 && mx < sw && my > 0 && my < sh) marker(ctx, mx, my, std::clamp(3.5f * std::pow(256.0f / float(gBigBlocks), 0.5f), 1.1f, 4.0f), yaw);
+            if (mx > 0 && mx < sw && my > 0 && my < sh) marker(ctx, mx, my, std::clamp(3.5f * std::pow(256.0f / gZoom, 0.5f), 1.1f, 4.0f), yaw);
         }
         // top bar
         float bar = 30.0f;
@@ -1975,7 +2054,7 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
         drawPixText(ctx, info, tabW + 20.0f, 9, 2.0f, white);
         // bottom hint
         rect(ctx, 0, sh - 22, sw, sh, ::mce::Color{0.02f, 0.03f, 0.05f, 1.0f}, 0.72f);
-        drawPixText(ctx, "СТРЕЛКИ - ДВИЖЕНИЕ   +/- - МАСШТАБ   HOME - В ЦЕНТР   M - ЗАКРЫТЬ", 8, sh - 16, 2.0f, white);
+        drawPixText(ctx, "КОЛЕСО - МАСШТАБ   ЛКМ - ПЕРЕТАСКИВАНИЕ   HOME - В ЦЕНТР   M - ЗАКРЫТЬ", 8, sh - 16, 2.0f, white);
     } else {
         constexpr float SIZE   = 76.0f;
         constexpr int   VIEW   = 64;          // blocks visible
