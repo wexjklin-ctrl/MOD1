@@ -282,7 +282,7 @@ bool scanChunk(::BlockSource& region, int cx, int cz, ChunkData& cd) {
 // Chunk offsets sorted by distance: nearest chunks are scanned first.
 std::vector<std::pair<int, int>> const& chunkOffsets() {
     static std::vector<std::pair<int, int>> v = [] {
-        constexpr int CR = 8;
+        constexpr int CR = 13;
         std::vector<std::pair<int, int>> o;
         for (int dz = -CR; dz <= CR; ++dz)
             for (int dx = -CR; dx <= CR; ++dx) o.emplace_back(dx, dz);
@@ -296,7 +296,7 @@ std::vector<std::pair<int, int>> const& chunkOffsets() {
 
 void updateCache(::BlockSource& region, int px, int pz) {
     int pcx = floorDiv16(px), pcz = floorDiv16(pz);
-    int budget = 2; // chunks scanned per frame
+    int budget = 3; // chunks scanned per frame
     for (auto const& [dx, dz] : chunkOffsets()) {
         if (budget <= 0) break;
         int  cx = pcx + dx, cz = pcz + dz;
@@ -719,7 +719,7 @@ bool uploadImage(::IClientInstance& client, Tex& t, std::vector<uint32_t> const&
     return true;
 }
 
-bool drawTex(::MinecraftUIRenderContext& ctx, ::IClientInstance& client, Baked const& b, Tex& t, float x, float y, float size, int W, bool soft) {
+bool drawTex(::MinecraftUIRenderContext& ctx, ::IClientInstance& client, Baked const& b, Tex& t, float x, float y, float size, int W, bool soft, float u0 = 0.0f, float v0 = 0.0f, float uw = 1.0f, float vh = 1.0f) {
     if (!gCfgRead) readConfig();
     if (!gTexEnabled || gTexFailed || b.rects.empty()) return false;
     if (t.bakeId != b.bakeId || !t.created) {
@@ -732,7 +732,7 @@ bool drawTex(::MinecraftUIRenderContext& ctx, ::IClientInstance& client, Baked c
     ::mce::TexturePtr  tp  = ctx.getTexture(loc, false);
     auto const*        dat = tp.mClientTexture.get();
     if (!dat) { gTexFailed = true; return false; }
-    ctx.drawImage(dat->mClientTexture.get(), ::glm::vec2{x, y}, ::glm::vec2{size, size}, ::glm::vec2{0.0f, 0.0f}, ::glm::vec2{1.0f, 1.0f}, false);
+    ctx.drawImage(dat->mClientTexture.get(), ::glm::vec2{x, y}, ::glm::vec2{size, size}, ::glm::vec2{u0, v0}, ::glm::vec2{uw, vh}, false);
     ctx.flushImages(::mce::Color{1.0f, 1.0f, 1.0f, 1.0f}, 1.0f, ::HashedString(gMaterial));
     if (!gTexLogged) gTexLogged = true;
     return true;
@@ -785,10 +785,10 @@ void marker(::MinecraftUIRenderContext& ctx, float cx, float cy, float s, float 
 // --- input (polled, edge detected; only while our window is focused) ---
 bool gBigMap    = false;
 bool gMWasDown  = false;
-int  gBigBlocks = 160;
+int  gBigBlocks = 256;
 int  gBigBias   = 0;      // extra sampling step when the rectangle budget is exceeded
-int  gBigLastBlocks = 160;
-constexpr size_t kBigBudget = 6000;
+int  gBigLastBlocks = 256;
+constexpr size_t kBigBudget = 30000;
 int  gPanX      = 0;
 int  gPanZ      = 0;
 
@@ -808,8 +808,8 @@ void pollInput() {
     if (m && !gMWasDown) { gBigMap = !gBigMap; gPanX = gPanZ = 0; }
     gMWasDown = m;
     if (!gBigMap) return;
-    if (down(VK_OEM_PLUS) || down(VK_ADD)) gBigBlocks = std::max(32, gBigBlocks - 2);
-    if (down(VK_OEM_MINUS) || down(VK_SUBTRACT)) gBigBlocks = std::min(400, gBigBlocks + 2);
+    if (down(VK_OEM_PLUS) || down(VK_ADD)) gBigBlocks = std::max(32, gBigBlocks - 4);
+    if (down(VK_OEM_MINUS) || down(VK_SUBTRACT)) gBigBlocks = std::min(768, gBigBlocks + 4);
     int step = std::max(1, gBigBlocks / 60) * (down(VK_SHIFT) ? 3 : 1);
     if (down(VK_LEFT)) gPanX -= step;
     if (down(VK_RIGHT)) gPanX += step;
@@ -819,6 +819,7 @@ void pollInput() {
 }
 
 int gH0Mini = 64, gH0Big = 64;
+float gSmoothH = -99999.0f;
 
 } // namespace
 
@@ -874,12 +875,12 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
         float x    = (sw - size) * 0.5f;
         float y    = (sh - size) * 0.5f;
         if (gBigBlocks != gBigLastBlocks) { gBigLastBlocks = gBigBlocks; gBigBias = 0; }
-        int   step = std::max(1, (gBigBlocks + 111) / 112) + gBigBias;
+        int   step = std::max(1, (gBigBlocks + 127) / 128) + gBigBias;
         int   n    = gBigBlocks / step;
         int   cx   = px + gPanX, cz = pz + gPanZ;
         int   h0   = groundHeight(cx, cz, gH0Big);
         gH0Big     = h0;
-        ensureBaked(gBig, cx, cz, h0, n, step, 45);
+        ensureBaked(gBig, cx, cz, h0, n, step, 60);
         if (gBig.rects.size() > kBigBudget && gBigBias < 6) ++gBigBias; // too many rectangles: coarser grid next frame
         rect(ctx, 0, 0, sw, sh, toColor(FOG), 1.0f);
         if (!drawTex(ctx, client, gBig, gBigTex, x, y, size, std::min(768, n * 6), true)) drawBaked(ctx, gBig, x, y, size);
@@ -902,19 +903,48 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
         rect(ctx, 0, sh - 22, sw, sh, ::mce::Color{0.02f, 0.03f, 0.05f, 1.0f}, 0.72f);
         drawPixText(ctx, "ARROWS - MOVE   +/- - ZOOM   HOME - CENTER   M - CLOSE", 8, sh - 16, 2.0f, white);
     } else {
-        constexpr float SIZE   = 112.0f;
-        constexpr int   BLOCKS = 56;
+        constexpr float SIZE   = 128.0f;
+        constexpr int   VIEW   = 72;          // blocks visible
+        constexpr int   NB     = 84;          // blocks baked (6 block margin each side, used for sub-block scrolling)
         float           x      = sw - SIZE - 22.0f;
         float           y      = 24.0f;
-        gH0Mini                = groundPlayer;
-        ensureBaked(gMini, px, pz, groundPlayer, BLOCKS, 1, 6);
-        frame(ctx, x, y, SIZE);
-        if (!drawTex(ctx, client, gMini, gMiniTex, x, y, SIZE, BLOCKS * 5, true)) drawBaked(ctx, gMini, x, y, SIZE);
-        vignette(ctx, x, y, SIZE);
-        float cell = SIZE / float(BLOCKS);
-        float ux   = float(BLOCKS) * 0.5f + (float(pos.x) - float(px));
-        float uy   = float(BLOCKS) * 0.5f + (float(pos.z) - float(pz)) * KY;
-        marker(ctx, x + ux * cell, y + uy * cell, 1.5f, yaw);
+        // smoothed ground height + hysteresis on the bake centre: the map scrolls continuously (no per-block jumps while flying)
+        if (gap || gSmoothH < -1000.0f) gSmoothH = float(groundPlayer);
+        gSmoothH += (float(groundPlayer) - gSmoothH) * 0.06f;
+        bool  tex = gTexEnabled && !gTexFailed;
+        if (!gCfgRead) readConfig();
+        gH0Mini = groundPlayer;
+        if (tex) {
+            bool needRe = gMini.n != NB || std::fabs(float(pos.x) - float(gMini.cx) - 0.5f) > 3.0f || std::fabs(float(pos.z) - float(gMini.cz) - 0.5f) > 3.0f ||
+                       std::fabs(gSmoothH - float(gMini.h0)) > 3.0f;
+            int bcx = needRe ? px : gMini.cx, bcz = needRe ? pz : gMini.cz, bh = needRe ? int(std::lround(gSmoothH)) : gMini.h0;
+            ensureBaked(gMini, bcx, bcz, bh, NB, 1, 8);
+            frame(ctx, x, y, SIZE);
+            // player position in baked cell coordinates -> crop window centred on the player
+            float pcx = float(NB) * 0.5f + (float(pos.x) - float(gMini.cx));
+            float pcy = float(NB) * 0.5f + (float(pos.z) - float(gMini.cz)) * KY - (gSmoothH - float(gMini.h0)) * HS;
+            float u0  = std::clamp((pcx - VIEW * 0.5f) / float(NB), 0.0f, 1.0f - float(VIEW) / float(NB));
+            float v0  = std::clamp((pcy - VIEW * 0.5f) / float(NB), 0.0f, 1.0f - float(VIEW) / float(NB));
+            if (drawTex(ctx, client, gMini, gMiniTex, x, y, SIZE, NB * 5, true, u0, v0, float(VIEW) / float(NB), float(VIEW) / float(NB))) {
+                vignette(ctx, x, y, SIZE);
+                float cell = SIZE / float(VIEW);
+                marker(ctx, x + (pcx - u0 * NB) * cell, y + (pcy - v0 * NB) * cell, 1.5f, yaw);
+                goto letters;
+            }
+        }
+        {
+            constexpr int BLOCKS = 56;
+            ensureBaked(gMini, px, pz, groundPlayer, BLOCKS, 1, 6);
+            frame(ctx, x, y, SIZE);
+            drawBaked(ctx, gMini, x, y, SIZE);
+            vignette(ctx, x, y, SIZE);
+            float cell = SIZE / float(BLOCKS);
+            float ux   = float(BLOCKS) * 0.5f + (float(pos.x) - float(px));
+            float uy   = float(BLOCKS) * 0.5f + (float(pos.z) - float(pz)) * KY;
+            marker(ctx, x + ux * cell, y + uy * cell, 1.5f, yaw);
+        }
+    letters:
+        ;
         compassLetter(ctx, 'N', x + SIZE / 2, y - 10, true);
         compassLetter(ctx, 'S', x + SIZE / 2, y + SIZE + 10, false);
         compassLetter(ctx, 'W', x - 10, y + SIZE / 2, false);
