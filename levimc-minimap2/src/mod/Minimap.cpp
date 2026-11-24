@@ -273,9 +273,26 @@ uint32_t vanillaRgb(std::string const& bedrockName, bool side) {
         }
         rgb = out;
     }
+    {
+        uint32_t r0 = (rgb >> 16) & 255, g0 = (rgb >> 8) & 255, b0 = rgb & 255;
+        bool plantish = bedrockName.find("leaves") != std::string::npos || bedrockName.find("vine") != std::string::npos;
+        if (plantish && (r0 * 2126 + g0 * 7152 + b0 * 722) / 10000 < 28) {
+            uint32_t f = biomeTint(2); // darkened foliage colour instead of black
+            rgb = (((f >> 16) & 255) * 7 / 10 << 16) | (((f >> 8) & 255) * 7 / 10 << 8) | ((f & 255) * 7 / 10);
+        }
+    }
     return rgb ? rgb : 0x010101;
 }
 std::unordered_map<::Block const*, uint32_t> gBlockSide;
+
+std::set<std::string> gLoggedColors;
+void logBlockColor(std::string const& name, uint32_t col) {
+    if (gLoggedColors.size() > 1500 || !gLoggedColors.insert(name).second) return;
+    std::error_code ec;
+    std::filesystem::create_directories(rootDir(), ec);
+    std::ofstream f(rootDir() / "block_colors.txt", std::ios::app);
+    if (f) { char b[48]; std::snprintf(b, sizeof(b), " -> %06X\n", unsigned(col & 0xFFFFFF)); f << name << b; }
+}
 
 uint32_t colorOfBlock(::BlockSource& region, ::BlockPos const& pos, ::Block const& block) {
     auto it = gBlockCol.find(&block);
@@ -286,6 +303,7 @@ uint32_t colorOfBlock(::BlockSource& region, ::BlockPos const& pos, ::Block cons
     if (!rgb) rgb = blockRgb(name);
     if (rgb) {
         col = 0xFF000000u | rgb;
+        logBlockColor(name, col);
     } else {
         ::mce::Color mc = block.getBlockType().getMapColor(region, pos, block);
         float r = mc.r, g = mc.g, b = mc.b;
