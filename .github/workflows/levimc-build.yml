@@ -5,6 +5,7 @@ on:
     branches: [claude-work]
     paths:
       - "levimc-mod/**"
+      - "!levimc-mod/**/*.md"
       - ".github/workflows/levimc-build.yml"
   workflow_dispatch:
 
