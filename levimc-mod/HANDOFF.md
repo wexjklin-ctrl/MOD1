@@ -155,3 +155,4 @@ TODO дальше: освещение/тени солнца при растер�
 
 ## Лог: сессия 8
 - Сборка e1016c1 УПАЛА: (1) `Core::PathView` incomplete -> добавлен `#include "mc/deps/core/file/PathView.h"`; (2) `tp.mClientTexture` для shared_ptr в LeviLamina - это обычный std::shared_ptr (TypedStorage только для не-указателей), поэтому `.get()` один раз: `auto const* dat = tp.mClientTexture.get();`. Исходники заголовков: клонировать https://github.com/LiteLDev/LeviLamina (src, src-client).
+- 978f466: сборка ЗЕЛЁНАЯ, релиз diorama-bedrock-latest обновлён (текстурная отрисовка, в игре НЕ проверено). Если карта не видна: `%APPDATA%\diorama-bedrock\render.txt` -> `material=ui_flush` или `ui_textured`; либо `mode=rects`. Ждём скриншоты/FPS/latest.log от владельца.
