@@ -539,8 +539,8 @@ void switchWorld(std::string const& k) {
 
 // ---------- oblique "diorama" projection, baked to merged rectangles ----------
 // Units: 1 unit = one map cell horizontally. Rows are squashed by KY, heights lift by HS per block.
-constexpr float KY  = 0.75f; // 3 px per row at 4 px/cell: pixel-exact so re-bakes are invisible
-constexpr float HS  = 1.0f;  // 4 px lift per block at step 1
+constexpr float KY  = 0.75f; // pitch ~48.6 deg; KY*PPC must stay an integer (3 px) // 3 px per row at 4 px/cell: pixel-exact so re-bakes are invisible
+constexpr float HS  = 0.63f; // lift per block (Java: cos/sin * KY = 0.63)
 constexpr int   PPC = 4;     // texture pixels per map cell
 
 struct Rect {
@@ -864,11 +864,269 @@ void blurAlpha(std::vector<uint32_t>& px, int W, int r) {
     }
 }
 
+// ---------- Java-Diorama style renderer on a height field (port of TileBaker.shade/bakePixels, see HANDOFF) ----------
+// Camera: pitch 50 deg; screen v = z*KY - y*HS (cells, per step). Far rows are painted first, nearer rows over them.
+constexpr float kSinP = 0.7660444f, kCosP = 0.6427876f; // Java pitch 50 deg (used for depth only)
+constexpr float kCosE = 0.7880108f, kSinE = 0.6156615f; // sun elevation 38 deg
+constexpr float kSunX = kCosE * -0.878f, kSunY = kSinE, kSunZ = kCosE * 0.479f;
+constexpr float kJit[4][3] = {{0.03f, 0.0f, -0.02f}, {-0.02f, 0.0f, 0.03f}, {0.02f, 0.0f, 0.02f}, {-0.03f, 0.0f, -0.03f}};
+constexpr float kSmp[4][2] = {{0.375f, 0.125f}, {0.875f, 0.375f}, {0.125f, 0.625f}, {0.625f, 0.875f}};
+constexpr float kAmbient = 0.34f, kSunStr = 0.62f, kHeightShade = 0.22f, kCornerOcc = 1.5f, kSkyOcc = 0.85f;
+constexpr float kSat = 1.35f, kExposure = 1.16f, kOutline = 0.38f, kOutlineDepth = 1.5f, kSideK = 0.82f;
+constexpr float kSunTint[3] = {1.14f, 1.0f, 0.8f}, kShadowTint[3] = {0.74f, 0.86f, 1.18f};
+constexpr float kAo[4] = {0.6f, 0.74f, 0.87f, 1.0f};
+
+struct SrgbTables {
+    float lin[256];
+    uint8_t out[4096];
+    SrgbTables() {
+        for (int i = 0; i < 256; ++i) { double v = i / 255.0; lin[i] = float(v <= 0.04045 ? v / 12.92 : std::pow((v + 0.055) / 1.055, 2.4)); }
+        for (int i = 0; i < 4096; ++i) {
+            double v = i / 4095.0, s = v <= 0.0031308 ? v * 12.92 : 1.055 * std::pow(v, 1 / 2.4) - 0.055;
+            out[i] = uint8_t(std::lround(std::clamp(s, 0.0, 1.0) * 255.0));
+        }
+    }
+};
+SrgbTables const& srgb() { static SrgbTables t; return t; }
+
+struct HField {
+    int n = 0, step = 1, gn = 0, m = 0, mx = 0, rowsHalf = 0, h0 = 0, cx = 0, cz = 0, x0 = 0;
+    int maxH = INT_MIN;
+    std::vector<uint32_t>               col;
+    std::vector<int16_t>                h;
+    std::vector<uint32_t const*>        wp;
+    std::vector<float>                  sky;
+    size_t id(int gi, int r) const { return size_t(r) * size_t(gn) + size_t(gi); }
+    bool   inside(int gi, int r) const { return gi >= 0 && gi < gn && r >= 0 && r < m; }
+    bool   known(int gi, int r) const { return inside(gi, r) && col[id(gi, r)] != 0; }
+    int    hAt(int gi, int r) const { return known(gi, r) ? int(h[id(gi, r)]) : INT_MIN; }
+    bool   occ(int gi, int r, int y) const { return hAt(gi, r) >= y; }
+};
+
+float aoCorner(bool a, bool b, bool d) {
+    if (a && b) return kAo[0];
+    return kAo[3 - (a ? 1 : 0) - (b ? 1 : 0) - (d ? 1 : 0)];
+}
+float bil(float a, float b, float c, float d, float fx, float fy) {
+    float t = a + (b - a) * fx, u = c + (d - c) * fx;
+    return t + (u - t) * fy;
+}
+
+void buildHField(HField& g, Baked const& b) {
+    g.n = b.n; g.step = b.step; g.h0 = b.h0; g.cx = b.cx; g.cz = b.cz;
+    g.rowsHalf = int(float(b.n) / (2.0f * KY)) + 96;
+    g.m        = 2 * g.rowsHalf + 1;
+    g.mx       = int(std::ceil(40.0f * 0.7f / float(b.step))) + 2;
+    g.gn       = g.n + g.mx;
+    g.x0       = b.cx - (b.n / 2) * b.step;
+    size_t N   = size_t(g.gn) * size_t(g.m);
+    g.col.assign(N, 0u); g.h.assign(N, 0); g.wp.assign(N, nullptr); g.sky.assign(N, 1.0f);
+    Sampler s;
+    for (int gi = 0; gi < g.gn; ++gi) {
+        int X = g.x0 + (gi - g.mx) * g.step;
+        for (int r = 0; r < g.m; ++r) {
+            int Z = g.cz + (r - g.rowsHalf) * g.step;
+            uint32_t c = 0; int hh = 0; uint32_t const* w = nullptr;
+            if (sampleCell(s, X, Z, g.step, c, hh, &w)) {
+                size_t k = g.id(gi, r);
+                g.col[k] = c | 0xFF000000u; g.h[k] = int16_t(hh); g.wp[k] = w;
+                g.maxH = std::max(g.maxH, hh);
+            }
+        }
+    }
+    // sky visibility per cell (a few short rays over the height field instead of Java's 13 voxel rays)
+    static constexpr float dirs[8][2] = {{1, 0}, {0.7071f, 0.7071f}, {0, 1}, {-0.7071f, 0.7071f}, {-1, 0}, {-0.7071f, -0.7071f}, {0, -1}, {0.7071f, -0.7071f}};
+    static constexpr float dists[7] = {1, 2, 3, 4, 6, 9, 12};
+    for (int gi = 0; gi < g.gn; ++gi)
+        for (int r = 0; r < g.m; ++r) {
+            size_t k = g.id(gi, r);
+            if (!g.col[k]) continue;
+            float y0 = float(g.h[k]) + 1.0f; int blocked = 0;
+            for (auto const& d : dirs) {
+                for (float dist : dists) {
+                    int hn = g.hAt(gi + int(std::lround(d[0] * dist / float(g.step))), r + int(std::lround(d[1] * dist / float(g.step))));
+                    if (hn != INT_MIN && float(hn) + 1.0f > y0 + dist * 0.7f + 0.2f) { ++blocked; break; }
+                }
+            }
+            g.sky[k] = 1.0f - 0.9f * float(blocked) / 8.0f;
+        }
+}
+
+bool inShadow(HField const& g, float X, float Y, float Z, float dx, float dy, float dz) {
+    float base = std::max(1.0f, float(g.step) * 0.5f);
+    float t    = 0.35f * base;
+    while (t < 40.0f) {
+        float py = Y + dy * t;
+        if (py > float(g.maxH) + 1.0f) return false;
+        int gi = int(std::floor((X + dx * t - float(g.x0)) / float(g.step))) + g.mx;
+        int r  = int(std::floor((Z + dz * t - float(g.cz)) / float(g.step))) + g.rowsHalf;
+        if (!g.inside(gi, r)) return false;
+        size_t k = g.id(gi, r);
+        if (g.col[k] && py < float(g.h[k]) + 1.0f) return true;
+        t += (t < 4.0f ? 0.5f : 1.0f) * base;
+    }
+    return false;
+}
+
+float skyBilinear(HField const& g, int gi, int r, float fx, float fz) {
+    float px = fx - 0.5f, pz = fz - 0.5f;
+    int   i0 = gi + (px < 0 ? -1 : 0), r0 = r + (pz < 0 ? -1 : 0);
+    float tx = px < 0 ? px + 1.0f : px, tz = pz < 0 ? pz + 1.0f : pz;
+    float own = g.sky[g.id(gi, r)];
+    auto  S = [&](int a, int c) { return g.known(a, c) ? g.sky[g.id(a, c)] : own; };
+    return bil(S(i0, r0), S(i0 + 1, r0), S(i0, r0 + 1), S(i0 + 1, r0 + 1), tx, tz);
+}
+
+struct Rec { int32_t cell; float a, b; uint8_t type; }; // type 1 top (a=fx,b=fz), 2 south wall (a=fx,b=depth below the top surface)
+
+// px: 0xAARRGGBB (A=0 unknown); hb: surface height per pixel (for hole filling)
+void paintHeightfield(Baked const& b, int W, std::vector<uint32_t>& px, std::vector<int16_t>& hb, uint64_t epoch) {
+    SrgbTables const& T = srgb();
+    HField g;
+    buildHField(g, b);
+    size_t NP = size_t(W) * size_t(W);
+    float  sc = float(W) / float(b.n);
+    std::vector<Rec>     rec(NP);
+    std::vector<float>   accR(NP, 0), accG(NP, 0), accB(NP, 0), dsum(NP, 0);
+    std::vector<uint8_t> cnt(NP, 0);
+    std::vector<int16_t> hsum(NP, 0);
+    float KYv = KY, HSs = HS / float(b.step);
+    float halfN = float(b.n) * 0.5f;
+    for (int s = 0; s < 4; ++s) {
+        if (epoch && gEpoch.load() != epoch) return;
+        for (auto& r : rec) r.cell = -1;
+        float sx = kSmp[s][0], sy = kSmp[s][1];
+        // ---- paint: far to near ----
+        for (int x = 0; x < W; ++x) {
+            float u  = (float(x) + sx) / sc;
+            int   i  = int(std::floor(u));
+            if (i < 0 || i >= b.n) continue;
+            float fx = u - float(i);
+            int   gi = i + g.mx;
+            for (int r = 0; r < g.m; ++r) {
+                size_t k = g.id(gi, r);
+                if (!g.col[k]) continue;
+                int   j     = r - g.rowsHalf;
+                int   hh    = g.h[k];
+                float vTop0 = halfN + float(j) * KYv - float(hh + 1 - g.h0) * HSs, vTop1 = vTop0 + KYv;
+                int   ya = std::max(0, int(std::ceil(vTop0 * sc - sy))), yb = std::min(W, int(std::ceil(vTop1 * sc - sy)));
+                for (int y = ya; y < yb; ++y) {
+                    float vS = (float(y) + sy) / sc;
+                    Rec& R = rec[size_t(y) * W + x];
+                    R.cell = int32_t(k); R.type = 1; R.a = fx; R.b = std::clamp((vS - vTop0) / KYv, 0.0f, 0.9999f);
+                }
+                int depth = 2;
+                if (g.known(gi, r + 1)) depth = std::clamp(hh - int(g.h[g.id(gi, r + 1)]), 0, 96);
+                if (depth <= 0) continue;
+                float vW1 = vTop1 + float(depth) * HSs;
+                int   wa = std::max(0, int(std::ceil(vTop1 * sc - sy))), wb = std::min(W, int(std::ceil(vW1 * sc - sy)));
+                for (int y = wa; y < wb; ++y) {
+                    float vS = (float(y) + sy) / sc;
+                    Rec& R = rec[size_t(y) * W + x];
+                    R.cell = int32_t(k); R.type = 2; R.a = fx; R.b = std::max(0.0f, (vS - vTop1) / HSs);
+                }
+            }
+        }
+        // ---- shade each visible sample once ----
+        float sunx = kSunX + kJit[s][0], suny = kSunY + kJit[s][1], sunz = kSunZ + kJit[s][2];
+        float lambertSide = std::max(0.0f, sunz) / suny;
+        for (size_t p = 0; p < NP; ++p) {
+            Rec const& R = rec[p];
+            if (R.cell < 0) continue;
+            size_t k  = size_t(R.cell);
+            int    gi = int(k % size_t(g.gn)), r = int(k / size_t(g.gn));
+            int    hh = g.h[k], j = r - g.rowsHalf;
+            bool   top = R.type == 1;
+            float  fx = R.a;
+            float  Y, Zc, ao, sky, lambert;
+            uint32_t albedo;
+            float  X = float(g.x0) + (float(gi - g.mx) + fx) * float(g.step);
+            if (top) {
+                float fz = R.b;
+                Y  = float(hh + 1);
+                Zc = float(g.cz) + (float(j) + fz) * float(g.step);
+                albedo = g.col[k];
+                int y1 = hh + 1;
+                bool nn = g.occ(gi, r - 1, y1), ss = g.occ(gi, r + 1, y1), ww = g.occ(gi - 1, r, y1), ee = g.occ(gi + 1, r, y1);
+                float nw = aoCorner(ww, nn, g.occ(gi - 1, r - 1, y1)), ne = aoCorner(ee, nn, g.occ(gi + 1, r - 1, y1));
+                float sw = aoCorner(ww, ss, g.occ(gi - 1, r + 1, y1)), se = aoCorner(ee, ss, g.occ(gi + 1, r + 1, y1));
+                ao = bil(nw, ne, sw, se, fx, fz);
+                sky = skyBilinear(g, gi, r, fx, fz);
+                lambert = 1.0f;
+            } else {
+                float d = R.b; // blocks below the top surface
+                Y  = float(hh + 1) - d;
+                Zc = float(g.cz) + float(j + 1) * float(g.step);
+                uint32_t const* wl = g.wp[k];
+                albedo = g.col[k];
+                if (wl) { int kk = 0; while (kk + 1 < NW && float(kWallDepth[kk + 1]) <= d) ++kk; if (wl[kk]) albedo = wl[kk]; }
+                int by = int(std::floor(Y - 1e-4f)); float fy = Y - float(by);
+                int rf = r + 1;
+                bool up = g.occ(gi, rf, by + 1), dn = g.occ(gi, rf, by - 1), ww = g.occ(gi - 1, rf, by), ee = g.occ(gi + 1, rf, by);
+                float tw = aoCorner(ww, up, g.occ(gi - 1, rf, by + 1)), te = aoCorner(ee, up, g.occ(gi + 1, rf, by + 1));
+                float bw = aoCorner(ww, dn, g.occ(gi - 1, rf, by - 1)), be = aoCorner(ee, dn, g.occ(gi + 1, rf, by - 1));
+                ao = bil(tw, te, bw, be, fx, 1.0f - fy);
+                sky = g.known(gi, rf) ? g.sky[g.id(gi, rf)] : g.sky[k];
+                lambert = lambertSide;
+            }
+            bool shadowed = lambert > 0.0f && inShadow(g, X, Y + 1e-4f, Zc + (top ? 0.0f : 1e-4f), sunx, suny, sunz);
+            float aoSun = std::max(0.0f, 1.0f - kCornerOcc * (1.0f - ao)), aoSky = std::min(ao, aoSun);
+            float direct = (lambert > 0.0f && !shadowed) ? kSunStr * lambert * aoSun : 0.0f;
+            float ambient = kAmbient * aoSky * (1.0f - kSkyOcc * (1.0f - (0.15f + 0.85f * sky)));
+            float lr = ambient * kShadowTint[0] + direct * kSunTint[0];
+            float lg = ambient * kShadowTint[1] + direct * kSunTint[1];
+            float lb = ambient * kShadowTint[2] + direct * kSunTint[2];
+            float hs = 1.0f + kHeightShade * std::clamp((Y - 64.0f) / 64.0f, -1.0f, 1.0f);
+            float face = top ? 1.0f : kSideK;
+            float cr = T.lin[(albedo >> 16) & 255] * lr * hs * face, cg = T.lin[(albedo >> 8) & 255] * lg * hs * face, cb = T.lin[albedo & 255] * lb * hs * face;
+            accR[p] += cr; accG[p] += cg; accB[p] += cb;
+            dsum[p] += -(Y * kSinP + Zc * kCosP);
+            hsum[p] = int16_t(hh);
+            ++cnt[p];
+        }
+    }
+    // ---- resolve samples, grade ----
+    px.assign(NP, 0u);
+    hb.assign(NP, INT16_MIN);
+    std::vector<float> depth(NP, std::nanf(""));
+    for (size_t p = 0; p < NP; ++p) {
+        int c = cnt[p];
+        if (!c) continue;
+        float r = accR[p] / float(c), gg = accG[p] / float(c), bb = accB[p] / float(c);
+        float l = 0.2126f * r + 0.7152f * gg + 0.0722f * bb;
+        r  = (l + (r - l) * kSat) * kExposure; gg = (l + (gg - l) * kSat) * kExposure; bb = (l + (bb - l) * kSat) * kExposure;
+        auto q = [&](float v) { return uint32_t(T.out[std::clamp(int(v * 4095.0f), 0, 4095)]); };
+        px[p] = 0xFF000000u | (q(r) << 16) | (q(gg) << 8) | q(bb);
+        hb[p] = hsum[p];
+        depth[p] = dsum[p] / float(c);
+    }
+    // ---- outlines: a pixel next to a clearly nearer surface is darkened (TileBaker.bakePixels) ----
+    std::vector<uint32_t> src = px;
+    for (int y = 0; y < W; ++y)
+        for (int x = 0; x < W; ++x) {
+            size_t i = size_t(y) * W + x;
+            if (!(src[i] >> 24)) continue;
+            float here = depth[i];
+            auto  nearer = [&](size_t jx) { float d = depth[jx]; return !std::isnan(d) && here - d > kOutlineDepth; };
+            if ((x > 0 && nearer(i - 1)) || (x < W - 1 && nearer(i + 1)) || (y > 0 && nearer(i - W)) || (y < W - 1 && nearer(i + W))) {
+                float f = 1.0f - kOutline;
+                auto  m2 = [&](int sh) { return uint32_t(float((src[i] >> sh) & 255) * f + 0.5f); };
+                px[i] = 0xFF000000u | (m2(16) << 16) | (m2(8) << 8) | m2(0);
+            }
+        }
+}
+
 // px layout: 0xAARRGGBB (A=0 unknown). Returns pixels (W x W).
-void rasterize(Baked const& b, int W, std::vector<uint32_t>& px, bool soft) {
-    px.assign(size_t(W) * W, 0u);
-    std::vector<int16_t> hb(size_t(W) * W, INT16_MIN);
+void rasterize(Baked const& b, int W, std::vector<uint32_t>& px, bool soft, uint64_t epoch = 0, bool painter = false) {
+    std::vector<int16_t> hb;
     float sc = float(W) / float(b.n);
+    if (painter) {
+        paintHeightfield(b, W, px, hb, epoch);
+        if (px.size() != size_t(W) * size_t(W)) return;
+    } else {
+        px.assign(size_t(W) * W, 0u);
+        hb.assign(size_t(W) * W, INT16_MIN);
+    }
     for (auto const& r : b.rects) {
         int x0 = std::max(0, int(std::floor(r.x0 * sc))), x1 = std::min(W, int(std::ceil(r.x1 * sc)));
         int y0 = std::max(0, int(std::floor(r.y0 * sc))), y1 = std::min(W, int(std::ceil(r.y1 * sc)));
@@ -922,7 +1180,7 @@ void rasterize(Baked const& b, int W, std::vector<uint32_t>& px, bool soft) {
         }
     }
     // soft rounded blocks: convex corners of colour regions are blended with their neighbours, region edges get a light blend
-    {
+    if (!painter) {
         std::vector<uint32_t> src = px;
         auto mix = [](uint32_t a, uint32_t c, float t) {
             auto ch = [&](int sh) { return uint32_t(float((a >> sh) & 255) * (1 - t) + float((c >> sh) & 255) * t + 0.5f); };
@@ -948,7 +1206,7 @@ void rasterize(Baked const& b, int W, std::vector<uint32_t>& px, bool soft) {
             }
     }
     // depth outlines: neighbouring surfaces at clearly different height get a dark line (Diorama draws outlines by depth)
-    for (int y = 1; y < W; ++y)
+    if (!painter) for (int y = 1; y < W; ++y)
         for (int x = 1; x < W; ++x) {
             size_t i = size_t(y) * W + x;
             if (!(px[i] >> 24)) continue;
@@ -1337,10 +1595,12 @@ uint64_t                 gBakeCounter = 0;
 
 // returns false if aborted
 bool runJob(Job const& j, Baked& res, std::vector<uint32_t>& px) {
-    bake(res, j.cx, j.cz, j.h0, j.n, j.step, j.version, j.frame, j.epoch);
+    res.cx = j.cx; res.cz = j.cz; res.h0 = j.h0; res.n = j.n; res.step = j.step; res.version = j.version; res.frame = j.frame; ++res.bakeId;
+    res.rects.clear();
     res.view = j.view;
     if (j.epoch && gEpoch.load() != j.epoch) return false;
-    rasterize(res, j.W, px, true);
+    rasterize(res, j.W, px, true, j.epoch, true);
+    if (j.epoch && gEpoch.load() != j.epoch) return false;
     res.rects.clear();
     res.rects.shrink_to_fit();
     return true;
