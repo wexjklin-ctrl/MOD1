@@ -64,8 +64,9 @@ namespace {
 constexpr uint32_t FOG = 0xFFE8EBF0u; // white fog of war (unexplored / not saved)
 
 // Wall profile: colour of the block at (top - depth) for each depth; used to paint real building/cliff faces.
-constexpr int NW = 16;
-constexpr int kWallDepth[NW] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 17, 21, 26, 32};
+constexpr int NW = 32; // per-block profile for the first 24 blocks below the top (windows, floors, trunks), then sparse
+constexpr int kWallDepth[NW] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 26, 29, 32, 36, 40, 48, 56, 64};
+constexpr int kDbm4Depth[16] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 17, 21, 26, 32};
 constexpr int kOldWallDepth[8] = {0, 1, 2, 4, 7, 11, 16, 24}; // DBM3 files
 
 struct ChunkData {
@@ -364,7 +365,17 @@ bool scanColumn(::BlockSource& region, int x, int z, uint32_t& col, int16_t& h, 
             if (yy < minH) { wall[k] = prev; continue; }
             ::BlockPos p2{x, yy, z};
             ::Block const& b2 = region.getBlock(p2);
-            if (b2.isAir() || isWater(b2.getTypeName())) { wall[k] = prev; continue; }
+            if (b2.isAir() || isWater(b2.getTypeName())) {
+                // an air gap with solid blocks above and below inside the first 24 blocks is an open window: dark interior
+                bool opening = false;
+                if (!b2.isAir()) { wall[k] = prev; continue; }
+                if (kWallDepth[k] <= 23 && yy - 1 >= minH) {
+                    ::Block const& bb = region.getBlock(::BlockPos{x, yy - 1, z});
+                    opening = !bb.isAir() && !isWater(bb.getTypeName());
+                }
+                wall[k] = opening ? 0xFF26262Cu : prev;
+                continue;
+            }
             prev    = colorOfBlockSide(region, p2, b2);
             wall[k] = prev;
         }
@@ -477,7 +488,7 @@ void saveRegion(int rx, int rz) {
             auto it = gCache.find(key(rx * 32 + dx, rz * 32 + dz));
             if (it != gCache.end()) { ++count; }
         }
-    f.write("DBM4", 4);
+    f.write("DBM5", 4);
     f.write(reinterpret_cast<char const*>(&count), 4);
     for (int dz = 0; dz < 32; ++dz)
         for (int dx = 0; dx < 32; ++dx) {
@@ -506,15 +517,24 @@ void loadWorld() {
         std::ifstream f(e.path(), std::ios::binary);
         char          magic[4] = {};
         uint32_t      count    = 0;
-        if (!f.read(magic, 4) || (std::string(magic, 4) != "DBM2" && std::string(magic, 4) != "DBM3" && std::string(magic, 4) != "DBM4") || !f.read(reinterpret_cast<char*>(&count), 4)) continue;
+        if (!f.read(magic, 4) || (std::string(magic, 4) != "DBM2" && std::string(magic, 4) != "DBM3" && std::string(magic, 4) != "DBM4" && std::string(magic, 4) != "DBM5") || !f.read(reinterpret_cast<char*>(&count), 4)) continue;
         for (uint32_t i = 0; i < count && i < 1024; ++i) {
             int       cx = 0, cz = 0;
             ChunkData cd;
             if (!f.read(reinterpret_cast<char*>(&cx), 4) || !f.read(reinterpret_cast<char*>(&cz), 4)) break;
             if (!f.read(reinterpret_cast<char*>(cd.color.data()), 256 * 4)) break;
             if (!f.read(reinterpret_cast<char*>(cd.height.data()), 256 * 2)) break;
-            if (magic[3] == '4') {
+            if (magic[3] == '5') {
                 if (!f.read(reinterpret_cast<char*>(cd.wall.data()), 256 * NW * 4)) break;
+            } else if (magic[3] == '4') {
+                std::array<uint32_t, 256 * 16> old{};
+                if (!f.read(reinterpret_cast<char*>(old.data()), 256 * 16 * 4)) break;
+                for (int i2 = 0; i2 < 256; ++i2)
+                    for (int k = 0; k < NW; ++k) {
+                        int o = 0;
+                        while (o + 1 < 16 && kDbm4Depth[o + 1] <= kWallDepth[k]) ++o;
+                        cd.wall[size_t(i2) * NW + k] = old[size_t(i2) * 16 + o];
+                    }
             } else if (magic[3] == '3') {
                 std::array<uint32_t, 256 * 8> old{};
                 if (!f.read(reinterpret_cast<char*>(old.data()), 256 * 8 * 4)) break;
