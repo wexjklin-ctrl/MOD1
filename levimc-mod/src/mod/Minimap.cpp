@@ -22,6 +22,7 @@
 #include <cctype>
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <unordered_set>
@@ -41,9 +42,14 @@ namespace {
 
 constexpr uint32_t FOG = 0xFF0D0F17u;
 
+// Wall profile: colour of the block at (top - depth) for each depth; used to paint real building/cliff faces.
+constexpr int NW = 8;
+constexpr int kWallDepth[NW] = {0, 1, 2, 4, 7, 11, 16, 24};
+
 struct ChunkData {
     std::array<uint32_t, 256> color{}; // 0 = unknown, else 0xFFRRGGBB
     std::array<int16_t, 256>  height{};
+    std::array<uint32_t, 256 * NW> wall{};
     bool                      scanned  = false;
     bool                      dirty    = false;
     uint64_t                  lastScan = 0;
@@ -165,7 +171,33 @@ uint32_t blockRgb(std::string const& full) {
 
 bool isWater(std::string const& n) { return n == "minecraft:water" || n == "minecraft:flowing_water"; }
 
-bool scanColumn(::BlockSource& region, int x, int z, uint32_t& col, int16_t& h) {
+std::unordered_map<::Block const*, uint32_t> gBlockCol; // per-block-state colour cache (avoids string work per column)
+
+uint32_t colorOfBlock(::BlockSource& region, ::BlockPos const& pos, ::Block const& block) {
+    auto it = gBlockCol.find(&block);
+    if (it != gBlockCol.end()) return it->second;
+    std::string const& name = block.getTypeName();
+    uint32_t           col;
+    uint32_t           rgb = blockRgb(name);
+    if (rgb) {
+        col = 0xFF000000u | rgb;
+    } else {
+        ::mce::Color mc = block.getBlockType().getMapColor(region, pos, block);
+        float r = mc.r, g = mc.g, b = mc.b;
+        if (mc.a < 0.02f || std::max({r, g, b}) < 0.02f) {
+            uint32_t hh = 2166136261u;
+            for (char ch : name) hh = (hh ^ uint8_t(ch)) * 16777619u;
+            r = 0.30f + float(hh & 255) / 255.0f * 0.30f;
+            g = 0.30f + float((hh >> 8) & 255) / 255.0f * 0.30f;
+            b = 0.30f + float((hh >> 16) & 255) / 255.0f * 0.30f;
+        }
+        col = pack(0.09f + r * 0.91f, 0.09f + g * 0.91f, 0.09f + b * 0.91f);
+    }
+    gBlockCol[&block] = col;
+    return col;
+}
+
+bool scanColumn(::BlockSource& region, int x, int z, uint32_t& col, int16_t& h, uint32_t* wall) {
     int minH = region.getMinHeight();
     int y    = int(region.getAboveTopSolidBlock(x, z, true, true)) - 1;
     if (y < minH) return false;
@@ -188,21 +220,19 @@ bool scanColumn(::BlockSource& region, int x, int z, uint32_t& col, int16_t& h) 
         }
         float k = 1.0f - float(depth) * 0.08f;
         col     = pack(0.16f * k, 0.34f * k, 0.84f * k);
+        for (int k2 = 0; k2 < NW; ++k2) wall[k2] = col;
     } else {
-        uint32_t rgb = blockRgb(name);
-        if (rgb) {
-            col = 0xFF000000u | rgb;
-        } else {
-            ::mce::Color mc = block->getBlockType().getMapColor(region, pos, *block);
-            float r = mc.r, g = mc.g, b = mc.b;
-            if (mc.a < 0.02f || std::max({r, g, b}) < 0.02f) {
-                uint32_t hh = 2166136261u;
-                for (char ch : name) hh = (hh ^ uint8_t(ch)) * 16777619u;
-                r = 0.30f + float(hh & 255) / 255.0f * 0.30f;
-                g = 0.30f + float((hh >> 8) & 255) / 255.0f * 0.30f;
-                b = 0.30f + float((hh >> 16) & 255) / 255.0f * 0.30f;
-            }
-            col = pack(0.09f + r * 0.91f, 0.09f + g * 0.91f, 0.09f + b * 0.91f);
+        col = colorOfBlock(region, pos, *block);
+        uint32_t prev = col;
+        wall[0]       = col;
+        for (int k = 1; k < NW; ++k) {
+            int yy = y - kWallDepth[k];
+            if (yy < minH) { wall[k] = prev; continue; }
+            ::BlockPos p2{x, yy, z};
+            ::Block const& b2 = region.getBlock(p2);
+            if (b2.isAir() || isWater(b2.getTypeName())) { wall[k] = prev; continue; }
+            prev    = colorOfBlock(region, p2, b2);
+            wall[k] = prev;
         }
     }
     h = int16_t(y);
@@ -219,11 +249,13 @@ bool scanChunk(::BlockSource& region, int cx, int cz, ChunkData& cd) {
         for (int lx = 0; lx < 16; ++lx) {
             uint32_t col = 0;
             int16_t  h   = 0;
-            if (!scanColumn(region, cx * 16 + lx, cz * 16 + lz, col, h)) continue;
+            uint32_t w[NW];
+            if (!scanColumn(region, cx * 16 + lx, cz * 16 + lz, col, h, w)) continue;
             int idx = lz * 16 + lx;
-            if (cd.color[idx] != col || cd.height[idx] != h) {
+            if (cd.color[idx] != col || cd.height[idx] != h || std::memcmp(&cd.wall[size_t(idx) * NW], w, sizeof(w)) != 0) {
                 cd.color[idx]  = col;
                 cd.height[idx] = h;
+                std::memcpy(&cd.wall[size_t(idx) * NW], w, sizeof(w));
                 changed        = true;
                 cd.dirty       = true;
             }
@@ -306,7 +338,7 @@ void saveRegion(int rx, int rz) {
             auto it = gCache.find(key(rx * 32 + dx, rz * 32 + dz));
             if (it != gCache.end()) { ++count; }
         }
-    f.write("DBM2", 4);
+    f.write("DBM3", 4);
     f.write(reinterpret_cast<char const*>(&count), 4);
     for (int dz = 0; dz < 32; ++dz)
         for (int dx = 0; dx < 32; ++dx) {
@@ -317,6 +349,7 @@ void saveRegion(int rx, int rz) {
             f.write(reinterpret_cast<char const*>(&cz), 4);
             f.write(reinterpret_cast<char const*>(it->second.color.data()), 256 * 4);
             f.write(reinterpret_cast<char const*>(it->second.height.data()), 256 * 2);
+            f.write(reinterpret_cast<char const*>(it->second.wall.data()), 256 * NW * 4);
             it->second.dirty = false;
         }
 }
@@ -334,13 +367,19 @@ void loadWorld() {
         std::ifstream f(e.path(), std::ios::binary);
         char          magic[4] = {};
         uint32_t      count    = 0;
-        if (!f.read(magic, 4) || std::string(magic, 4) != "DBM2" || !f.read(reinterpret_cast<char*>(&count), 4)) continue;
+        if (!f.read(magic, 4) || (std::string(magic, 4) != "DBM2" && std::string(magic, 4) != "DBM3") || !f.read(reinterpret_cast<char*>(&count), 4)) continue;
         for (uint32_t i = 0; i < count && i < 1024; ++i) {
             int       cx = 0, cz = 0;
             ChunkData cd;
             if (!f.read(reinterpret_cast<char*>(&cx), 4) || !f.read(reinterpret_cast<char*>(&cz), 4)) break;
             if (!f.read(reinterpret_cast<char*>(cd.color.data()), 256 * 4)) break;
             if (!f.read(reinterpret_cast<char*>(cd.height.data()), 256 * 2)) break;
+            if (magic[3] == '3') {
+                if (!f.read(reinterpret_cast<char*>(cd.wall.data()), 256 * NW * 4)) break;
+            } else {
+                for (int i = 0; i < 256; ++i)
+                    for (int k = 0; k < NW; ++k) cd.wall[size_t(i) * NW + k] = cd.color[i];
+            }
             cd.scanned = false; // will be refreshed when the chunk is loaded again
             gCache[key(cx, cz)] = cd;
         }
@@ -387,13 +426,14 @@ uint32_t shade(uint32_t col, float k) {
     return 0xFF000000u | (m((col >> 16) & 255) << 16) | (m((col >> 8) & 255) << 8) | m(col & 255);
 }
 
-bool sample(Sampler& s, int x, int z, uint32_t& col, int& h) {
+bool sample(Sampler& s, int x, int z, uint32_t& col, int& h, uint32_t const** wall = nullptr) {
     ChunkData* c = s.get(x, z);
     if (!c) return false;
     int idx = (z & 15) * 16 + (x & 15);
     if (!c->color[idx]) return false;
     col = c->color[idx];
     h   = c->height[idx];
+    if (wall) *wall = &c->wall[size_t(idx) * NW];
     return true;
 }
 
@@ -412,27 +452,41 @@ void bake(Baked& b, int cx, int cz, int h0, int n, int step) {
     int   rowsHalf = int(float(n) / (2.0f * KY)) + 28;
     int   x0 = cx - (n / 2) * step;
     Sampler s;
-    std::vector<uint32_t> col(size_t(n), 0u);
+    std::vector<uint32_t> col(size_t(n), 0u), wh(size_t(n), 0u);
     std::vector<int>      hh(size_t(n), 0), dh(size_t(n), 0);
+    std::vector<std::array<uint32_t, NW>> wl(size_t(n));
     for (int j = -rowsHalf; j <= rowsHalf; ++j) {
         int z = cz + j * step;
         for (int i = 0; i < n; ++i) {
             int      x = x0 + i * step;
             uint32_t c = 0, c2 = 0;
             int      h = 0, h2 = 0;
-            if (!sample(s, x, z, c, h)) { col[size_t(i)] = 0; continue; }
+            uint32_t const* wp = nullptr;
+            if (!sample(s, x, z, c, h, &wp)) { col[size_t(i)] = 0; continue; }
             col[size_t(i)] = c;
             hh[size_t(i)]  = h;
             int d = 0;
             if (sample(s, x, z + step, c2, h2) && h > h2) d = std::min(h - h2, 48);
             dh[size_t(i)] = d;
+            uint32_t hs = 0;
+            if (d > 0 && wp) {
+                std::memcpy(wl[size_t(i)].data(), wp, sizeof(uint32_t) * NW);
+                hs = 2166136261u;
+                int used = 0;
+                while (used + 1 < NW && kWallDepth[used + 1] < d) ++used; // only samples that are visible
+                for (int k = 0; k <= used; ++k) hs = (hs ^ wp[k]) * 16777619u;
+                hs |= 1u;
+            }
+            wh[size_t(i)] = hs;
         }
         float rowY = float(n) * 0.5f + float(j) * KY;
         int i = 0;
         while (i < n) {
             if (!col[size_t(i)]) { ++i; continue; }
             int e = i + 1;
-            while (e < n && col[size_t(e)] == col[size_t(i)] && hh[size_t(e)] == hh[size_t(i)] && dh[size_t(e)] == dh[size_t(i)]) ++e;
+            while (e < n && col[size_t(e)] == col[size_t(i)] && hh[size_t(e)] == hh[size_t(i)] && dh[size_t(e)] == dh[size_t(i)] &&
+                   wh[size_t(e)] == wh[size_t(i)])
+                ++e;
             float yTop = rowY - float(hh[size_t(i)] - h0) * hsu;
             float yBot = yTop + KY;
             auto  push = [&](float ya, float yb, uint32_t c) {
@@ -440,7 +494,17 @@ void bake(Baked& b, int cx, int cz, int h0, int n, int step) {
                 b.rects.push_back({float(i), std::max(ya, 0.0f), float(e), std::min(yb, float(n)), c});
             };
             push(yTop, yBot, col[size_t(i)]);
-            if (dh[size_t(i)] > 0) push(yBot, yBot + float(dh[size_t(i)]) * hsu, shade(col[size_t(i)], 0.62f));
+            int d = dh[size_t(i)];
+            if (d > 0) {
+                int t0 = 0, k = 0;
+                while (t0 < d) {
+                    while (k + 1 < NW && kWallDepth[k + 1] <= t0) ++k;
+                    int t1 = (k + 1 < NW) ? std::min(kWallDepth[k + 1], d) : d;
+                    uint32_t wc = wl[size_t(i)][size_t(k)];
+                    push(yBot + float(t0) * hsu, yBot + float(t1) * hsu, shade(wc ? wc : col[size_t(i)], 0.62f));
+                    t0 = t1;
+                }
+            }
             i = e;
         }
     }
@@ -566,6 +630,9 @@ void marker(::MinecraftUIRenderContext& ctx, float cx, float cy, float s, float 
 bool gBigMap    = false;
 bool gMWasDown  = false;
 int  gBigBlocks = 160;
+int  gBigBias   = 0;      // extra sampling step when the rectangle budget is exceeded
+int  gBigLastBlocks = 160;
+constexpr size_t kBigBudget = 6000;
 int  gPanX      = 0;
 int  gPanZ      = 0;
 
@@ -650,12 +717,14 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
         float size = std::max(sw, sh);
         float x    = (sw - size) * 0.5f;
         float y    = (sh - size) * 0.5f;
-        int   step = std::max(1, (gBigBlocks + 111) / 112);
+        if (gBigBlocks != gBigLastBlocks) { gBigLastBlocks = gBigBlocks; gBigBias = 0; }
+        int   step = std::max(1, (gBigBlocks + 111) / 112) + gBigBias;
         int   n    = gBigBlocks / step;
         int   cx   = px + gPanX, cz = pz + gPanZ;
         int   h0   = groundHeight(cx, cz, gH0Big);
         gH0Big     = h0;
-        ensureBaked(gBig, cx, cz, h0, n, step, 10);
+        ensureBaked(gBig, cx, cz, h0, n, step, 30);
+        if (gBig.rects.size() > kBigBudget && gBigBias < 6) ++gBigBias; // too many rectangles: coarser grid next frame
         rect(ctx, 0, 0, sw, sh, toColor(FOG), 1.0f);
         drawBaked(ctx, gBig, x, y, size);
         float cell = size / float(n);
