@@ -467,6 +467,49 @@ void rect(::MinecraftUIRenderContext& ctx, float x0, float y0, float x1, float y
     ctx.fillRectangle(r, c, a);
 }
 
+
+// ---------- tiny 3x5 pixel font (no engine font access needed) ----------
+// each glyph: 5 rows x 3 bits, row-major, MSB = left pixel
+struct Glyph { char ch; uint16_t bits; };
+constexpr Glyph kGlyphs[] = {
+    {'0', 0b111101101101111}, {'1', 0b010110010010111}, {'2', 0b111001111100111}, {'3', 0b111001111001111},
+    {'4', 0b101101111001001}, {'5', 0b111100111001111}, {'6', 0b111100111101111}, {'7', 0b111001001001001},
+    {'8', 0b111101111101111}, {'9', 0b111101111001111}, {'-', 0b000000111000000}, {',', 0b000000000010100},
+    {'.', 0b000000000000010}, {':', 0b000010000010000}, {'+', 0b000010111010000}, {' ', 0},
+    {'A', 0b010101111101101}, {'B', 0b110101110101110}, {'C', 0b011100100100011}, {'D', 0b110101101101110},
+    {'E', 0b111100110100111}, {'F', 0b111100110100100}, {'G', 0b011100101101011}, {'H', 0b101101111101101},
+    {'I', 0b111010010010111}, {'K', 0b101101110101101}, {'L', 0b100100100100111}, {'M', 0b101111111101101},
+    {'N', 0b110101101101101}, {'O', 0b010101101101010}, {'P', 0b110101110100100}, {'R', 0b110101110101101},
+    {'S', 0b011100010001110}, {'T', 0b111010010010010}, {'U', 0b101101101101111}, {'V', 0b101101101101010},
+    {'W', 0b101101111111101}, {'Y', 0b101101010010010}, {'Z', 0b111001010100111}, {'X', 0b101101010101101},
+    {'Q', 0b010101101111011}, {'J', 0b001001001101010}};
+
+void drawPixText(::MinecraftUIRenderContext& ctx, std::string const& t, float x, float y, float px, ::mce::Color const& col) {
+    float cx = x;
+    for (char ch : t) {
+        char u = char(std::toupper(uint8_t(ch)));
+        for (auto const& g : kGlyphs) {
+            if (g.ch != u) continue;
+            for (int r = 0; r < 5; ++r)
+                for (int c = 0; c < 3; ++c)
+                    if (g.bits & (1 << (14 - (r * 3 + c))))
+                        rect(ctx, cx + float(c) * px, y + float(r) * px, cx + float(c + 1) * px, y + float(r + 1) * px, col, 1.0f);
+            break;
+        }
+        cx += 4.0f * px;
+    }
+}
+
+// letter in a small dark box (N/E/S/W around the minimap, like Diorama)
+void compassLetter(::MinecraftUIRenderContext& ctx, char ch, float cx, float cy, bool red) {
+    constexpr float px = 2.0f;
+    float w = 3 * px + 6, h = 5 * px + 6;
+    ::mce::Color bg = red ? ::mce::Color{0.55f, 0.18f, 0.16f, 1.0f} : ::mce::Color{0.16f, 0.17f, 0.20f, 1.0f};
+    rect(ctx, cx - w / 2 - 1, cy - h / 2 - 1, cx + w / 2 + 1, cy + h / 2 + 1, ::mce::Color{0.85f, 0.87f, 0.92f, 1.0f}, 1.0f);
+    rect(ctx, cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2, bg, 1.0f);
+    drawPixText(ctx, std::string(1, ch), cx - 1.5f * px, cy - 2.5f * px, px, ::mce::Color{0.96f, 0.96f, 0.98f, 1.0f});
+}
+
 void drawBaked(::MinecraftUIRenderContext& ctx, Baked const& b, float sx, float sy, float size) {
     float cell = size / float(b.n);
     for (auto const& r : b.rects) {
@@ -603,7 +646,8 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
     int groundPlayer = groundHeight(px, pz, int(pos.y) - 2);
 
     if (gBigMap) {
-        float size = std::min(sw, sh) * 0.88f;
+        // fullscreen like Java Diorama: map fills the screen, top bar with coords + chunk count, bottom hint
+        float size = std::max(sw, sh);
         float x    = (sw - size) * 0.5f;
         float y    = (sh - size) * 0.5f;
         int   step = std::max(1, (gBigBlocks + 111) / 112);
@@ -612,20 +656,31 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
         int   h0   = groundHeight(cx, cz, gH0Big);
         gH0Big     = h0;
         ensureBaked(gBig, cx, cz, h0, n, step, 10);
-        rect(ctx, 0, 0, sw, sh, ::mce::Color{0.0f, 0.0f, 0.0f, 1.0f}, 0.55f);
-        frame(ctx, x, y, size);
+        rect(ctx, 0, 0, sw, sh, toColor(FOG), 1.0f);
         drawBaked(ctx, gBig, x, y, size);
-        vignette(ctx, x, y, size);
         float cell = size / float(n);
         float ux   = float(n) * 0.5f + (float(pos.x) - float(cx)) / float(step);
         float uy   = float(n) * 0.5f + (float(pos.z) - float(cz)) / float(step) * KY - float(groundPlayer - h0) * HS / float(step);
         float mx = x + ux * cell, my = y + uy * cell;
-        if (mx > x && mx < x + size && my > y && my < y + size) marker(ctx, mx, my, 2.5f, yaw);
+        if (mx > 0 && mx < sw && my > 0 && my < sh) marker(ctx, mx, my, 3.5f, yaw);
+        // top bar
+        float bar = 30.0f;
+        rect(ctx, 0, 0, sw, bar, ::mce::Color{0.02f, 0.03f, 0.05f, 1.0f}, 0.72f);
+        rect(ctx, 6, 5, 6 + 92, 25, ::mce::Color{0.05f, 0.07f, 0.10f, 1.0f}, 0.95f);
+        rect(ctx, 6, 24, 98, 26, ::mce::Color{0.95f, 0.97f, 1.0f, 1.0f}, 1.0f);
+        ::mce::Color white{0.95f, 0.97f, 1.0f, 1.0f};
+        drawPixText(ctx, "SURFACE", 12, 9, 2.0f, white);
+        char info[96];
+        std::snprintf(info, sizeof(info), "%d, %d, %d   CHUNKS: %d", px, int(pos.y), pz, int(gCache.size()));
+        drawPixText(ctx, info, 120, 9, 2.0f, white);
+        // bottom hint
+        rect(ctx, 0, sh - 22, sw, sh, ::mce::Color{0.02f, 0.03f, 0.05f, 1.0f}, 0.72f);
+        drawPixText(ctx, "ARROWS - MOVE   +/- - ZOOM   HOME - CENTER   M - CLOSE", 8, sh - 16, 2.0f, white);
     } else {
         constexpr float SIZE   = 112.0f;
         constexpr int   BLOCKS = 56;
-        float           x      = sw - SIZE - 12.0f;
-        float           y      = 12.0f;
+        float           x      = sw - SIZE - 22.0f;
+        float           y      = 24.0f;
         gH0Mini                = groundPlayer;
         ensureBaked(gMini, px, pz, groundPlayer, BLOCKS, 1, 6);
         frame(ctx, x, y, SIZE);
@@ -635,6 +690,10 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
         float ux   = float(BLOCKS) * 0.5f + (float(pos.x) - float(px));
         float uy   = float(BLOCKS) * 0.5f + (float(pos.z) - float(pz)) * KY;
         marker(ctx, x + ux * cell, y + uy * cell, 1.5f, yaw);
+        compassLetter(ctx, 'N', x + SIZE / 2, y - 10, true);
+        compassLetter(ctx, 'S', x + SIZE / 2, y + SIZE + 10, false);
+        compassLetter(ctx, 'W', x - 10, y + SIZE / 2, false);
+        compassLetter(ctx, 'E', x + SIZE + 10, y + SIZE / 2, false);
     }
 }
 
