@@ -83,6 +83,8 @@ struct ChunkData {
 std::unordered_map<int64_t, ChunkData> gCache;
 std::mutex                             gMapMx; // guards the STRUCTURE of gCache (insert/clear on main thread vs. find on the bake worker)
 uint64_t                               gFrame   = 0;
+std::vector<std::pair<int, int>>        gChangedChunks; // chunks whose pixels changed (tile invalidation)
+bool                                   gTilesInit = false;
 uint64_t                               gVersion = 1; // bumped when any cached pixel changes
 
 int64_t key(int cx, int cz) { return (int64_t(cx) << 32) ^ int64_t(uint32_t(cz)); }
@@ -419,6 +421,7 @@ bool scanChunk(::BlockSource& region, int cx, int cz, ChunkData& cd) {
     if (changed) {
         ++gVersion;
         markDirty(cx, cz);
+        if (gChangedChunks.size() < 20000) gChangedChunks.push_back({cx, cz});
     }
     return true;
 }
@@ -576,11 +579,13 @@ std::string computeWorldKey(::Level& level) {
 
 void asyncQuiesce();
 void resetSlots();
+void clearTiles();
 
 void switchWorld(std::string const& k) {
     saveAll();
     asyncQuiesce(); // the bake worker must not touch gCache while it is cleared
     resetSlots();
+    clearTiles();
     {
         std::lock_guard<std::mutex> lk(gMapMx);
         gCache.clear();
@@ -1384,6 +1389,7 @@ bool fillImage(::mce::Image& img, std::vector<uint32_t> const& px, int W) {
 
 uint64_t gPerfUploads = 0, gPerfInPlaceFail = 0;
 double   gPerfMaxUploadMs = 0;
+uint64_t gTexSerial = 0;
 
 bool uploadImage(::IClientInstance& client, Tex& t, std::vector<uint32_t> const& px, int W) {
     auto tg = client.getTextureGroup();
@@ -1404,7 +1410,7 @@ bool uploadImage(::IClientInstance& client, Tex& t, std::vector<uint32_t> const&
     if (!ok) {
         // new unique name (re-uploading an existing name is not safe)
         ++t.gen;
-        t.name[h] = "textures/diorama_bedrock/" + std::string(&t == &gMiniTex ? "mini" : "big") + "_" + std::to_string(W) + "_" + std::to_string(t.gen);
+        t.name[h] = "textures/diorama_bedrock/" + std::string(&t == &gMiniTex ? "mini" : "big") + "_" + std::to_string(W) + "_" + std::to_string(t.gen) + "_" + std::to_string(++gTexSerial);
         ::mce::Image img(uint32_t(W), uint32_t(W), ::mce::ImageFormat::RGBA8Unorm, ::mce::ImageUsage::SRGB);
         if (!fillImage(img, px, W)) return false;
         ::cg::ImageBuffer buf(std::move(img));
@@ -1550,7 +1556,7 @@ std::atomic<int> gWheel{0};
 HWND    gHwnd     = nullptr;
 WNDPROC gOldProc  = nullptr;
 bool    gHwndUni  = true;
-bool    gDragging = false, gMouseReleased = false;
+bool    gDragging = false, gMouseReleased = false, gInputLocked = false;
 float   gLastMX = 0, gLastMY = 0;
 int  gBigBias   = 0;      // extra sampling step when the rectangle budget is exceeded
 int  gBigLastQ = 0;
@@ -1779,11 +1785,86 @@ void startWorker() {
     gWorkerOk      = gThread.joinable();
 }
 
+// ---------- seamless world tiles (one global picture; zooming only scales/crops it) ----------
+// Level-0 tile: 128 blocks wide x 170 z-rows (= 510 px: KY*PPC = 3 px per row), 512x510 px content, global reference height kHRef.
+// Level L tile = 2x2 box-filtered children, same 512x510 px, covers 2^L times more world.
+constexpr int   kTW = 512, kTH = 510, kTexH = 512;
+constexpr int   kTileX = 128, kTileZ = 170;
+constexpr int   kHRef = 64, kLMax = 3, kBakeN = 160, kBakeW = 640;
+constexpr float kLiftPx = HS * float(PPC);
+static_assert(kTileZ * 3 == kTH, "tile rows must be pixel exact");
+
+int fdiv(int a, int b) { int q = a / b; if ((a % b != 0) && ((a < 0) != (b < 0))) --q; return q; }
+int64_t tkey(int l, int i, int j) { return (int64_t(l) << 58) | (int64_t(uint32_t(i) & 0x1FFFFFFFu) << 29) | int64_t(uint32_t(j) & 0x1FFFFFFFu); }
+
+struct TileJob { int i = 0, j = 0; uint64_t epoch = 0; };
+struct TileResult { int i = 0, j = 0; uint64_t epoch = 0; std::vector<uint32_t> px; };
+std::mutex               gTileMx;
+std::condition_variable  gTileCv, gTileIdleCv;
+std::vector<TileJob>     gTileQueue;
+std::vector<TileResult>  gTileDone;
+std::thread              gTileThread;
+bool                     gTileStop = false, gTileStarted = false, gTileBusy = false;
+
+bool bakeTilePixels(int ti, int tj, uint64_t epoch, std::vector<uint32_t>& out) {
+    Baked b;
+    b.cx = ti * kTileX + kTileX / 2; b.cz = tj * kTileZ + kTileZ / 2; b.h0 = kHRef; b.n = kBakeN; b.step = 1; b.view = kBakeN;
+    b.version = gVersion; ++b.bakeId;
+    std::vector<uint32_t> px;
+    rasterize(b, kBakeW, px, true, epoch, true);
+    if (epoch && gEpoch.load() != epoch) return false;
+    if (px.size() < size_t(kBakeW) * size_t(kBakeW)) return false;
+    int ox = (kBakeW - kTW) / 2, oy = kBakeW / 2 - kTH / 2;
+    out.assign(size_t(kTW) * size_t(kTexH), 0u);
+    for (int y = 0; y < kTH; ++y)
+        std::memcpy(&out[size_t(y) * kTW], &px[size_t(y + oy) * kBakeW + size_t(ox)], sizeof(uint32_t) * kTW);
+    return true;
+}
+
+void tileWorkerMain() {
+    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
+    for (;;) {
+        TileJob job;
+        {
+            std::unique_lock<std::mutex> lk(gTileMx);
+            gTileCv.wait(lk, [] { return gTileStop || !gTileQueue.empty(); });
+            if (gTileStop) return;
+            job = gTileQueue.front();
+            gTileQueue.erase(gTileQueue.begin());
+            gTileBusy = true;
+        }
+        TileResult r; r.i = job.i; r.j = job.j; r.epoch = job.epoch;
+        bool ok = false;
+        try { ok = (gEpoch.load() == job.epoch) && bakeTilePixels(job.i, job.j, job.epoch, r.px); } catch (...) { ok = false; }
+        {
+            std::lock_guard<std::mutex> lk(gTileMx);
+            gTileBusy = false;
+            if (ok && gEpoch.load() == job.epoch) gTileDone.push_back(std::move(r));
+        }
+        gTileIdleCv.notify_all();
+    }
+}
+
+void startTileWorker() {
+    if (gTileStarted) return;
+    gTileStarted = true;
+    gTileStop    = false;
+    gTileThread  = std::thread(tileWorkerMain);
+}
+
+void tileQuiesce() {
+    std::unique_lock<std::mutex> lk(gTileMx);
+    gTileQueue.clear();
+    gTileDone.clear();
+    gTileIdleCv.wait(lk, [] { return !gTileBusy; });
+}
+
 void asyncQuiesce() {
     ++gEpoch; // running jobs abort at the next row, queued/finished ones are dropped
     std::unique_lock<std::mutex> lk(gAsyncMx);
     for (auto& s : gSlots) { s.queued = false; s.done = false; }
     gIdleCv.wait(lk, [] { return !gSlots[0].busy && !gSlots[1].busy; });
+    tileQuiesce();
 }
 
 void resetSlots() {
@@ -1869,6 +1950,211 @@ Scroll prepareAsync(Slot& s, Tex& t, ::IClientInstance& client, int nb, int nvie
     return makeScroll(s.disp, tx, tz, smoothH);
 }
 
+// ---------- tile manager (main thread) ----------
+struct Tile {
+    bool                  inited = false;
+    int                   l = 0, i = 0, j = 0;
+    Tex                   tex;
+    std::vector<uint32_t> px;
+    uint64_t              pxVer = 0, upVer = 0, propVer = 0, pxFrame = 0, staleFrame = 0, lastUse = 0;
+    bool                  baked = false, queued = false, stale = false, content = false, shown = false;
+};
+std::unordered_map<int64_t, Tile> gTiles;
+
+Tile& tileAt(int l, int i, int j) {
+    Tile& t = gTiles[tkey(l, i, j)];
+    if (!t.inited) { t.inited = true; t.l = l; t.i = i; t.j = j; }
+    return t;
+}
+Tile* findTile(int l, int i, int j) {
+    auto it = gTiles.find(tkey(l, i, j));
+    return it == gTiles.end() ? nullptr : &it->second;
+}
+
+void clearTiles() {
+    gTiles.clear();
+    gTilesInit = false;
+    gChangedChunks.clear();
+}
+
+// A changed chunk can show up in every level-0 tile whose bake window (x -32..+32 blocks, z rows -40..+110 for lifted roofs) reaches it.
+void markTilesForChunk(int cx, int cz) {
+    int x0 = cx * 16, z0 = cz * 16;
+    for (int i = fdiv(x0 - 160, kTileX); i <= fdiv(x0 + 48, kTileX); ++i) {
+        if (!(kTileX * i - 32 < x0 + 16 && kTileX * i + kTileX + 32 > x0)) continue;
+        for (int j = fdiv(z0 - 280, kTileZ); j <= fdiv(z0 + 56, kTileZ); ++j) {
+            if (!(kTileZ * j - 40 < z0 + 16 && kTileZ * j + kTileZ + 110 > z0)) continue;
+            Tile& t = tileAt(0, i, j);
+            t.content = true; t.stale = true; t.staleFrame = gFrame;
+        }
+    }
+}
+
+void initTilesFromCache() {
+    std::vector<std::pair<int, int>> cs;
+    {
+        std::lock_guard<std::mutex> lk(gMapMx);
+        for (auto const& [k, cd] : gCache) {
+            bool any = false;
+            for (int q = 0; q < 256; ++q) if (cd.color[q]) { any = true; break; }
+            if (any) cs.push_back({int(int32_t(uint32_t(k >> 32))), int(int32_t(uint32_t(k & 0xFFFFFFFFu)))});
+        }
+    }
+    for (auto const& c : cs) markTilesForChunk(c.first, c.second);
+    gTilesInit = true;
+}
+
+void contributeToParent(Tile const& c) {
+    Tile& p = tileAt(c.l + 1, fdiv(c.i, 2), fdiv(c.j, 2));
+    if (p.px.empty()) p.px.assign(size_t(kTW) * size_t(kTexH), 0u);
+    int qx = (c.i & 1) * (kTW / 2), qy = (c.j & 1) * (kTH / 2);
+    for (int y = 0; y < kTH / 2; ++y)
+        for (int x = 0; x < kTW / 2; ++x) {
+            uint32_t const* r0 = &c.px[size_t(2 * y) * kTW + size_t(2 * x)];
+            uint32_t const* r1 = r0 + kTW;
+            uint32_t        q[4] = {r0[0], r0[1], r1[0], r1[1]};
+            uint32_t        a = 0, rs = 0, gs = 0, bs = 0;
+            for (uint32_t v : q) {
+                uint32_t al = v >> 24;
+                a += al; rs += ((v >> 16) & 255) * al; gs += ((v >> 8) & 255) * al; bs += (v & 255) * al;
+            }
+            uint32_t out = 0;
+            if (a) out = ((a / 4) << 24) | ((rs / a) << 16) | ((gs / a) << 8) | (bs / a);
+            p.px[size_t(qy + y) * kTW + size_t(qx + x)] = out;
+        }
+    ++p.pxVer;
+    p.pxFrame = gFrame;
+}
+
+void tileTick(float tx, float tz, bool bigOpen) {
+    for (auto const& c : gChangedChunks) markTilesForChunk(c.first, c.second);
+    gChangedChunks.clear();
+    if (!bigOpen || !gTexEnabled || gTexFailed) return;
+    if (!gTilesInit) initTilesFromCache();
+    startTileWorker();
+    // finished bakes
+    std::vector<TileResult> done;
+    {
+        std::lock_guard<std::mutex> lk(gTileMx);
+        done.swap(gTileDone);
+    }
+    for (auto& r : done) {
+        if (r.epoch != gEpoch.load()) continue;
+        Tile& t = tileAt(0, r.i, r.j);
+        t.queued = false; t.px = std::move(r.px); t.baked = true; ++t.pxVer; t.pxFrame = gFrame;
+    }
+    // propagate finished tiles into their parent level (box filter)
+    int work = 3;
+    for (auto& kv : gTiles) {
+        Tile& t = kv.second;
+        if (work <= 0) break;
+        if (t.px.empty() || t.propVer == t.pxVer || gFrame - t.pxFrame < 6) continue;
+        if (t.l < kLMax) { contributeToParent(t); --work; }
+        t.propVer = t.pxVer;
+    }
+    // schedule bakes: nearest to the view first
+    if (gFrame % 12 == 0) {
+        size_t queued;
+        { std::lock_guard<std::mutex> lk(gTileMx); queued = gTileQueue.size(); }
+        if (queued < 3) {
+            std::vector<std::pair<float, Tile*>> cand;
+            for (auto& kv : gTiles) {
+                Tile& t = kv.second;
+                if (t.l != 0 || !t.content || t.queued) continue;
+                if (t.baked && !(t.stale && gFrame - t.staleFrame >= 45)) continue;
+                float dx = float(t.i * kTileX + kTileX / 2) - tx, dz = float(t.j * kTileZ + kTileZ / 2) - tz;
+                cand.push_back({dx * dx + dz * dz, &t});
+            }
+            std::sort(cand.begin(), cand.end(), [](auto const& a, auto const& b) { return a.first < b.first; });
+            size_t take = std::min<size_t>(cand.size(), 3 - queued);
+            std::lock_guard<std::mutex> lk(gTileMx);
+            for (size_t k = 0; k < take; ++k) {
+                Tile* t = cand[k].second;
+                t->queued = true; t->stale = false;
+                gTileQueue.push_back({t->i, t->j, gEpoch.load()});
+            }
+            if (take) gTileCv.notify_all();
+        }
+    }
+    // keep RAM bounded: level-0 pixel copies that are already on the GPU and propagated can be dropped
+    if (gFrame % 60 == 0) {
+        int cnt = 0;
+        for (auto& kv : gTiles) if (kv.second.l == 0 && !kv.second.px.empty()) ++cnt;
+        while (cnt > 64) {
+            Tile* old = nullptr;
+            for (auto& kv : gTiles) {
+                Tile& t = kv.second;
+                if (t.l != 0 || t.px.empty() || !t.shown || t.upVer != t.pxVer || t.propVer != t.pxVer || t.tex.pending) continue;
+                if (!old || t.lastUse < old->lastUse) old = &t;
+            }
+            if (!old) break;
+            old->px.clear(); old->px.shrink_to_fit();
+            --cnt;
+        }
+    }
+}
+
+bool tileShown(Tile const& t) { return t.shown && t.tex.created[t.tex.cur]; }
+
+void tileUpload(::IClientInstance& client, Tile& t, int& uploads) {
+    if (t.tex.pending && gFrame - t.tex.pendFrame >= 2) { t.tex.cur = 1 - t.tex.cur; t.tex.pending = false; t.shown = true; }
+    if (!t.tex.pending && !t.px.empty() && t.upVer != t.pxVer && gFrame - t.pxFrame >= (t.l ? 10u : 1u) && uploads < 3) {
+        if (uploadImage(client, t.tex, t.px, kTW)) { t.tex.pending = true; t.tex.pendFrame = gFrame; t.upVer = t.pxVer; ++uploads; }
+        else gTexFailed = true;
+    }
+}
+
+bool drawTileTex(::MinecraftUIRenderContext& ctx, Tex const& t, float x, float y, float w, float h, float u0, float v0, float uw, float vh) {
+    ::ResourceLocation loc(::Core::PathView(t.name[t.cur]), ::ResourceFileSystem::UserPackage);
+    ::mce::TexturePtr  tp  = ctx.getTexture(loc, false);
+    auto const*        dat = tp.mClientTexture.get();
+    if (!dat) return false;
+    ctx.drawImage(dat->mClientTexture.get(), ::glm::vec2{x, y}, ::glm::vec2{w, h}, ::glm::vec2{u0, v0}, ::glm::vec2{uw, vh}, false);
+    ctx.flushImages(::mce::Color{1.0f, 1.0f, 1.0f, 1.0f}, 1.0f, ::HashedString(gMaterial));
+    return true;
+}
+
+void drawTileCell(::MinecraftUIRenderContext& ctx, ::IClientInstance& client, int l, int i, int j, float x, float y, float w, float h, int& uploads) {
+    constexpr float kV = float(kTH) / float(kTexH);
+    float ow = w + 0.75f, oh = h + 0.75f; // tiny overlap hides hairline seams between neighbours
+    if (Tile* t = findTile(l, i, j)) {
+        tileUpload(client, *t, uploads);
+        if (tileShown(*t) && drawTileTex(ctx, t->tex, x, y, ow, oh, 0.0f, 0.0f, 1.0f, kV)) { t->lastUse = gFrame; return; }
+    }
+    // stand-in: the same area from a coarser level (never empty holes while the detailed tile is still baking)
+    for (int l2 = l + 1; l2 <= kLMax; ++l2) {
+        int k = 1 << (l2 - l), ai = fdiv(i, k), aj = fdiv(j, k);
+        Tile* a = findTile(l2, ai, aj);
+        if (!a) continue;
+        tileUpload(client, *a, uploads);
+        if (!tileShown(*a)) continue;
+        float ox = float(i - ai * k) / float(k), oy = float(j - aj * k) / float(k);
+        if (drawTileTex(ctx, a->tex, x, y, ow, oh, ox, oy * kV, 1.0f / float(k), kV / float(k))) { a->lastUse = gFrame; return; }
+    }
+}
+
+// Whole big map from tiles. (tx,tz) = world point at the screen centre, cH = ground height there.
+void drawTileMap(::MinecraftUIRenderContext& ctx, ::IClientInstance& client, float sw, float sh, float size, float tx, float tz, float cH, float yaw) {
+    float s    = size / (gZoom * float(PPC));         // GUI units per level-0 pixel
+    float pcx  = tx * float(PPC), pcy = tz * KY * float(PPC) - (cH - float(kHRef)) * kLiftPx;
+    float halfW = sw * 0.5f / s, halfH = sh * 0.5f / s;
+    float dens  = size / gZoom * 2.2f;                // ~ physical pixels per block
+    int   L     = std::clamp(int(std::floor(std::log2(float(PPC) / std::max(dens, 0.01f)))), 0, kLMax);
+    float tw = float(kTW << L), th = float(kTH << L);
+    int   i0 = int(std::floor((pcx - halfW) / tw)), i1 = int(std::floor((pcx + halfW) / tw));
+    int   j0 = int(std::floor((pcy - halfH) / th)), j1 = int(std::floor((pcy + halfH) / th));
+    int   uploads = 0;
+    for (int j = j0; j <= j1; ++j)
+        for (int i = i0; i <= i1; ++i) {
+            float x = sw * 0.5f + (float(i) * tw - pcx) * s, y = sh * 0.5f + (float(j) * th - pcy) * s;
+            drawTileCell(ctx, client, L, i, j, x, y, tw * s, th * s, uploads);
+        }
+    // player marker (same global projection)
+    float mpx = gSX * float(PPC), mpy = gSZ * KY * float(PPC) - (gSY - 1.6f - float(kHRef)) * kLiftPx;
+    float mx  = sw * 0.5f + (mpx - pcx) * s, my = sh * 0.5f + (mpy - pcy) * s;
+    if (mx > 0 && mx < sw && my > 0 && my < sh) marker(ctx, mx, my, std::clamp(3.5f * std::pow(256.0f / gZoom, 0.5f), 1.1f, 4.0f), yaw);
+}
+
 int gH0Mini = 64, gH0Big = 64;
 float gSmoothH = -99999.0f;
 float gBigSH = -99999.0f;
@@ -1877,6 +2163,14 @@ float gBigSH = -99999.0f;
 
 void shutdown() {
     removeWheelHook();
+    {
+        std::lock_guard<std::mutex> lk(gTileMx);
+        gTileStop = true;
+    }
+    gTileCv.notify_all();
+    if (gTileThread.joinable()) gTileThread.join();
+    gTileStarted = false;
+    gTileStop    = false;
     {
         std::lock_guard<std::mutex> lk(gAsyncMx);
         gStop = true;
@@ -1892,6 +2186,7 @@ void reset() {
     saveAll();
     asyncQuiesce();
     resetSlots();
+    clearTiles();
     {
         std::lock_guard<std::mutex> lk(gMapMx);
         gCache.clear();
@@ -1920,7 +2215,7 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
     ::LocalPlayer* player = client.getLocalPlayer();
     ::BlockSource* region = client.getRegion();
     if (!player || !region) return;
-    if (int(region->getDimensionId()) != 0) { setBigMapHud(client, false); if (gMouseReleased) { client.grabMouse(); gMouseReleased = false; } return; } // Overworld only
+    if (int(region->getDimensionId()) != 0) { setBigMapHud(client, false); if (gMouseReleased) { client.grabMouse(); gMouseReleased = false; } if (gInputLocked) { client.setDisableInput(false); client.setSuspendDirectionalInput(false); gInputLocked = false; } return; } // Overworld only
 
     ++gFrame;
     uint64_t tick = GetTickCount64();
@@ -1945,6 +2240,7 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
     }
     pollInput();
     setBigMapHud(client, gBigMap);
+    if (gBigMap != gInputLocked) { client.setDisableInput(gBigMap); client.setSuspendDirectionalInput(gBigMap); gInputLocked = gBigMap; }
     if (!gBigMap && gMouseReleased) { client.grabMouse(); gMouseReleased = false; gDragging = false; }
     float dtf = frameDt();
     {
@@ -1968,6 +2264,7 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
 
     int groundPlayer = groundHeight(px, pz, int(pos.y) - 2);
 
+    if (!gBigMap) tileTick(gSX, gSZ, false);
     if (gBigMap) {
         // fullscreen like Java Diorama: map fills the screen, top bar with coords + chunk count, bottom hint
         float size = std::max(sw, sh);
@@ -2018,11 +2315,10 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
         gMouseReleased = true;
         rect(ctx, 0, 0, sw, sh, toColor(FOG), 1.0f);
         if (gTexEnabled && !gTexFailed) {
-            sc = prepareAsync(gSlots[1], gBigTex, client, nb, nview, step, tx, tz, gBigSH, 90, 8);
-            retarget(sc, gZoom);
+            tileTick(tx, tz, true);
             if (!gTexFailed) {
-                if (!sc.ready) texOk = true; // first bake still running in the background: fog only
-                else texOk = drawTexAsync(ctx, gBigTex, x, y, size, sc.u0, sc.v0, sc.uw, sc.vh);
+                drawTileMap(ctx, client, sw, sh, size, tx, tz, gBigSH, yaw);
+                texOk = !gTexFailed;
             }
         }
         if (!texOk) {
