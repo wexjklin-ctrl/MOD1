@@ -13,6 +13,7 @@
 #include "mc/client/renderer/TextureGroup.h"
 #include "mc/deps/core/image/Image.h"
 #include "mc/deps/core_graphics/ImageBuffer.h"
+#include "mc/deps/core/file/PathView.h"
 #include "mc/deps/core/resource/ResourceLocation.h"
 #include "mc/deps/core/string/HashedString.h"
 #include "mc/deps/minecraft_renderer/renderer/TexturePtr.h"
@@ -729,7 +730,7 @@ bool drawTex(::MinecraftUIRenderContext& ctx, ::IClientInstance& client, Baked c
     }
     ::ResourceLocation loc(::Core::PathView(t.name), ::ResourceFileSystem::UserPackage);
     ::mce::TexturePtr  tp  = ctx.getTexture(loc, false);
-    auto*              dat = tp.mClientTexture.get().get();
+    auto const*        dat = tp.mClientTexture.get();
     if (!dat) { gTexFailed = true; return false; }
     ctx.drawImage(dat->mClientTexture.get(), ::glm::vec2{x, y}, ::glm::vec2{size, size}, ::glm::vec2{0.0f, 0.0f}, ::glm::vec2{1.0f, 1.0f}, false);
     ctx.flushImages(::mce::Color{1.0f, 1.0f, 1.0f, 1.0f}, 1.0f, ::HashedString(gMaterial));

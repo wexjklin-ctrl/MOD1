@@ -152,3 +152,6 @@
 - Конфиг без пересборки: `%APPDATA%\diorama-bedrock\render.txt`: `mode=rects` (отключить текстуры), `material=<имя материала>` (по умолчанию `ui_textured_and_glcolor`; если карта не видна, попробовать `ui_flush` или `ui_textured`).
 ИЗВЕСТНЫЕ РИСКИ: имя материала угадано; ctor ImageBuffer() не использовать (не экспортируется).
 TODO дальше: освещение/тени солнца при растеризации, AO, туман «объёмный», кнопки справа, Пещеры, тултип, перерисовка по тайлам вместо одной картинки.
+
+## Лог: сессия 8
+- Сборка e1016c1 УПАЛА: (1) `Core::PathView` incomplete -> добавлен `#include "mc/deps/core/file/PathView.h"`; (2) `tp.mClientTexture` для shared_ptr в LeviLamina - это обычный std::shared_ptr (TypedStorage только для не-указателей), поэтому `.get()` один раз: `auto const* dat = tp.mClientTexture.get();`. Исходники заголовков: клонировать https://github.com/LiteLDev/LeviLamina (src, src-client).
