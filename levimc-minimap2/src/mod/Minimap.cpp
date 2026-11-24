@@ -1166,6 +1166,21 @@ void paintHeightfield(Baked const& b, int W, std::vector<uint32_t>& px, std::vec
                 WRef wp = g.wp[k];
                 VRun runs[kMaxRuns]; int nr = buildRuns(wp, hh, runs);
                 int hn = g.known(gi, r + 1) ? int(g.h[g.id(gi, r + 1)]) : hh - 2;
+                if (nr > 1) { // air gaps between solid runs (open windows, glass, floors): paint a dark interior so the terrain behind does not show through
+                    float Yt0 = float(runs[0].yt) + runs[0].topFrac;
+                    float lowAll = std::max(float(runs[nr - 1].yb), float(hn + 1));
+                    float wh0 = std::min(Yt0 - lowAll, 96.0f);
+                    if (wh0 > 0.0f) {
+                        float v1 = halfN + float(j) * KYv - (Yt0 - float(g.h0)) * HSs + KYv;
+                        int   wa0 = std::max(0, int(std::ceil(v1 * sc - sy))), wb0 = std::min(W, int(std::ceil((v1 + wh0 * HSs) * sc - sy)));
+                        for (int y = wa0; y < wb0; ++y) {
+                            float vS = (float(y) + sy) / sc;
+                            Rec& R = rec[size_t(y) * W + x];
+                            R.cell = int32_t(k); R.type = 2; R.a = fx; R.b = 0.0f; R.y = Yt0 - std::max(0.0f, (vS - v1) / HSs);
+                            R.col = 0xFF3A3A44u;
+                        }
+                    }
+                }
                 for (int q = nr - 1; q >= 0; --q) { // runs are listed top-down; paint bottom-up
                     VRun const& R0 = runs[q];
                     float Ytop = float(R0.yt) + R0.topFrac;
@@ -1506,6 +1521,7 @@ bool drawTexAsync(::MinecraftUIRenderContext& ctx, Tex const& t, float x, float 
     ::mce::TexturePtr  tp  = ctx.getTexture(loc, false);
     auto const*        dat = tp.mClientTexture.get();
     if (!dat) { gTexFailed = true; return false; }
+    if (dat->mIsMissingTexture.get() == ::IsMissingTexture::Yes) return false; // engine placeholder (magenta checker): not uploaded yet
     ctx.drawImage(dat->mClientTexture.get(), ::glm::vec2{x, y}, ::glm::vec2{size, size}, ::glm::vec2{u0, v0}, ::glm::vec2{uw, vh}, false);
     ctx.flushImages(::mce::Color{1.0f, 1.0f, 1.0f, 1.0f}, 1.0f, ::HashedString(gMaterial));
     if (!gTexLogged) gTexLogged = true;
@@ -2030,6 +2046,7 @@ struct Tile {
     std::vector<uint32_t> px;
     uint64_t              pxVer = 0, upVer = 0, propVer = 0, pxFrame = 0, staleFrame = 0, lastUse = 0;
     bool                  baked = false, queued = false, stale = false, content = false, shown = false;
+    int                   miss = 0;
 };
 std::unordered_map<int64_t, Tile> gTiles;
 
@@ -2181,6 +2198,7 @@ bool drawTileTex(::MinecraftUIRenderContext& ctx, Tex const& t, float x, float y
     ::mce::TexturePtr  tp  = ctx.getTexture(loc, false);
     auto const*        dat = tp.mClientTexture.get();
     if (!dat) return false;
+    if (dat->mIsMissingTexture.get() == ::IsMissingTexture::Yes) return false; // never show the magenta placeholder
     ctx.drawImage(dat->mClientTexture.get(), ::glm::vec2{x, y}, ::glm::vec2{w, h}, ::glm::vec2{u0, v0}, ::glm::vec2{uw, vh}, false);
     ctx.flushImages(::mce::Color{1.0f, 1.0f, 1.0f, 1.0f}, 1.0f, ::HashedString(gMaterial));
     return true;
@@ -2191,7 +2209,15 @@ void drawTileCell(::MinecraftUIRenderContext& ctx, ::IClientInstance& client, in
     float ow = w + 0.75f, oh = h + 0.75f; // tiny overlap hides hairline seams between neighbours
     if (Tile* t = findTile(l, i, j)) {
         tileUpload(client, *t, uploads);
-        if (tileShown(*t) && drawTileTex(ctx, t->tex, x, y, ow, oh, 0.0f, 0.0f, 1.0f, kV)) { t->lastUse = gFrame; return; }
+        if (tileShown(*t)) {
+            if (drawTileTex(ctx, t->tex, x, y, ow, oh, 0.0f, 0.0f, 1.0f, kV)) { t->lastUse = gFrame; t->miss = 0; return; }
+            if (++t->miss > 90) { // placeholder never went away: drop the texture and upload/bake again
+                t->miss = 0; t->shown = false; t->tex.pending = false;
+                t->tex.created[0] = t->tex.created[1] = false;
+                if (!t->px.empty()) t->upVer = t->pxVer + 1;
+                else { t->baked = false; t->queued = false; t->content = true; t->stale = true; t->staleFrame = 0; }
+            }
+        }
     }
     // stand-in: the same area from a coarser level (never empty holes while the detailed tile is still baking)
     for (int l2 = l + 1; l2 <= kLMax; ++l2) {
