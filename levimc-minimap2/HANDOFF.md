@@ -30,3 +30,5 @@ Minimap.cpp: хук HudCursorRenderer, bake в фоновом потоке в RG
 
 ## Журнал
 - Сессия 20: создан проект, workflow, релиз «Миникарта 2». Кода карты ещё не менял. Следующий шаг: пункт 1 плана.
+- Сессия 20 (продолжение): пункт 1 плана СДЕЛАН (в игре не проверено). `tools/gen_vanilla.py <vanilla_looks.dat> src/mod/VanillaColors.h` генерирует таблицу (1286 java-блоков, 744 looks, карты grass/foliage/dry_foliage 64x64). Формат DVLT разобран по VanillaTable.java. В Minimap.cpp: `vanillaRgb(name, side)` (alias Bedrock->Java в `bedrockToJava`), верх колонки = top-цвет, стены = side-цвет (`colorOfBlockSide`), тинт травы/листвы фиксированный «равнинный» (biomeTint) — TODO: реальный биом (нужен BlockSource::getBiome). Для блока выбирается look состояния с тинтом, иначе самый частый. Фолбэк: старые rules[] и цвет карты движка; не найденные пишутся в %APPDATA%\minimap2\unmapped_blocks.txt.
+- Следующий шаг: пункт 2 (порт TileBaker.java на C++).

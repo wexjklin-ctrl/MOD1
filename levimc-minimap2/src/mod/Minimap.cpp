@@ -4,6 +4,8 @@
 // Visual style follows Diorama (MIT, (c) Dara Adedeji): dark frame, relief shading, fog for unknown areas.
 
 #include <climits>
+#include <unordered_map>
+#include "mod/VanillaColors.h"
 #include <set>
 #include "mod/Minimap.h"
 #include "mod/DioramaMod.h"
@@ -212,12 +214,69 @@ void logUnmapped(std::string const& name, uint32_t col) {
     if (f) { char b[64]; std::snprintf(b, sizeof(b), " -> %06X (engine map colour)\n", unsigned(col & 0xFFFFFF)); f << name << b; }
 }
 
+
+// ---------- Java Diorama colour table (vanilla_looks.dat) ----------
+std::unordered_map<std::string, uint16_t>& vanillaIndex() {
+    static std::unordered_map<std::string, uint16_t> m = [] {
+        std::unordered_map<std::string, uint16_t> r;
+        for (int i = 0; i < minimap2::vanilla::kBlockCount; ++i) r[minimap2::vanilla::kBlocks[i].name] = minimap2::vanilla::kBlocks[i].look;
+        return r;
+    }();
+    return m;
+}
+std::string bedrockToJava(std::string n) {
+    if (n.rfind("minecraft:", 0) == 0) n = n.substr(10);
+    static const std::pair<char const*, char const*> alias[] = {
+        {"brick_block", "bricks"}, {"stonebrick", "stone_bricks"}, {"red_nether_brick", "red_nether_bricks"},
+        {"nether_brick", "nether_bricks"}, {"grass_path", "dirt_path"}, {"snow_layer", "snow"}, {"web", "cobweb"},
+        {"flowing_water", "water"}, {"flowing_lava", "lava"}, {"mossy_stone_brick", "mossy_stone_bricks"},
+        {"quartz_bricks", "quartz_bricks"}, {"sea_lantern", "sea_lantern"}, {"magma", "magma_block"},
+        {"hardened_clay", "terracotta"}, {"concretepowder", "white_concrete_powder"}, {"reeds", "sugar_cane"},
+        {"waterlily", "lily_pad"}, {"tallgrass", "short_grass"}, {"short_grass", "short_grass"}, {"grass", "grass_block"},
+        {"mob_spawner", "spawner"}, {"stone_stairs", "cobblestone_stairs"}, {"stone_brick_stairs", "stone_brick_stairs"}};
+    for (auto const& a : alias) if (n == a.first) return a.second;
+    return n;
+}
+uint32_t mulTint(uint32_t base, uint32_t tint) {
+    uint32_t r = ((base >> 16) & 255) * ((tint >> 16) & 255) / 255, g = ((base >> 8) & 255) * ((tint >> 8) & 255) / 255, b = (base & 255) * (tint & 255) / 255;
+    return (r << 16) | (g << 8) | b;
+}
+// plains-like fixed biome tint (temperature 0.8, downfall 0.4); real per-biome tint is a TODO
+uint32_t biomeTint(int kind) {
+    float temp = 0.8f, down = 0.4f * temp;
+    int   x = std::clamp(int((1.0f - temp) * 63.0f), 0, 63), y = std::clamp(int((1.0f - down) * 63.0f), 0, 63);
+    if (kind == 1) return minimap2::vanilla::kMap_grass[y * 64 + x];
+    if (kind == 2) return minimap2::vanilla::kMap_foliage[y * 64 + x];
+    if (kind == 3) return minimap2::vanilla::kMap_dry_foliage[y * 64 + x];
+    if (kind == 4) return 0x3F76E4;
+    return 0xFFFFFF;
+}
+// returns 0 when the block is not in the table
+uint32_t vanillaRgb(std::string const& bedrockName, bool side) {
+    auto& idx = vanillaIndex();
+    auto  it  = idx.find(bedrockToJava(bedrockName));
+    if (it == idx.end()) return 0;
+    auto const& L = minimap2::vanilla::kLooks[it->second];
+    if (L.kind == 0) return 0;
+    uint32_t base = side ? L.side : L.top, tinted = side ? L.sideTinted : L.topTinted;
+    float    w    = side ? L.sideW : L.topW;
+    uint32_t rgb  = base & 0xFFFFFF;
+    if (L.tint > 0 && w > 0.0f) {
+        uint32_t t  = mulTint(tinted & 0xFFFFFF, biomeTint(L.tint));
+        auto     mx = [&](uint32_t a, uint32_t b) { return uint32_t(float(a) + (float(b) - float(a)) * w); };
+        rgb = (mx((rgb >> 16) & 255, (t >> 16) & 255) << 16) | (mx((rgb >> 8) & 255, (t >> 8) & 255) << 8) | mx(rgb & 255, t & 255);
+    }
+    return rgb ? rgb : 0x010101;
+}
+std::unordered_map<::Block const*, uint32_t> gBlockSide;
+
 uint32_t colorOfBlock(::BlockSource& region, ::BlockPos const& pos, ::Block const& block) {
     auto it = gBlockCol.find(&block);
     if (it != gBlockCol.end()) return it->second;
     std::string const& name = block.getTypeName();
     uint32_t           col;
-    uint32_t           rgb = blockRgb(name);
+    uint32_t           rgb = vanillaRgb(name, false);
+    if (!rgb) rgb = blockRgb(name);
     if (rgb) {
         col = 0xFF000000u | rgb;
     } else {
@@ -234,6 +293,16 @@ uint32_t colorOfBlock(::BlockSource& region, ::BlockPos const& pos, ::Block cons
         logUnmapped(name, col);
     }
     gBlockCol[&block] = col;
+    return col;
+}
+
+
+uint32_t colorOfBlockSide(::BlockSource& region, ::BlockPos const& pos, ::Block const& block) {
+    auto it = gBlockSide.find(&block);
+    if (it != gBlockSide.end()) return it->second;
+    uint32_t rgb = vanillaRgb(block.getTypeName(), true);
+    uint32_t col = rgb ? (0xFF000000u | rgb) : colorOfBlock(region, pos, block);
+    gBlockSide[&block] = col;
     return col;
 }
 
@@ -271,7 +340,7 @@ bool scanColumn(::BlockSource& region, int x, int z, uint32_t& col, int16_t& h, 
             ::BlockPos p2{x, yy, z};
             ::Block const& b2 = region.getBlock(p2);
             if (b2.isAir() || isWater(b2.getTypeName())) { wall[k] = prev; continue; }
-            prev    = colorOfBlock(region, p2, b2);
+            prev    = colorOfBlockSide(region, p2, b2);
             wall[k] = prev;
         }
     }
