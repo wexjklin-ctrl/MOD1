@@ -1,0 +1,83 @@
+name: minimap2-build
+
+on:
+  push:
+    branches: [claude-work]
+    paths:
+      - "levimc-minimap2/**"
+      - "!levimc-minimap2/**/*.md"
+      - ".github/workflows/levimc-build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: levimc-minimap2
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: xmake-io/github-action-setup-xmake@v1
+
+      - uses: actions/cache@v6
+        with:
+          path: |
+            ~/AppData/Local/.xmake
+          key: xmake-${{ hashFiles('levimc-minimap2/xmake.lua') }}
+          restore-keys: |
+            xmake-
+
+      - name: Setup LLVM
+        uses: ZhongRuoyu/setup-llvm@v0
+        with:
+          llvm-version: 22
+
+      - run: xmake repo -u
+
+      - run: xmake f -a x64 -m release -p windows -v --target_type=client -y
+
+      - name: Build
+        shell: bash
+        run: |
+          set -o pipefail
+          xmake -v -y 2>&1 | tee ../build.log
+
+      - name: Push build log on failure
+        if: failure()
+        shell: bash
+        run: |
+          cd ..
+          grep -n -i -B2 -A6 "error" build.log | head -300 > errors.txt || true
+          mkdir -p /tmp/l && cp errors.txt /tmp/l/
+          git config user.email ci@x; git config user.name ci
+          git checkout --orphan build-logs2
+          git rm -rf . -q || true
+          cp /tmp/l/errors.txt .
+          git add errors.txt
+          git commit -qm "build log ${{ github.sha }}"
+          git push -f origin build-logs2
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: minimap2-${{ github.sha }}-client-windows-x64
+          path: levimc-minimap2/bin/
+
+      - name: Zip mod
+        shell: pwsh
+        run: Compress-Archive -Path bin\* -DestinationPath ..\minimap2-client-windows-x64.zip -Force
+
+      - name: Publish release (visible in Releases tab)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd ..
+          gh release delete minimap-2-latest --cleanup-tag -y || true
+          gh release create minimap-2-latest minimap2-client-windows-x64.zip \
+            --prerelease --target "${{ github.sha }}" \
+            --title "Миникарта 2 (LeviMC)" \
+            --notes "Auto-build of commit ${{ github.sha }}. Unzip into the LeviMC mods folder."
