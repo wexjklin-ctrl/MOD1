@@ -332,6 +332,20 @@ uint32_t colorOfBlockSide(::BlockSource& region, ::BlockPos const& pos, ::Block 
     return col;
 }
 
+uint32_t shapeAlpha(std::string const& n) {
+    if (n.find("slab") != std::string::npos) return 0xE1;
+    if (n.find("stairs") != std::string::npos) return 0xE2;
+    return 0xFF;
+}
+uint32_t withShape(uint32_t c, uint32_t a) { return (c & 0xFFFFFFu) | (a << 24); }
+bool isSmallPlant(std::string const& n) {
+    static char const* keys[] = {"short_grass", "tall_grass", "fern", "tulip", "poppy", "dandelion", "orchid", "allium", "azure_bluet", "cornflower",
+                                 "lily_of_the_valley", "oxeye", "sapling", "torch", "rail", "button", "lever", "sign", "flower", "vine", "lichen", "sweet_berry",
+                                 "wheat", "carrots", "potatoes", "beetroots", "dead_bush", "seagrass", "kelp", "pointed_dripstone", "lantern", "candle"};
+    for (char const* k : keys) if (n.find(k) != std::string::npos) return true;
+    return false;
+}
+
 bool scanColumn(::BlockSource& region, int x, int z, uint32_t& col, int16_t& h, uint32_t* wall) {
     int minH = region.getMinHeight();
     int y    = int(region.getAboveTopSolidBlock(x, z, true, true)) - 1;
@@ -358,25 +372,19 @@ bool scanColumn(::BlockSource& region, int x, int z, uint32_t& col, int16_t& h, 
         for (int k2 = 0; k2 < NW; ++k2) wall[k2] = col;
     } else {
         col = colorOfBlock(region, pos, *block);
-        uint32_t prev = col;
-        wall[0]       = col;
+        wall[0]       = withShape(colorOfBlockSide(region, pos, *block), shapeAlpha(name));
+        uint32_t prev = wall[0];
         for (int k = 1; k < NW; ++k) {
             int yy = y - kWallDepth[k];
             if (yy < minH) { wall[k] = prev; continue; }
             ::BlockPos p2{x, yy, z};
             ::Block const& b2 = region.getBlock(p2);
-            if (b2.isAir() || isWater(b2.getTypeName())) {
-                // an air gap with solid blocks above and below inside the first 24 blocks is an open window: dark interior
-                bool opening = false;
-                if (!b2.isAir()) { wall[k] = prev; continue; }
-                if (kWallDepth[k] <= 23 && yy - 1 >= minH) {
-                    ::Block const& bb = region.getBlock(::BlockPos{x, yy - 1, z});
-                    opening = !bb.isAir() && !isWater(bb.getTypeName());
-                }
-                wall[k] = opening ? 0xFF26262Cu : prev;
+            bool sparse = kWallDepth[k] > 23; // deep sparse samples: assume solid
+            if (b2.isAir() || isWater(b2.getTypeName()) || isSmallPlant(b2.getTypeName())) {
+                wall[k] = sparse ? prev : 0u; // 0 = air gap (open window, space under a roof or canopy)
                 continue;
             }
-            prev    = colorOfBlockSide(region, p2, b2);
+            prev    = withShape(colorOfBlockSide(region, p2, b2), shapeAlpha(b2.getTypeName()));
             wall[k] = prev;
         }
     }
@@ -1022,7 +1030,32 @@ float skyBilinear(HField const& g, int gi, int r, float fx, float fz) {
     return bil(S(i0, r0), S(i0 + 1, r0), S(i0, r0 + 1), S(i0 + 1, r0 + 1), tx, tz);
 }
 
-struct Rec { int32_t cell; float a, b; uint8_t type; }; // type 1 top (a=fx,b=fz), 2 south wall (a=fx,b=depth below the top surface)
+struct VRun { int yt, yb, k0; float topFrac; };
+// Builds runs of solid blocks (top-down) from a column profile: entry alpha 0 = air gap, 0xE1 = slab, 0xE2 = stair, else full block.
+int buildRuns(uint32_t const* wp, int h, VRun* out) {
+    if (!wp) { out[0] = {h, h - 2, 0, 1.0f}; return 1; }
+    int n = 0, k = 0;
+    while (k < NW && n < 16) {
+        if (!(wp[k] >> 24)) { ++k; continue; }
+        int k0 = k;
+        while (k + 1 < NW && (wp[k + 1] >> 24)) ++k;
+        int   lastDepth = (k + 1 < NW) ? kWallDepth[k + 1] - 1 : 95;
+        uint32_t a = wp[k0] >> 24;
+        out[n++] = {h - kWallDepth[k0], h - lastDepth, k0, a == 0xE1 ? 0.5f : (a == 0xE2 ? 0.75f : 1.0f)};
+        ++k;
+    }
+    if (!n) { out[0] = {h, h - 2, 0, 1.0f}; n = 1; }
+    return n;
+}
+uint32_t wallColorAt(uint32_t const* wp, int h, float Y, uint32_t fallback) {
+    if (!wp) return fallback;
+    int by = int(std::floor(Y - 1e-4f)), d = std::max(0, h - by), kk = 0;
+    while (kk + 1 < NW && kWallDepth[kk + 1] <= d) ++kk;
+    for (int q = kk; q >= 0; --q) if (wp[q] >> 24) return wp[q] | 0xFF000000u;
+    return fallback;
+}
+
+struct Rec { int32_t cell; float a, b, y; uint32_t col; uint8_t type; }; // type 1 top (a=fx,b=fz), 2 south wall (a=fx,b=depth below the top surface)
 
 // px: 0xAARRGGBB (A=0 unknown); hb: surface height per pixel (for hole filling)
 void paintHeightfield(Baked const& b, int W, std::vector<uint32_t>& px, std::vector<int16_t>& hb, uint64_t epoch) {
@@ -1041,7 +1074,7 @@ void paintHeightfield(Baked const& b, int W, std::vector<uint32_t>& px, std::vec
         if (epoch && gEpoch.load() != epoch) return;
         for (auto& r : rec) r.cell = -1;
         float sx = kSmp[s][0], sy = kSmp[s][1];
-        // ---- paint: far to near ----
+        // ---- paint: far to near; inside a column the runs of solid blocks go bottom to top (overhangs, gaps, shapes) ----
         for (int x = 0; x < W; ++x) {
             float u  = (float(x) + sx) / sc;
             int   i  = int(std::floor(u));
@@ -1051,24 +1084,34 @@ void paintHeightfield(Baked const& b, int W, std::vector<uint32_t>& px, std::vec
             for (int r = 0; r < g.m; ++r) {
                 size_t k = g.id(gi, r);
                 if (!g.col[k]) continue;
-                int   j     = r - g.rowsHalf;
-                int   hh    = g.h[k];
-                float vTop0 = halfN + float(j) * KYv - float(hh + 1 - g.h0) * HSs, vTop1 = vTop0 + KYv;
-                int   ya = std::max(0, int(std::ceil(vTop0 * sc - sy))), yb = std::min(W, int(std::ceil(vTop1 * sc - sy)));
-                for (int y = ya; y < yb; ++y) {
-                    float vS = (float(y) + sy) / sc;
-                    Rec& R = rec[size_t(y) * W + x];
-                    R.cell = int32_t(k); R.type = 1; R.a = fx; R.b = std::clamp((vS - vTop0) / KYv, 0.0f, 0.9999f);
-                }
-                int depth = 2;
-                if (g.known(gi, r + 1)) depth = std::clamp(hh - int(g.h[g.id(gi, r + 1)]), 0, 96);
-                if (depth <= 0) continue;
-                float vW1 = vTop1 + float(depth) * HSs;
-                int   wa = std::max(0, int(std::ceil(vTop1 * sc - sy))), wb = std::min(W, int(std::ceil(vW1 * sc - sy)));
-                for (int y = wa; y < wb; ++y) {
-                    float vS = (float(y) + sy) / sc;
-                    Rec& R = rec[size_t(y) * W + x];
-                    R.cell = int32_t(k); R.type = 2; R.a = fx; R.b = std::max(0.0f, (vS - vTop1) / HSs);
+                int   j  = r - g.rowsHalf;
+                int   hh = g.h[k];
+                uint32_t const* wp = g.wp[k];
+                VRun runs[16]; int nr = buildRuns(wp, hh, runs);
+                int hn = g.known(gi, r + 1) ? int(g.h[g.id(gi, r + 1)]) : hh - 2;
+                for (int q = nr - 1; q >= 0; --q) { // runs are listed top-down; paint bottom-up
+                    VRun const& R0 = runs[q];
+                    float Ytop = float(R0.yt) + R0.topFrac;
+                    float vTop0 = halfN + float(j) * KYv - (Ytop - float(g.h0)) * HSs, vTop1 = vTop0 + KYv;
+                    uint32_t topCol = (R0.k0 == 0) ? g.col[k] : ((wp ? wp[R0.k0] : g.col[k]) | 0xFF000000u);
+                    int ya = std::max(0, int(std::ceil(vTop0 * sc - sy))), yb = std::min(W, int(std::ceil(vTop1 * sc - sy)));
+                    for (int y = ya; y < yb; ++y) {
+                        float vS = (float(y) + sy) / sc;
+                        Rec& R = rec[size_t(y) * W + x];
+                        R.cell = int32_t(k); R.type = 1; R.a = fx; R.b = std::clamp((vS - vTop0) / KYv, 0.0f, 0.9999f); R.y = Ytop; R.col = topCol;
+                    }
+                    float lowY = std::max(float(R0.yb), float(hn + 1));
+                    float wallH = std::min(Ytop - lowY, 48.0f);
+                    if (wallH <= 0.0f) continue;
+                    float vW1 = vTop1 + wallH * HSs;
+                    int   wa = std::max(0, int(std::ceil(vTop1 * sc - sy))), wb = std::min(W, int(std::ceil(vW1 * sc - sy)));
+                    for (int y = wa; y < wb; ++y) {
+                        float vS = (float(y) + sy) / sc;
+                        float Yh = Ytop - std::max(0.0f, (vS - vTop1) / HSs);
+                        Rec& R = rec[size_t(y) * W + x];
+                        R.cell = int32_t(k); R.type = 2; R.a = fx; R.b = 0.0f; R.y = Yh;
+                        R.col = wallColorAt(wp, hh, Yh, g.col[k]);
+                    }
                 }
             }
         }
@@ -1088,10 +1131,10 @@ void paintHeightfield(Baked const& b, int W, std::vector<uint32_t>& px, std::vec
             float  X = float(g.x0) + (float(gi - g.mx) + fx) * float(g.step);
             if (top) {
                 float fz = R.b;
-                Y  = float(hh + 1);
+                Y  = R.y;
                 Zc = float(g.cz) + (float(j) + fz) * float(g.step);
-                albedo = g.col[k];
-                int y1 = hh + 1;
+                albedo = R.col;
+                int y1 = int(std::ceil(Y - 1e-3f));
                 bool nn = g.occ(gi, r - 1, y1), ss = g.occ(gi, r + 1, y1), ww = g.occ(gi - 1, r, y1), ee = g.occ(gi + 1, r, y1);
                 float nw = aoCorner(ww, nn, g.occ(gi - 1, r - 1, y1)), ne = aoCorner(ee, nn, g.occ(gi + 1, r - 1, y1));
                 float sw = aoCorner(ww, ss, g.occ(gi - 1, r + 1, y1)), se = aoCorner(ee, ss, g.occ(gi + 1, r + 1, y1));
@@ -1099,12 +1142,9 @@ void paintHeightfield(Baked const& b, int W, std::vector<uint32_t>& px, std::vec
                 sky = skyBilinear(g, gi, r, fx, fz);
                 lambert = 1.0f;
             } else {
-                float d = R.b; // blocks below the top surface
-                Y  = float(hh + 1) - d;
+                Y  = R.y;
                 Zc = float(g.cz) + float(j + 1) * float(g.step);
-                uint32_t const* wl = g.wp[k];
-                albedo = g.col[k];
-                if (wl) { int kk = 0; while (kk + 1 < NW && float(kWallDepth[kk + 1]) <= d) ++kk; if (wl[kk]) albedo = wl[kk]; }
+                albedo = R.col;
                 int by = int(std::floor(Y - 1e-4f)); float fy = Y - float(by);
                 int rf = r + 1;
                 bool up = g.occ(gi, rf, by + 1), dn = g.occ(gi, rf, by - 1), ww = g.occ(gi - 1, rf, by), ee = g.occ(gi + 1, rf, by);
@@ -1126,7 +1166,7 @@ void paintHeightfield(Baked const& b, int W, std::vector<uint32_t>& px, std::vec
             float cr = T.lin[(albedo >> 16) & 255] * lr * hs * face, cg = T.lin[(albedo >> 8) & 255] * lg * hs * face, cb = T.lin[albedo & 255] * lb * hs * face;
             accR[p] += cr; accG[p] += cg; accB[p] += cb;
             dsum[p] += -(Y * kSinP + Zc * kCosP);
-            hsum[p] = int16_t(hh);
+            hsum[p] = int16_t(std::floor(Y));
             ++cnt[p];
         }
     }
