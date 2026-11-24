@@ -76,8 +76,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cd ..
-          gh release delete minimap-2-latest --cleanup-tag -y || true
-          gh release create minimap-2-latest minimap2-client-windows-x64.zip \
-            --prerelease --target "${{ github.sha }}" \
-            --title "Миникарта 2 (LeviMC)" \
-            --notes "Auto-build of commit ${{ github.sha }}. Unzip into the LeviMC mods folder."
+          TAG=minimap-2-latest
+          NOTES="Auto-build of commit ${{ github.sha }}. Unzip into the LeviMC mods folder."
+          ok=0
+          for i in 1 2 3; do
+            gh release delete $TAG --cleanup-tag -y || true
+            sleep 3
+            if gh release create $TAG minimap2-client-windows-x64.zip --prerelease --target "${{ github.sha }}" --title "Миникарта 2 (LeviMC)" --notes "$NOTES"; then ok=1; break; fi
+            sleep 5
+          done
+          if [ $ok -ne 1 ]; then
+            echo "create failed, falling back to clobber upload"
+            gh release upload $TAG minimap2-client-windows-x64.zip --clobber
+            gh release edit $TAG --notes "$NOTES" --prerelease
+          fi

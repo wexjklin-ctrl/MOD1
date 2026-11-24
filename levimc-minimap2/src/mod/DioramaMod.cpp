@@ -1,3 +1,4 @@
+// build: session 30 (publish retry)
 #include "mod/DioramaMod.h"
 
 #include "mod/HudHook.h"
