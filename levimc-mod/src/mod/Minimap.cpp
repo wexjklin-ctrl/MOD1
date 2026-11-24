@@ -3,6 +3,7 @@
 // then drawn as merged horizontal colour runs with MinecraftUIRenderContext::fillRectangle.
 // Visual style follows Diorama (MIT, (c) Dara Adedeji): dark frame, relief shading, fog for unknown areas.
 
+#include <climits>
 #include "mod/Minimap.h"
 #include "mod/DioramaMod.h"
 
@@ -482,19 +483,24 @@ int groundHeight(int x, int z, int fallback) {
 // One map cell. For step>1 it averages 2x2 columns spread over the cell (less aliasing / detail loss when zoomed out).
 bool sampleCell(Sampler& s, int x, int z, int step, uint32_t& col, int& h, uint32_t const** wall) {
     if (step <= 1) return sample(s, x, z, col, h, wall);
-    int      half = std::max(1, step / 2);
-    int      cnt = 0, hs = 0;
-    uint32_t r = 0, g = 0, bl = 0;
-    for (int oz = 0; oz < 2; ++oz)
-        for (int ox = 0; ox < 2; ++ox) {
+    int      g   = std::min(step, 4);          // g x g samples spread over the cell
+    int      cnt = 0, hs = 0, hmax = INT_MIN;
+    uint32_t r = 0, gg = 0, bl = 0;
+    uint32_t topCol = 0; uint32_t const* topWall = nullptr;
+    for (int oz = 0; oz < g; ++oz)
+        for (int ox = 0; ox < g; ++ox) {
             uint32_t c; int hh; uint32_t const* w = nullptr;
-            if (!sample(s, x + ox * half, z + oz * half, c, hh, &w)) continue;
-            if (!cnt && wall) *wall = w;
-            r += (c >> 16) & 255; g += (c >> 8) & 255; bl += c & 255; hs += hh; ++cnt;
+            if (!sample(s, x + (ox * step) / g, z + (oz * step) / g, c, hh, &w)) continue;
+            if (hh > hmax) { hmax = hh; topCol = c; topWall = w; }
+            r += (c >> 16) & 255; gg += (c >> 8) & 255; bl += c & 255; hs += hh; ++cnt;
         }
     if (!cnt) return false;
-    col = 0xFF000000u | ((r / cnt) << 16) | ((g / cnt) << 8) | (bl / cnt);
-    h   = int(std::lround(float(hs) / float(cnt)));
+    // blend average colour with the highest column so buildings/trees keep their look at distance
+    uint32_t ar = r / cnt, ag = gg / cnt, ab = bl / cnt;
+    uint32_t tr = (topCol >> 16) & 255, tg = (topCol >> 8) & 255, tb = topCol & 255;
+    col = 0xFF000000u | (((ar + tr) / 2) << 16) | (((ag + tg) / 2) << 8) | ((ab + tb) / 2);
+    h   = int(std::lround(0.5f * float(hs) / float(cnt) + 0.5f * float(hmax)));
+    if (wall) *wall = topWall;
     return true;
 }
 
@@ -508,7 +514,7 @@ void bake(Baked& b, int cx, int cz, int h0, int n, int step, uint64_t version, u
     // lift in integer pixels: L(h) = floor(h*PPC*HS/step); h0 is a multiple of step so L(h0) is exact -> mapping independent of the bake origin
     auto L = [&](int h) { return std::floor(float(h) * HS * float(PPC) / float(step)); };
     float L0 = L(h0);
-    int   rowsHalf = int(float(n) / (2.0f * KY)) + 28;
+    int   rowsHalf = int(float(n) / (2.0f * KY)) + 96;
     int   x0 = cx - (n / 2) * step;
     Sampler s;
     struct Row { std::vector<uint32_t> col; std::vector<int> h; std::vector<uint32_t const*> wp; };
@@ -810,12 +816,31 @@ void rasterize(Baked const& b, int W, std::vector<uint32_t>& px, bool soft) {
             if (edge) px[i] = shade(px[i], 0.72f);
         }
     // soft fog edge: unknown pixels take fog colour, alpha is blurred so the explored area fades out smoothly
-    uint32_t fogRgb = FOG & 0x00FFFFFFu;
-    for (auto& p : px)
-        if (!(p >> 24)) p = fogRgb;
+    {
+        auto hash = [](int x, int y) { uint32_t h = uint32_t(x) * 374761393u + uint32_t(y) * 668265263u; h = (h ^ (h >> 13)) * 1274126177u; return float((h ^ (h >> 16)) & 0xFFFF) / 65535.0f; };
+        auto vnoise = [&](float fx, float fy) {
+            int ix = int(std::floor(fx)), iy = int(std::floor(fy)); float tx = fx - float(ix), ty = fy - float(iy);
+            tx = tx * tx * (3 - 2 * tx); ty = ty * ty * (3 - 2 * ty);
+            float a = hash(ix, iy), b2 = hash(ix + 1, iy), c = hash(ix, iy + 1), d = hash(ix + 1, iy + 1);
+            return (a + (b2 - a) * tx) * (1 - ty) + (c + (d - c) * tx) * ty;
+        };
+        int   wx0 = b.cx - (b.n / 2) * b.step, wz0 = b.cz - (b.n / 2) * b.step;
+        float ws  = float(b.step) / float(PPC);
+        for (int y = 0; y < W; ++y)
+            for (int x = 0; x < W; ++x) {
+                uint32_t& p = px[size_t(y) * W + x];
+                if (p >> 24) continue;
+                float wxp = float(wx0) + float(x) * ws, wzp = float(wz0) + float(y) * ws / KY;
+                float nz = 0.6f * vnoise(wxp * 0.045f, wzp * 0.045f) + 0.4f * vnoise(wxp * 0.11f, wzp * 0.11f);
+                float k  = 0.90f + 0.10f * nz;                       // puffy light/shadow
+                uint32_t r = uint32_t(std::min(255.0f, float((FOG >> 16) & 255) * k)), g = uint32_t(std::min(255.0f, float((FOG >> 8) & 255) * k)),
+                         bl = uint32_t(std::min(255.0f, float(FOG & 255) * (k + 0.03f)));
+                p = (r << 16) | (g << 8) | bl;
+            }
+    }
     bool anyUnknown = false;
     for (size_t i = 0; i < hb.size(); ++i) if (hb[i] == INT16_MIN) { anyUnknown = true; break; }
-    if (soft && anyUnknown) blurAlpha(px, W, std::max(2, int(sc * 1.0f)));
+    if (soft && anyUnknown) blurAlpha(px, W, std::max(5, int(sc * 3.0f)));
 }
 
 bool fillImage(::mce::Image& img, std::vector<uint32_t> const& px, int W) {
@@ -955,8 +980,45 @@ void marker(::MinecraftUIRenderContext& ctx, float cx, float cy, float s, float 
     fillTri(ctx, i[0], i[1], i[2], white); fillTri(ctx, i[0], i[2], i[3], white);
 }
 
+// ---- round minimap: texture drawn as 1px strips clipped to a circle ----
+bool drawTexRound(::MinecraftUIRenderContext& ctx, Tex const& t, float x, float y, float size, float u0, float v0, float uw, float vh) {
+    if (!gCfgRead) readConfig();
+    if (!gTexEnabled || gTexFailed || !t.created[t.cur]) return false;
+    ::ResourceLocation loc(::Core::PathView(t.name[t.cur]), ::ResourceFileSystem::UserPackage);
+    ::mce::TexturePtr  tp  = ctx.getTexture(loc, false);
+    auto const*        dat = tp.mClientTexture.get();
+    if (!dat) { gTexFailed = true; return false; }
+    float r = size * 0.5f, cy = y + r, cx = x + r;
+    for (float ys = y; ys < y + size; ys += 2.0f) {
+        float dy = ys + 1.0f - cy;
+        float w  = std::sqrt(std::max(0.0f, r * r - dy * dy));
+        if (w < 1.0f) continue;
+        float xs = cx - w, wd = 2.0f * w;
+        ctx.drawImage(dat->mClientTexture.get(), ::glm::vec2{xs, ys}, ::glm::vec2{wd, 2.0f},
+                      ::glm::vec2{u0 + (xs - x) / size * uw, v0 + (ys - y) / size * vh}, ::glm::vec2{wd / size * uw, 2.0f / size * vh}, false);
+        ctx.flushImages(::mce::Color{1.0f, 1.0f, 1.0f, 1.0f}, 1.0f, ::HashedString(gMaterial));
+    }
+    return true;
+}
+
+void frameRound(::MinecraftUIRenderContext& ctx, float x, float y, float size) {
+    ::mce::Color dark{0.04f, 0.04f, 0.05f, 1.0f}, edge{0.78f, 0.80f, 0.86f, 1.0f}, mid{0.30f, 0.31f, 0.36f, 1.0f};
+    float r = size * 0.5f, cx = x + r, cy = y + r;
+    auto  chord = [&](float rad, float yc) { float d = yc - cy; return std::sqrt(std::max(0.0f, rad * rad - d * d)); };
+    for (float ys = y - 7.0f; ys < y + size + 7.0f; ys += 1.0f) {
+        float yc = ys + 0.5f;
+        float w1 = chord(r + 6.0f, yc), w2 = chord(r + 5.0f, yc), w3 = chord(r + 4.0f, yc), wi = chord(r, yc);
+        if (w1 > 0) rect(ctx, cx - w1, ys, cx + w1, ys + 1.0f, edge, 0.9f);
+        if (w2 > 0) rect(ctx, cx - w2, ys, cx + w2, ys + 1.0f, dark);
+        if (w3 > 0) rect(ctx, cx - w3, ys, cx + w3, ys + 1.0f, mid);
+        if (wi > 0) rect(ctx, cx - wi, ys, cx + wi, ys + 1.0f, toColor(FOG));
+    }
+}
+
 // --- input (polled, edge detected; only while our window is focused) ---
 bool gBigMap    = false;
+bool gRound     = false; // F7: square <-> round minimap (rotating modes: TODO)
+bool gF7WasDown = false;
 bool gMWasDown  = false;
 int  gBigBlocks = 256;
 int  gBigBias   = 0;      // extra sampling step when the rectangle budget is exceeded
@@ -976,13 +1038,16 @@ bool windowFocused() {
 bool down(int vk) { return (GetAsyncKeyState(vk) & 0x8000) != 0; }
 
 void pollInput() {
-    if (!windowFocused()) { gMWasDown = false; return; }
+    if (!windowFocused()) { gMWasDown = false; gF7WasDown = false; return; }
+    bool f7 = down(VK_F7);
+    if (f7 && !gF7WasDown) gRound = !gRound;
+    gF7WasDown = f7;
     bool m = down('M');
     if (m && !gMWasDown) { gBigMap = !gBigMap; gPanX = gPanZ = 0; }
     gMWasDown = m;
     if (!gBigMap) return;
-    if (down(VK_OEM_PLUS) || down(VK_ADD)) gBigBlocks = std::max(32, gBigBlocks - 4);
-    if (down(VK_OEM_MINUS) || down(VK_SUBTRACT)) gBigBlocks = std::min(768, gBigBlocks + 4);
+    if (down(VK_OEM_PLUS) || down(VK_ADD)) gBigBlocks = std::max(32, gBigBlocks - std::max(4, gBigBlocks / 40));
+    if (down(VK_OEM_MINUS) || down(VK_SUBTRACT)) gBigBlocks = std::min(2304, gBigBlocks + std::max(4, gBigBlocks / 40));
     int step = std::max(1, gBigBlocks / 60) * (down(VK_SHIFT) ? 3 : 1);
     if (down(VK_LEFT)) gPanX -= step;
     if (down(VK_RIGHT)) gPanX += step;
@@ -1341,7 +1406,7 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
             int g = groundHeight(int(std::floor(tx)), int(std::floor(tz)), gH0Big);
             gH0Big = g;
             if (gBigSH < -1000.0f || gap) gBigSH = float(g);
-            gBigSH += (float(g) - gBigSH) * (1.0f - std::exp(-dtf / 0.25f));
+            { float dH = (float(g) - gBigSH) * (1.0f - std::exp(-dtf / 0.9f)); float mx = 8.0f * dtf; gBigSH += std::clamp(dH, -mx, mx); }
             (void)sH;
         }
         if (!gCfgRead) readConfig();
@@ -1368,7 +1433,7 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
             float ppx = float(sc.nb) * 0.5f + (gSX - float(sc.cx)) / float(sc.step);
             float ppy = float(sc.nb) * 0.5f + (gSZ - float(sc.cz)) / float(sc.step) * KY - (gSY - 1.6f - float(sc.h0)) * HS / float(sc.step);
             float mx = x + (ppx - sc.u0 * float(sc.nb)) * cell, my = y + (ppy - sc.v0 * float(sc.nb)) * cell;
-            if (mx > 0 && mx < sw && my > 0 && my < sh) marker(ctx, mx, my, 3.5f, yaw);
+            if (mx > 0 && mx < sw && my > 0 && my < sh) marker(ctx, mx, my, std::clamp(3.5f * std::pow(256.0f / float(gBigBlocks), 0.5f), 1.1f, 4.0f), yaw);
         }
         // top bar
         float bar = 30.0f;
@@ -1385,25 +1450,25 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
         rect(ctx, 0, sh - 22, sw, sh, ::mce::Color{0.02f, 0.03f, 0.05f, 1.0f}, 0.72f);
         drawPixText(ctx, "СТРЕЛКИ - ДВИЖЕНИЕ   +/- - МАСШТАБ   HOME - В ЦЕНТР   M - ЗАКРЫТЬ", 8, sh - 16, 2.0f, white);
     } else {
-        constexpr float SIZE   = 96.0f;
+        constexpr float SIZE   = 76.0f;
         constexpr int   VIEW   = 64;          // blocks visible
         constexpr int   NB     = 84;          // blocks baked (10 block margin each side: rare re-bakes)
         float           x      = sw - SIZE - 20.0f;
         float           y      = 22.0f;
         if (gap || gSmoothH < -1000.0f) gSmoothH = float(groundPlayer);
-        gSmoothH += (float(groundPlayer) - gSmoothH) * (1.0f - std::exp(-dtf / 0.25f));
+        { float dH = (float(groundPlayer) - gSmoothH) * (1.0f - std::exp(-dtf / 0.9f)); float mx = 5.0f * dtf; gSmoothH += std::clamp(dH, -mx, mx); }
         if (!gCfgRead) readConfig();
         gH0Mini = groundPlayer;
         bool drawn = false;
         if (gTexEnabled && !gTexFailed) {
             Scroll sc = prepareAsync(gSlots[0], gMiniTex, client, NB, VIEW, 1, gSX, gSZ, gSmoothH, 24, 6);
             if (!gTexFailed) {
-                frame(ctx, x, y, SIZE);
+                if (gRound) frameRound(ctx, x, y, SIZE); else frame(ctx, x, y, SIZE);
                 if (!sc.ready) {
-                    vignette(ctx, x, y, SIZE); // first bake still running in the background
+                    if (!gRound) vignette(ctx, x, y, SIZE); // first bake still running in the background
                     drawn = true;
-                } else if (drawTexAsync(ctx, gMiniTex, x, y, SIZE, sc.u0, sc.v0, sc.uw, sc.vh)) {
-                    vignette(ctx, x, y, SIZE);
+                } else if (gRound ? drawTexRound(ctx, gMiniTex, x, y, SIZE, sc.u0, sc.v0, sc.uw, sc.vh) : drawTexAsync(ctx, gMiniTex, x, y, SIZE, sc.u0, sc.v0, sc.uw, sc.vh)) {
+                    if (!gRound) vignette(ctx, x, y, SIZE);
                     float cell = SIZE / float(sc.nview);
                     marker(ctx, x + (sc.pcx - sc.u0 * float(sc.nb)) * cell, y + (sc.pcy - sc.v0 * float(sc.nb)) * cell, 1.3f, yaw);
                     drawn = true;
