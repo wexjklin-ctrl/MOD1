@@ -1166,19 +1166,20 @@ void paintHeightfield(Baked const& b, int W, std::vector<uint32_t>& px, std::vec
                 WRef wp = g.wp[k];
                 VRun runs[kMaxRuns]; int nr = buildRuns(wp, hh, runs);
                 int hn = g.known(gi, r + 1) ? int(g.h[g.id(gi, r + 1)]) : hh - 2;
-                if (nr > 1) { // air gaps between solid runs (open windows, glass, floors): paint a dark interior so the terrain behind does not show through
+                for (int q = 0; q + 1 < nr; ++q) { // narrow air gaps (1-3 blocks: windows, floors) get a darkened wall colour; wide gaps stay open (canopies, arches)
+                    float gTop = float(runs[q + 1].yt) + 1.0f, gBot = float(runs[q].yb); // gap spans Y in [gTop, gBot]
+                    float gap = gBot - gTop;
+                    if (gap < 0.5f || gap > 3.5f) continue;
                     float Yt0 = float(runs[0].yt) + runs[0].topFrac;
-                    float lowAll = std::max(float(runs[nr - 1].yb), float(hn + 1));
-                    float wh0 = std::min(Yt0 - lowAll, 96.0f);
-                    if (wh0 > 0.0f) {
-                        float v1 = halfN + float(j) * KYv - (Yt0 - float(g.h0)) * HSs + KYv;
-                        int   wa0 = std::max(0, int(std::ceil(v1 * sc - sy))), wb0 = std::min(W, int(std::ceil((v1 + wh0 * HSs) * sc - sy)));
-                        for (int y = wa0; y < wb0; ++y) {
-                            float vS = (float(y) + sy) / sc;
-                            Rec& R = rec[size_t(y) * W + x];
-                            R.cell = int32_t(k); R.type = 2; R.a = fx; R.b = 0.0f; R.y = Yt0 - std::max(0.0f, (vS - v1) / HSs);
-                            R.col = 0xFF3A3A44u;
-                        }
+                    float vA = halfN + float(j) * KYv - (Yt0 - float(g.h0)) * HSs + KYv;
+                    int   wa0 = std::max(0, int(std::ceil((vA + (Yt0 - gBot) * HSs) * sc - sy))), wb0 = std::min(W, int(std::ceil((vA + (Yt0 - gTop) * HSs) * sc - sy)));
+                    uint32_t base = wallColorAt(wp, hh, gBot + 0.5f, g.col[k]);
+                    uint32_t dk = 0xFF000000u | (((base >> 16 & 255) * 5 / 10) << 16) | (((base >> 8 & 255) * 5 / 10) << 8) | ((base & 255) * 5 / 10);
+                    for (int y = wa0; y < wb0; ++y) {
+                        float vS = (float(y) + sy) / sc;
+                        Rec& R = rec[size_t(y) * W + x];
+                        R.cell = int32_t(k); R.type = 2; R.a = fx; R.b = 0.0f; R.y = Yt0 - std::max(0.0f, (vS - vA) / HSs);
+                        R.col = dk;
                     }
                 }
                 for (int q = nr - 1; q >= 0; --q) { // runs are listed top-down; paint bottom-up
