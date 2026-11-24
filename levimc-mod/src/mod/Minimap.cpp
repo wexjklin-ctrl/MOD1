@@ -454,7 +454,7 @@ void bake(Baked& b, int cx, int cz, int h0, int n, int step) {
     Sampler s;
     std::vector<uint32_t> col(size_t(n), 0u), wh(size_t(n), 0u);
     std::vector<int>      hh(size_t(n), 0), dh(size_t(n), 0);
-    std::vector<std::array<uint32_t, NW>> wl(size_t(n));
+    std::vector<std::array<uint32_t, NW>> wl(static_cast<size_t>(n));
     for (int j = -rowsHalf; j <= rowsHalf; ++j) {
         int z = cz + j * step;
         for (int i = 0; i < n; ++i) {
