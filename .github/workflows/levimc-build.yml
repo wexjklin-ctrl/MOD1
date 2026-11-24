@@ -40,7 +40,26 @@ jobs:
 
       - run: xmake f -a x64 -m release -p windows -v --target_type=client -y
 
-      - run: xmake -v -y
+      - name: Build
+        shell: bash
+        run: |
+          set -o pipefail
+          xmake -v -y 2>&1 | tee ../build.log
+
+      - name: Push build log on failure
+        if: failure()
+        shell: bash
+        run: |
+          cd ..
+          grep -n -i -B2 -A6 "error" build.log | head -300 > errors.txt || true
+          mkdir -p /tmp/l && cp errors.txt /tmp/l/
+          git config user.email ci@x; git config user.name ci
+          git checkout --orphan build-logs
+          git rm -rf . -q || true
+          cp /tmp/l/errors.txt .
+          git add errors.txt
+          git commit -qm "build log ${{ github.sha }}"
+          git push -f origin build-logs
 
       - uses: actions/upload-artifact@v7
         with:
