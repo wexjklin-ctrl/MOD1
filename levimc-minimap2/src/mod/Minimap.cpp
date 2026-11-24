@@ -1521,7 +1521,7 @@ bool drawTexAsync(::MinecraftUIRenderContext& ctx, Tex const& t, float x, float 
     ::mce::TexturePtr  tp  = ctx.getTexture(loc, false);
     auto const*        dat = tp.mClientTexture.get();
     if (!dat) { gTexFailed = true; return false; }
-    if (dat->mIsMissingTexture.get() == ::IsMissingTexture::Yes) return false; // engine placeholder (magenta checker): not uploaded yet
+    if (dat->mIsMissingTexture == ::IsMissingTexture::Yes) return false; // engine placeholder (magenta checker): not uploaded yet
     ctx.drawImage(dat->mClientTexture.get(), ::glm::vec2{x, y}, ::glm::vec2{size, size}, ::glm::vec2{u0, v0}, ::glm::vec2{uw, vh}, false);
     ctx.flushImages(::mce::Color{1.0f, 1.0f, 1.0f, 1.0f}, 1.0f, ::HashedString(gMaterial));
     if (!gTexLogged) gTexLogged = true;
@@ -2198,7 +2198,7 @@ bool drawTileTex(::MinecraftUIRenderContext& ctx, Tex const& t, float x, float y
     ::mce::TexturePtr  tp  = ctx.getTexture(loc, false);
     auto const*        dat = tp.mClientTexture.get();
     if (!dat) return false;
-    if (dat->mIsMissingTexture.get() == ::IsMissingTexture::Yes) return false; // never show the magenta placeholder
+    if (dat->mIsMissingTexture == ::IsMissingTexture::Yes) return false; // never show the magenta placeholder
     ctx.drawImage(dat->mClientTexture.get(), ::glm::vec2{x, y}, ::glm::vec2{w, h}, ::glm::vec2{u0, v0}, ::glm::vec2{uw, vh}, false);
     ctx.flushImages(::mce::Color{1.0f, 1.0f, 1.0f, 1.0f}, 1.0f, ::HashedString(gMaterial));
     return true;
