@@ -261,10 +261,17 @@ uint32_t vanillaRgb(std::string const& bedrockName, bool side) {
     uint32_t base = side ? L.side : L.top, tinted = side ? L.sideTinted : L.topTinted;
     float    w    = side ? L.sideW : L.topW;
     uint32_t rgb  = base & 0xFFFFFF;
-    if (L.tint > 0 && w > 0.0f) {
-        uint32_t t  = mulTint(tinted & 0xFFFFFF, biomeTint(L.tint));
-        auto     mx = [&](uint32_t a, uint32_t b) { return uint32_t(float(a) + (float(b) - float(a)) * w); };
-        rgb = (mx((rgb >> 16) & 255, (t >> 16) & 255) << 16) | (mx((rgb >> 8) & 255, (t >> 8) & 255) << 8) | mx(rgb & 255, t & 255);
+    if (w > 0.0f) {
+        // as TileBaker.albedo/tint: kind 0 = constant tint (spruce/birch leaves etc.; 0xFFFFFFFF = white), else biome map
+        uint32_t tint = (L.tint == 0) ? (L.constTint == 0xFFFFFFFFu ? 0xFFFFFFu : (L.constTint & 0xFFFFFFu)) : biomeTint(L.tint);
+        auto lin = [](uint32_t c) { float f = float(c) / 255.0f; return f <= 0.04045f ? f / 12.92f : std::pow((f + 0.055f) / 1.055f, 2.4f); };
+        auto enc = [](float f) { f = std::clamp(f, 0.0f, 1.0f); float v = f <= 0.0031308f ? f * 12.92f : 1.055f * std::pow(f, 1.0f / 2.4f) - 0.055f; return uint32_t(v * 255.0f + 0.5f); };
+        uint32_t out = 0;
+        for (int sh = 16; sh >= 0; sh -= 8) {
+            float bl = lin((rgb >> sh) & 255), tl = lin((tinted >> sh) & 255) * lin((tint >> sh) & 255);
+            out |= enc(bl * (1.0f - w) + tl * w) << sh;
+        }
+        rgb = out;
     }
     return rgb ? rgb : 0x010101;
 }
