@@ -9,6 +9,9 @@ on:
       - ".github/workflows/levimc-build.yml"
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: windows-latest
@@ -43,3 +46,19 @@ jobs:
         with:
           name: diorama-bedrock-${{ github.sha }}-client-windows-x64
           path: levimc-mod/bin/
+
+      - name: Zip mod
+        shell: pwsh
+        run: Compress-Archive -Path bin\* -DestinationPath ..\diorama-bedrock-client-windows-x64.zip -Force
+
+      - name: Publish release (visible in Releases tab)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd ..
+          gh release delete diorama-bedrock-latest --cleanup-tag -y || true
+          gh release create diorama-bedrock-latest diorama-bedrock-client-windows-x64.zip \
+            --prerelease --target "${{ github.sha }}" \
+            --title "Diorama Bedrock (LeviMC) - latest build" \
+            --notes "Auto-build of commit ${{ github.sha }}. Unzip into the LeviMC mods folder."
