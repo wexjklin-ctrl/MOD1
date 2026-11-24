@@ -203,3 +203,7 @@ TODO: проверка сборки (`git fetch origin build-logs && git show or
 - Запасной путь на прямоугольниках остаётся синхронным (`prepareScroll`, `gBig`/`gMini`).
 - Пока первый bake не готов, рисуется только рамка/туман (десятки мс).
 Идеи дальше: логирование в latest.log (updateTextureInPlace true/false), если всё ещё рябит - проверить фильтрацию текстуры (мип-уровни/ nearest), освещение/тени, туман войны, кнопки/мышь.
+
+## Лог: сессия 14
+- Сборка e4e83b5 (фоновый поток) УПАЛА: в Minimap.cpp переменная `far` — макрос из Windows-заголовков (`#define far`). Переименована в `farAway` (строки ~1099-1103). Правило: не называть переменные far/near/min/max/small.
+- Ждём результат сборки; ошибки читать: `git fetch origin build-logs && git show origin/build-logs:errors.txt`.

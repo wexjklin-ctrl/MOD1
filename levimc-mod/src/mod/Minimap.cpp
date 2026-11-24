@@ -1096,11 +1096,11 @@ Scroll prepareAsync(Slot& s, Tex& t, ::IClientInstance& client, int nb, int nvie
     bool         valid = d.cx != INT32_MIN;
     bool         geom  = !valid || d.n != nb || d.step != step || d.view != nview;
     float        drift = float(drift0) * float(step);
-    bool         far   = valid && (std::fabs(tx - float(d.cx)) > drift || std::fabs(tz - float(d.cz)) > drift || std::fabs(smoothH - float(d.h0)) > 4.0f * float(step));
+    bool         farAway   = valid && (std::fabs(tx - float(d.cx)) > drift || std::fabs(tz - float(d.cz)) > drift || std::fabs(smoothH - float(d.h0)) > 4.0f * float(step));
     bool         dirty = valid && d.version != gVersion && gFrame - d.frame >= minInterval;
-    if (geom || far || dirty) {
+    if (geom || farAway || dirty) {
         Job j;
-        if (geom || far) {
+        if (geom || farAway) {
             j.cx = int(std::floor(tx / float(step))) * step;
             j.cz = int(std::floor(tz / float(step))) * step;
             j.h0 = int(std::lround(smoothH / float(step))) * step;
