@@ -12,7 +12,7 @@ DioramaMod& DioramaMod::getInstance() {
 }
 
 bool DioramaMod::load() {
-    getSelf().getLogger().info("Diorama (Bedrock) loaded. Stage 2: HUD test square.");
+    getSelf().getLogger().info("Diorama (Bedrock) loaded. Minimap + big map (M).");
     return true;
 }
 

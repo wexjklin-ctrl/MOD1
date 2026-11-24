@@ -4,7 +4,8 @@
 
 #include "ll/api/memory/Hook.h"
 
-#include "mc/client/gui/controls/renderers/HudHeartRenderer.h"
+#include "mc/client/gui/controls/renderers/HotBarSlotsRenderer.h"
+#include "mod/Minimap.h"
 #include "mc/client/renderer/screen/MinecraftUIRenderContext.h"
 #include "mc/deps/core/math/Color.h"
 #include "mc/deps/input/RectangleArea.h"
@@ -17,13 +18,12 @@ namespace {
 bool gFirstCall = true;
 } // namespace
 
-// Stage 2 test: hook the vanilla hearts renderer (same function MelonRind hooks),
-// call the original, then draw a magenta test square on top.
+// Hook the vanilla hotbar renderer (drawn in every game mode), call the original, then draw the map on top.
 LL_TYPE_INSTANCE_HOOK(
-    HudHeartHook,
+    HotbarHook,
     ll::memory::HookPriority::Normal,
-    HudHeartRenderer,
-    &HudHeartRenderer::$render,
+    HotBarSlotsRenderer,
+    &HotBarSlotsRenderer::$render,
     void,
     ::MinecraftUIRenderContext& renderContext,
     ::IClientInstance&          client,
@@ -34,28 +34,25 @@ LL_TYPE_INSTANCE_HOOK(
 
     if (gFirstCall) {
         gFirstCall = false;
-        DioramaMod::getInstance().getSelf().getLogger().info("HUD hook fired (stage 2).");
+        DioramaMod::getInstance().getSelf().getLogger().info("HUD hook fired (hotbar, minimap active).");
     }
 
-    ::RectangleArea rect{};
-    rect._x0 = 20.0f;
-    rect._x1 = 60.0f;
-    rect._y0 = 20.0f;
-    rect._y1 = 60.0f;
-    ::mce::Color magenta{1.0f, 0.0f, 1.0f, 1.0f};
-    renderContext.fillRectangle(rect, magenta, 1.0f);
+    minimap::draw(renderContext, client);
 }
 
 namespace {
-std::unique_ptr<ll::memory::HookRegistrar<HudHeartHook>> gRegistrar;
+std::unique_ptr<ll::memory::HookRegistrar<HotbarHook>> gRegistrar;
 } // namespace
 
 bool install() {
     if (gRegistrar) return true;
-    gRegistrar = std::make_unique<ll::memory::HookRegistrar<HudHeartHook>>();
+    gRegistrar = std::make_unique<ll::memory::HookRegistrar<HotbarHook>>();
     return true;
 }
 
-void uninstall() { gRegistrar.reset(); }
+void uninstall() {
+    gRegistrar.reset();
+    minimap::reset();
+}
 
 } // namespace diorama_bedrock::hud

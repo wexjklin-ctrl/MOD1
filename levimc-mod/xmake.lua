@@ -41,6 +41,9 @@ target("diorama-bedrock")
         set_toolchains("clang-cl")
     end
     add_packages("levilamina")
+    if is_plat("windows") then
+        add_syslinks("user32")
+    end
     set_kind("shared")
     set_languages("c++20")
     set_symbols("debug")
