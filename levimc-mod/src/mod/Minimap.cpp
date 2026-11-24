@@ -676,7 +676,9 @@ void rasterize(Baked const& b, int W, std::vector<uint32_t>& px, bool soft) {
     uint32_t fogRgb = FOG & 0x00FFFFFFu;
     for (auto& p : px)
         if (!(p >> 24)) p = fogRgb;
-    if (soft) blurAlpha(px, W, std::max(2, int(sc * 1.6f)));
+    bool anyUnknown = false;
+    for (size_t i = 0; i < hb.size(); ++i) if (hb[i] == INT16_MIN) { anyUnknown = true; break; }
+    if (soft && anyUnknown) blurAlpha(px, W, std::max(2, int(sc * 1.0f)));
 }
 
 bool fillImage(::mce::Image& img, std::vector<uint32_t> const& px, int W) {
@@ -788,7 +790,7 @@ bool gMWasDown  = false;
 int  gBigBlocks = 256;
 int  gBigBias   = 0;      // extra sampling step when the rectangle budget is exceeded
 int  gBigLastBlocks = 256;
-constexpr size_t kBigBudget = 30000;
+constexpr size_t kBigBudget = 60000;
 int  gPanX      = 0;
 int  gPanZ      = 0;
 
@@ -818,8 +820,60 @@ void pollInput() {
     if (down(VK_HOME)) gPanX = gPanZ = 0;
 }
 
+
+// ---------- smooth player position (game position only changes every tick -> jitter) ----------
+float    gSX = 0, gSY = 0, gSZ = 0;
+bool     gSInit = false;
+int64_t  gLastQpc = 0;
+
+float frameDt() {
+    LARGE_INTEGER f, c;
+    QueryPerformanceFrequency(&f);
+    QueryPerformanceCounter(&c);
+    float dt = gLastQpc ? float(double(c.QuadPart - gLastQpc) / double(f.QuadPart)) : 0.016f;
+    gLastQpc = c.QuadPart;
+    return std::clamp(dt, 0.001f, 0.1f);
+}
+
+void smoothPlayer(float x, float y, float z, bool reset, float dt) {
+    if (reset || !gSInit || std::fabs(x - gSX) > 8.0f || std::fabs(z - gSZ) > 8.0f) {
+        gSX = x; gSY = y; gSZ = z; gSInit = true;
+        return;
+    }
+    float a = 1.0f - std::exp(-dt / 0.07f);
+    gSX += (x - gSX) * a;
+    gSY += (y - gSY) * a;
+    gSZ += (z - gSZ) * a;
+}
+
+struct Scroll { float u0, v0, uw, vh, pcx, pcy; };
+
+// Bake a window of nb cells (nview visible), centred on a step-aligned grid, re-bake only when the target drifts away (hysteresis);
+// sub-cell scrolling is done by cropping the texture with UV.
+Scroll prepareScroll(Baked& b, int nb, int nview, int step, float tx, float tz, float smoothH, uint64_t minInterval) {
+    float drift = 3.0f * float(step);
+    bool  need  = b.n != nb || b.step != step || b.cx == INT32_MIN || std::fabs(tx - float(b.cx)) > drift || std::fabs(tz - float(b.cz)) > drift ||
+                 std::fabs(smoothH - float(b.h0)) > 3.0f;
+    int bcx = b.cx, bcz = b.cz, bh = b.h0;
+    if (need) {
+        bcx = int(std::floor(tx / float(step))) * step;
+        bcz = int(std::floor(tz / float(step))) * step;
+        bh  = int(std::lround(smoothH));
+    }
+    ensureBaked(b, bcx, bcz, bh, nb, step, minInterval);
+    Scroll sc;
+    sc.pcx = float(nb) * 0.5f + (tx - float(b.cx)) / float(step);
+    sc.pcy = float(nb) * 0.5f + (tz - float(b.cz)) / float(step) * KY - (smoothH - float(b.h0)) * HS / float(step);
+    sc.uw  = float(nview) / float(nb);
+    sc.vh  = sc.uw;
+    sc.u0  = std::clamp((sc.pcx - float(nview) * 0.5f) / float(nb), 0.0f, 1.0f - sc.uw);
+    sc.v0  = std::clamp((sc.pcy - float(nview) * 0.5f) / float(nb), 0.0f, 1.0f - sc.vh);
+    return sc;
+}
+
 int gH0Mini = 64, gH0Big = 64;
 float gSmoothH = -99999.0f;
+float gBigSH = -99999.0f;
 
 } // namespace
 
@@ -861,6 +915,8 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
         saveRegion(int(k >> 32), int(int32_t(uint32_t(k & 0xFFFFFFFFu))));
     }
     pollInput();
+    float dtf = frameDt();
+    smoothPlayer(float(pos.x), float(pos.y), float(pos.z), gap, dtf);
 
     ::RectangleArea screen = ctx.getFullClippingRectangle();
     float           sw     = float(screen._x1) - float(screen._x0);
@@ -875,20 +931,33 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
         float x    = (sw - size) * 0.5f;
         float y    = (sh - size) * 0.5f;
         if (gBigBlocks != gBigLastBlocks) { gBigLastBlocks = gBigBlocks; gBigBias = 0; }
-        int   step = std::max(1, (gBigBlocks + 127) / 128) + gBigBias;
-        int   n    = gBigBlocks / step;
-        int   cx   = px + gPanX, cz = pz + gPanZ;
-        int   h0   = groundHeight(cx, cz, gH0Big);
-        gH0Big     = h0;
-        ensureBaked(gBig, cx, cz, h0, n, step, 60);
-        if (gBig.rects.size() > kBigBudget && gBigBias < 6) ++gBigBias; // too many rectangles: coarser grid next frame
+        int   step  = std::max(1, (gBigBlocks + 191) / 192) + gBigBias;
+        int   nview = std::min(192, gBigBlocks / step);
+        int   nb    = nview + 16;
+        float tx    = gSX + float(gPanX), tz = gSZ + float(gPanZ);
+        float sH    = gSY - 1.6f; // eye -> feet
+        {
+            int g = groundHeight(int(std::floor(tx)), int(std::floor(tz)), gH0Big);
+            gH0Big = g;
+            if (gBigSH < -1000.0f || gap) gBigSH = float(g);
+            gBigSH += (float(g) - gBigSH) * 0.06f;
+            (void)sH;
+        }
+        Scroll sc = prepareScroll(gBig, nb, nview, step, tx, tz, gBigSH, 60);
+        if (gBig.rects.size() > kBigBudget && gBigBias < 6) ++gBigBias;
         rect(ctx, 0, 0, sw, sh, toColor(FOG), 1.0f);
-        if (!drawTex(ctx, client, gBig, gBigTex, x, y, size, std::min(768, n * 6), true)) drawBaked(ctx, gBig, x, y, size);
-        float cell = size / float(n);
-        float ux   = float(n) * 0.5f + (float(pos.x) - float(cx)) / float(step);
-        float uy   = float(n) * 0.5f + (float(pos.z) - float(cz)) / float(step) * KY - float(groundPlayer - h0) * HS / float(step);
-        float mx = x + ux * cell, my = y + uy * cell;
-        if (mx > 0 && mx < sw && my > 0 && my < sh) marker(ctx, mx, my, 3.5f, yaw);
+        float cell = size / float(nview);
+        if (!drawTex(ctx, client, gBig, gBigTex, x, y, size, std::min(1024, nb * 4), true, sc.u0, sc.v0, sc.uw, sc.vh)) {
+            float k = size / float(nview);
+            drawBaked(ctx, gBig, x - sc.u0 * float(nb) * k, y - sc.v0 * float(nb) * k, k * float(nb));
+        }
+        // player marker: smoothed position relative to the same view window
+        {
+            float ppx = float(nb) * 0.5f + (gSX - float(gBig.cx)) / float(step);
+            float ppy = float(nb) * 0.5f + (gSZ - float(gBig.cz)) / float(step) * KY - (gSY - 1.6f - float(gBig.h0)) * HS / float(step);
+            float mx = x + (ppx - sc.u0 * float(nb)) * cell, my = y + (ppy - sc.v0 * float(nb)) * cell;
+            if (mx > 0 && mx < sw && my > 0 && my < sh) marker(ctx, mx, my, 3.5f, yaw);
+        }
         // top bar
         float bar = 30.0f;
         rect(ctx, 0, 0, sw, bar, ::mce::Color{0.02f, 0.03f, 0.05f, 1.0f}, 0.72f);
@@ -903,36 +972,27 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
         rect(ctx, 0, sh - 22, sw, sh, ::mce::Color{0.02f, 0.03f, 0.05f, 1.0f}, 0.72f);
         drawPixText(ctx, "ARROWS - MOVE   +/- - ZOOM   HOME - CENTER   M - CLOSE", 8, sh - 16, 2.0f, white);
     } else {
-        constexpr float SIZE   = 128.0f;
-        constexpr int   VIEW   = 72;          // blocks visible
-        constexpr int   NB     = 84;          // blocks baked (6 block margin each side, used for sub-block scrolling)
-        float           x      = sw - SIZE - 22.0f;
-        float           y      = 24.0f;
-        // smoothed ground height + hysteresis on the bake centre: the map scrolls continuously (no per-block jumps while flying)
+        constexpr float SIZE   = 96.0f;
+        constexpr int   VIEW   = 64;          // blocks visible
+        constexpr int   NB     = 76;          // blocks baked (6 block margin each side for sub-block scrolling)
+        float           x      = sw - SIZE - 20.0f;
+        float           y      = 22.0f;
         if (gap || gSmoothH < -1000.0f) gSmoothH = float(groundPlayer);
         gSmoothH += (float(groundPlayer) - gSmoothH) * 0.06f;
-        bool  tex = gTexEnabled && !gTexFailed;
         if (!gCfgRead) readConfig();
         gH0Mini = groundPlayer;
-        if (tex) {
-            bool needRe = gMini.n != NB || std::fabs(float(pos.x) - float(gMini.cx) - 0.5f) > 3.0f || std::fabs(float(pos.z) - float(gMini.cz) - 0.5f) > 3.0f ||
-                       std::fabs(gSmoothH - float(gMini.h0)) > 3.0f;
-            int bcx = needRe ? px : gMini.cx, bcz = needRe ? pz : gMini.cz, bh = needRe ? int(std::lround(gSmoothH)) : gMini.h0;
-            ensureBaked(gMini, bcx, bcz, bh, NB, 1, 8);
+        bool drawn = false;
+        if (gTexEnabled && !gTexFailed) {
+            Scroll sc = prepareScroll(gMini, NB, VIEW, 1, gSX, gSZ, gSmoothH, 8);
             frame(ctx, x, y, SIZE);
-            // player position in baked cell coordinates -> crop window centred on the player
-            float pcx = float(NB) * 0.5f + (float(pos.x) - float(gMini.cx));
-            float pcy = float(NB) * 0.5f + (float(pos.z) - float(gMini.cz)) * KY - (gSmoothH - float(gMini.h0)) * HS;
-            float u0  = std::clamp((pcx - VIEW * 0.5f) / float(NB), 0.0f, 1.0f - float(VIEW) / float(NB));
-            float v0  = std::clamp((pcy - VIEW * 0.5f) / float(NB), 0.0f, 1.0f - float(VIEW) / float(NB));
-            if (drawTex(ctx, client, gMini, gMiniTex, x, y, SIZE, NB * 5, true, u0, v0, float(VIEW) / float(NB), float(VIEW) / float(NB))) {
+            if (drawTex(ctx, client, gMini, gMiniTex, x, y, SIZE, NB * 4, true, sc.u0, sc.v0, sc.uw, sc.vh)) {
                 vignette(ctx, x, y, SIZE);
                 float cell = SIZE / float(VIEW);
-                marker(ctx, x + (pcx - u0 * NB) * cell, y + (pcy - v0 * NB) * cell, 1.5f, yaw);
-                goto letters;
+                marker(ctx, x + (sc.pcx - sc.u0 * NB) * cell, y + (sc.pcy - sc.v0 * NB) * cell, 1.3f, yaw);
+                drawn = true;
             }
         }
-        {
+        if (!drawn) {
             constexpr int BLOCKS = 56;
             ensureBaked(gMini, px, pz, groundPlayer, BLOCKS, 1, 6);
             frame(ctx, x, y, SIZE);
@@ -941,10 +1001,8 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
             float cell = SIZE / float(BLOCKS);
             float ux   = float(BLOCKS) * 0.5f + (float(pos.x) - float(px));
             float uy   = float(BLOCKS) * 0.5f + (float(pos.z) - float(pz)) * KY;
-            marker(ctx, x + ux * cell, y + uy * cell, 1.5f, yaw);
+            marker(ctx, x + ux * cell, y + uy * cell, 1.3f, yaw);
         }
-    letters:
-        ;
         compassLetter(ctx, 'N', x + SIZE / 2, y - 10, true);
         compassLetter(ctx, 'S', x + SIZE / 2, y + SIZE + 10, false);
         compassLetter(ctx, 'W', x - 10, y + SIZE / 2, false);
