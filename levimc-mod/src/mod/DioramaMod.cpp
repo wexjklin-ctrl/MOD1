@@ -1,6 +1,7 @@
 #include "mod/DioramaMod.h"
 
 #include "mod/HudHook.h"
+#include "mod/Minimap.h"
 
 #include "ll/api/mod/RegisterHelper.h"
 
@@ -28,6 +29,7 @@ bool DioramaMod::enable() {
 
 bool DioramaMod::disable() {
     hud::uninstall();
+    minimap::shutdown();
     getSelf().getLogger().info("Diorama (Bedrock) disabled.");
     return true;
 }

@@ -27,6 +27,10 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
+#include <condition_variable>
+#include <mutex>
+#include <thread>
 #include <cmath>
 #include <cctype>
 #include <cstdint>
@@ -67,6 +71,7 @@ struct ChunkData {
 
 
 std::unordered_map<int64_t, ChunkData> gCache;
+std::mutex                             gMapMx; // guards the STRUCTURE of gCache (insert/clear on main thread vs. find on the bake worker)
 uint64_t                               gFrame   = 0;
 uint64_t                               gVersion = 1; // bumped when any cached pixel changes
 
@@ -87,6 +92,7 @@ struct Sampler {
         if (cx != lcx || cz != lcz) {
             lcx    = cx;
             lcz    = cz;
+            std::lock_guard<std::mutex> lk(gMapMx);
             auto it = gCache.find(key(cx, cz));
             c       = it == gCache.end() ? nullptr : &it->second;
         }
@@ -300,7 +306,12 @@ void updateCache(::BlockSource& region, int px, int pz) {
     for (auto const& [dx, dz] : chunkOffsets()) {
         if (budget <= 0) break;
         int  cx = pcx + dx, cz = pcz + dz;
-        auto& cd = gCache[key(cx, cz)];
+        ChunkData* cdp;
+        {
+            std::lock_guard<std::mutex> lk(gMapMx);
+            cdp = &gCache[key(cx, cz)];
+        }
+        auto& cd = *cdp;
         bool need = cd.scanned ? (gFrame - cd.lastScan >= 900) : (gFrame - cd.lastTry >= 60 || cd.lastTry == 0);
         if (!need) continue;
         cd.lastTry = gFrame;
@@ -390,6 +401,7 @@ void loadWorld() {
                     for (int k = 0; k < NW; ++k) cd.wall[size_t(i) * NW + k] = cd.color[i];
             }
             cd.scanned = false; // will be refreshed when the chunk is loaded again
+            std::lock_guard<std::mutex> lk(gMapMx);
             gCache[key(cx, cz)] = cd;
         }
     }
@@ -406,9 +418,17 @@ std::string computeWorldKey(::Level& level) {
     return std::string(seed) + "_" + s;
 }
 
+void asyncQuiesce();
+void resetSlots();
+
 void switchWorld(std::string const& k) {
     saveAll();
-    gCache.clear();
+    asyncQuiesce(); // the bake worker must not touch gCache while it is cleared
+    resetSlots();
+    {
+        std::lock_guard<std::mutex> lk(gMapMx);
+        gCache.clear();
+    }
     gDirtyRegions.clear();
     gWorldKey = k;
     loadWorld();
@@ -427,7 +447,7 @@ struct Rect {
 };
 
 struct Baked {
-    int                cx = INT32_MIN, cz = INT32_MIN, h0 = INT32_MIN, n = 0, step = 0;
+    int                cx = INT32_MIN, cz = INT32_MIN, h0 = INT32_MIN, n = 0, step = 0, view = 0;
     uint64_t           version = 0, frame = 0, bakeId = 0;
     std::vector<Rect>  rects;
 };
@@ -474,9 +494,12 @@ bool sampleCell(Sampler& s, int x, int z, int step, uint32_t& col, int& h, uint3
     return true;
 }
 
-void bake(Baked& b, int cx, int cz, int h0, int n, int step) {
+// epoch != 0: abort early (result is discarded by the caller) when gEpoch moves on (world switch).
+std::atomic<uint64_t> gEpoch{1};
+
+void bake(Baked& b, int cx, int cz, int h0, int n, int step, uint64_t version, uint64_t frame, uint64_t epoch) {
     b.cx = cx; b.cz = cz; b.h0 = h0; b.n = n; b.step = step;
-    b.version = gVersion; b.frame = gFrame; ++b.bakeId;
+    b.version = version; b.frame = frame; ++b.bakeId;
     b.rects.clear();
     // lift in integer pixels: L(h) = floor(h*PPC*HS/step); h0 is a multiple of step so L(h0) is exact -> mapping independent of the bake origin
     auto L = [&](int h) { return std::floor(float(h) * HS * float(PPC) / float(step)); };
@@ -498,6 +521,7 @@ void bake(Baked& b, int cx, int cz, int h0, int n, int step) {
     Row cur, nxt;
     fill(nxt, cz + (-rowsHalf) * step);
     for (int j = -rowsHalf; j <= rowsHalf; ++j) {
+        if (epoch && gEpoch.load() != epoch) return;
         std::swap(cur, nxt);
         fill(nxt, cz + (j + 1) * step);
         for (int i = 0; i < n; ++i) {
@@ -553,7 +577,7 @@ void bake(Baked& b, int cx, int cz, int h0, int n, int step) {
 void ensureBaked(Baked& b, int cx, int cz, int h0, int n, int step, uint64_t minInterval) {
     bool geom  = b.cx != cx || b.cz != cz || b.h0 != h0 || b.n != n || b.step != step;
     bool dirty = b.version != gVersion && gFrame - b.frame >= minInterval;
-    if (geom || dirty) bake(b, cx, cz, h0, n, step);
+    if (geom || dirty) bake(b, cx, cz, h0, n, step, gVersion, gFrame, 0);
 }
 
 Baked gMini, gBig;
@@ -777,15 +801,10 @@ bool uploadImage(::IClientInstance& client, Tex& t, std::vector<uint32_t> const&
     return true;
 }
 
-bool drawTex(::MinecraftUIRenderContext& ctx, ::IClientInstance& client, Baked const& b, Tex& t, float x, float y, float size, int W, bool soft, float u0 = 0.0f, float v0 = 0.0f, float uw = 1.0f, float vh = 1.0f) {
+// Draws the texture that was last uploaded (the displayed bake); baking itself happens on the worker thread.
+bool drawTexAsync(::MinecraftUIRenderContext& ctx, Tex const& t, float x, float y, float size, float u0, float v0, float uw, float vh) {
     if (!gCfgRead) readConfig();
-    if (!gTexEnabled || gTexFailed || b.rects.empty()) return false;
-    if (t.bakeId != b.bakeId || !t.created) {
-        std::vector<uint32_t> px;
-        rasterize(b, W, px, soft);
-        if (!uploadImage(client, t, px, W)) { gTexFailed = true; return false; }
-        t.bakeId = b.bakeId;
-    }
+    if (!gTexEnabled || gTexFailed || !t.created) return false;
     ::ResourceLocation loc(::Core::PathView(t.name), ::ResourceFileSystem::UserPackage);
     ::mce::TexturePtr  tp  = ctx.getTexture(loc, false);
     auto const*        dat = tp.mClientTexture.get();
@@ -918,10 +937,24 @@ void smoothPlayer(float x, float y, float z, bool reset, float dt) {
     gSZ = gSegZ + (gTgtZ - gSegZ) * k;
 }
 
-struct Scroll { float u0, v0, uw, vh, pcx, pcy; };
+struct Scroll { float u0, v0, uw, vh, pcx, pcy; int nb, nview, step, cx, cz, h0; bool ready; };
 
-// Bake a window of nb cells (nview visible), centred on a step-aligned grid, re-bake only when the target drifts away (hysteresis);
-// sub-cell scrolling is done by cropping the texture with UV.
+// Window geometry of an already baked map (b) and the smooth target (tx,tz,smoothH): sub-cell scrolling is a UV crop.
+Scroll makeScroll(Baked const& b, float tx, float tz, float smoothH) {
+    Scroll sc{};
+    sc.ready = b.cx != INT32_MIN && b.n > 0 && b.view > 0;
+    if (!sc.ready) { sc.nb = b.n; sc.nview = b.view; sc.step = 1; return sc; }
+    sc.nb = b.n; sc.nview = b.view; sc.step = b.step; sc.cx = b.cx; sc.cz = b.cz; sc.h0 = b.h0;
+    sc.pcx = float(b.n) * 0.5f + (tx - float(b.cx)) / float(b.step);
+    sc.pcy = float(b.n) * 0.5f + (tz - float(b.cz)) / float(b.step) * KY - (smoothH - float(b.h0)) * HS / float(b.step);
+    sc.uw  = float(b.view) / float(b.n);
+    sc.vh  = sc.uw;
+    sc.u0  = std::clamp((sc.pcx - float(b.view) * 0.5f) / float(b.n), 0.0f, 1.0f - sc.uw);
+    sc.v0  = std::clamp((sc.pcy - float(b.view) * 0.5f) / float(b.n), 0.0f, 1.0f - sc.vh);
+    return sc;
+}
+
+// Synchronous variant (only used by the rectangle fallback when textures are unavailable).
 Scroll prepareScroll(Baked& b, int nb, int nview, int step, float tx, float tz, float smoothH, uint64_t minInterval, int drift0) {
     float drift = float(drift0) * float(step);
     bool  need  = b.n != nb || b.step != step || b.cx == INT32_MIN || std::fabs(tx - float(b.cx)) > drift || std::fabs(tz - float(b.cz)) > drift ||
@@ -933,14 +966,152 @@ Scroll prepareScroll(Baked& b, int nb, int nview, int step, float tx, float tz, 
         bh  = int(std::lround(smoothH / float(step))) * step;
     }
     ensureBaked(b, bcx, bcz, bh, nb, step, minInterval);
-    Scroll sc;
-    sc.pcx = float(nb) * 0.5f + (tx - float(b.cx)) / float(step);
-    sc.pcy = float(nb) * 0.5f + (tz - float(b.cz)) / float(step) * KY - (smoothH - float(b.h0)) * HS / float(step);
-    sc.uw  = float(nview) / float(nb);
-    sc.vh  = sc.uw;
-    sc.u0  = std::clamp((sc.pcx - float(nview) * 0.5f) / float(nb), 0.0f, 1.0f - sc.uw);
-    sc.v0  = std::clamp((sc.pcy - float(nview) * 0.5f) / float(nb), 0.0f, 1.0f - sc.vh);
-    return sc;
+    b.view = nview;
+    return makeScroll(b, tx, tz, smoothH);
+}
+
+// ---------- background baking: sampling + rasterizing a window is heavy; doing it on the render thread caused a hitch at every re-bake ----------
+struct Job { int cx = 0, cz = 0, h0 = 0, n = 0, step = 1, view = 0, W = 0; uint64_t version = 0, frame = 0, epoch = 0; };
+
+struct Slot {
+    Baked                 disp;   // parameters of the bake currently shown (no rects)
+    Job                   job;
+    bool                  queued = false, busy = false, done = false;
+    Baked                 res;
+    std::vector<uint32_t> px;
+    uint64_t              resEpoch = 0;
+};
+Slot                     gSlots[2];       // 0 = minimap, 1 = big map
+std::mutex               gAsyncMx;
+std::condition_variable  gCv, gIdleCv;
+std::thread              gThread;
+bool                     gStop = false, gWorkerStarted = false, gWorkerOk = false;
+uint64_t                 gBakeCounter = 0;
+
+// returns false if aborted
+bool runJob(Job const& j, Baked& res, std::vector<uint32_t>& px) {
+    bake(res, j.cx, j.cz, j.h0, j.n, j.step, j.version, j.frame, j.epoch);
+    res.view = j.view;
+    if (j.epoch && gEpoch.load() != j.epoch) return false;
+    rasterize(res, j.W, px, true);
+    res.rects.clear();
+    res.rects.shrink_to_fit();
+    return true;
+}
+
+void workerMain() {
+    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
+    for (;;) {
+        int idx = -1;
+        Job job;
+        {
+            std::unique_lock<std::mutex> lk(gAsyncMx);
+            gCv.wait(lk, [] { return gStop || gSlots[0].queued || gSlots[1].queued; });
+            if (gStop) return;
+            idx = gSlots[0].queued ? 0 : 1;
+            gSlots[idx].queued = false;
+            gSlots[idx].busy   = true;
+            job                = gSlots[idx].job;
+        }
+        Baked                 res;
+        std::vector<uint32_t> px;
+        bool                  ok = runJob(job, res, px);
+        {
+            std::lock_guard<std::mutex> lk(gAsyncMx);
+            Slot& s = gSlots[idx];
+            s.busy  = false;
+            if (ok && gEpoch.load() == job.epoch) {
+                s.res      = std::move(res);
+                s.px       = std::move(px);
+                s.resEpoch = job.epoch;
+                s.done     = true;
+            }
+        }
+        gIdleCv.notify_all();
+    }
+}
+
+void startWorker() {
+    if (gWorkerStarted) return;
+    gWorkerStarted = true;
+    gStop          = false;
+    gThread        = std::thread(workerMain);
+    gWorkerOk      = gThread.joinable();
+}
+
+void asyncQuiesce() {
+    ++gEpoch; // running jobs abort at the next row, queued/finished ones are dropped
+    std::unique_lock<std::mutex> lk(gAsyncMx);
+    for (auto& s : gSlots) { s.queued = false; s.done = false; }
+    gIdleCv.wait(lk, [] { return !gSlots[0].busy && !gSlots[1].busy; });
+}
+
+void resetSlots() {
+    for (auto& s : gSlots) s.disp = Baked{};
+    gMiniTex.bakeId = gBigTex.bakeId = 0;
+}
+
+// Take a finished bake from the worker (if any) and upload it as the displayed texture.
+void pollAsync(Slot& s, Tex& t, ::IClientInstance& client) {
+    Baked                 res;
+    std::vector<uint32_t> px;
+    {
+        std::lock_guard<std::mutex> lk(gAsyncMx);
+        if (!s.done) return;
+        s.done = false;
+        if (s.resEpoch != gEpoch.load()) return;
+        res = std::move(s.res);
+        px  = std::move(s.px);
+    }
+    if (!uploadImage(client, t, px, res.n * PPC)) { gTexFailed = true; return; }
+    t.bakeId = ++gBakeCounter;
+    s.disp   = res;
+}
+
+void requestBake(Slot& s, Tex& t, ::IClientInstance& client, Job const& j) {
+    if (!gWorkerStarted) startWorker();
+    if (gWorkerOk) {
+        {
+            std::lock_guard<std::mutex> lk(gAsyncMx);
+            if (s.busy || s.queued || s.done) return;
+            s.job    = j;
+            s.queued = true;
+        }
+        gCv.notify_all();
+        return;
+    }
+    // no worker thread available: bake inline (old behaviour)
+    Baked                 res;
+    std::vector<uint32_t> px;
+    if (!runJob(j, res, px)) return;
+    if (!uploadImage(client, t, px, j.W)) { gTexFailed = true; return; }
+    t.bakeId = ++gBakeCounter;
+    s.disp   = res;
+}
+
+// Decide (against the DISPLAYED bake) whether a new bake is needed, request it in the background and return the scroll for what is shown now.
+Scroll prepareAsync(Slot& s, Tex& t, ::IClientInstance& client, int nb, int nview, int step, float tx, float tz, float smoothH, uint64_t minInterval, int drift0) {
+    pollAsync(s, t, client);
+    Baked const& d     = s.disp;
+    bool         valid = d.cx != INT32_MIN;
+    bool         geom  = !valid || d.n != nb || d.step != step || d.view != nview;
+    float        drift = float(drift0) * float(step);
+    bool         far   = valid && (std::fabs(tx - float(d.cx)) > drift || std::fabs(tz - float(d.cz)) > drift || std::fabs(smoothH - float(d.h0)) > 4.0f * float(step));
+    bool         dirty = valid && d.version != gVersion && gFrame - d.frame >= minInterval;
+    if (geom || far || dirty) {
+        Job j;
+        if (geom || far) {
+            j.cx = int(std::floor(tx / float(step))) * step;
+            j.cz = int(std::floor(tz / float(step))) * step;
+            j.h0 = int(std::lround(smoothH / float(step))) * step;
+        } else {
+            j.cx = d.cx; j.cz = d.cz; j.h0 = d.h0;
+        }
+        j.n = nb; j.step = step; j.view = nview; j.W = nb * PPC;
+        j.version = gVersion; j.frame = gFrame; j.epoch = gEpoch.load();
+        requestBake(s, t, client, j);
+    }
+    return makeScroll(s.disp, tx, tz, smoothH);
 }
 
 int gH0Mini = 64, gH0Big = 64;
@@ -949,9 +1120,26 @@ float gBigSH = -99999.0f;
 
 } // namespace
 
+void shutdown() {
+    {
+        std::lock_guard<std::mutex> lk(gAsyncMx);
+        gStop = true;
+    }
+    gCv.notify_all();
+    if (gThread.joinable()) gThread.join();
+    gWorkerStarted = false;
+    gWorkerOk      = false;
+    gStop          = false;
+}
+
 void reset() {
     saveAll();
-    gCache.clear();
+    asyncQuiesce();
+    resetSlots();
+    {
+        std::lock_guard<std::mutex> lk(gMapMx);
+        gCache.clear();
+    }
     gMini = Baked{};
     gBig  = Baked{};
     gWorldKey.clear();
@@ -1015,19 +1203,30 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
             gBigSH += (float(g) - gBigSH) * (1.0f - std::exp(-dtf / 0.25f));
             (void)sH;
         }
-        Scroll sc = prepareScroll(gBig, nb, nview, step, tx, tz, gBigSH, 90, 8);
-        if ((gTexFailed || !gTexEnabled) && gBig.rects.size() > kBigBudget && gBigBias < 6) ++gBigBias; // texture path does not depend on rect count
+        if (!gCfgRead) readConfig();
+        Scroll sc{};
+        bool   texOk = false;
         rect(ctx, 0, 0, sw, sh, toColor(FOG), 1.0f);
-        float cell = size / float(nview);
-        if (!drawTex(ctx, client, gBig, gBigTex, x, y, size, nb * PPC, true, sc.u0, sc.v0, sc.uw, sc.vh)) {
+        if (gTexEnabled && !gTexFailed) {
+            sc = prepareAsync(gSlots[1], gBigTex, client, nb, nview, step, tx, tz, gBigSH, 90, 8);
+            if (!gTexFailed) {
+                if (!sc.ready) texOk = true; // first bake still running in the background: fog only
+                else texOk = drawTexAsync(ctx, gBigTex, x, y, size, sc.u0, sc.v0, sc.uw, sc.vh);
+            }
+        }
+        if (!texOk) {
+            // fallback: rectangles (synchronous bake)
+            sc = prepareScroll(gBig, nb, nview, step, tx, tz, gBigSH, 90, 8);
+            if (gBig.rects.size() > kBigBudget && gBigBias < 6) ++gBigBias;
             float k = size / float(nview);
             drawBaked(ctx, gBig, x - sc.u0 * float(nb) * k, y - sc.v0 * float(nb) * k, k * float(nb));
         }
         // player marker: smoothed position relative to the same view window
-        {
-            float ppx = float(nb) * 0.5f + (gSX - float(gBig.cx)) / float(step);
-            float ppy = float(nb) * 0.5f + (gSZ - float(gBig.cz)) / float(step) * KY - (gSY - 1.6f - float(gBig.h0)) * HS / float(step);
-            float mx = x + (ppx - sc.u0 * float(nb)) * cell, my = y + (ppy - sc.v0 * float(nb)) * cell;
+        if (sc.ready) {
+            float cell = size / float(sc.nview);
+            float ppx = float(sc.nb) * 0.5f + (gSX - float(sc.cx)) / float(sc.step);
+            float ppy = float(sc.nb) * 0.5f + (gSZ - float(sc.cz)) / float(sc.step) * KY - (gSY - 1.6f - float(sc.h0)) * HS / float(sc.step);
+            float mx = x + (ppx - sc.u0 * float(sc.nb)) * cell, my = y + (ppy - sc.v0 * float(sc.nb)) * cell;
             if (mx > 0 && mx < sw && my > 0 && my < sh) marker(ctx, mx, my, 3.5f, yaw);
         }
         // top bar
@@ -1055,13 +1254,18 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
         gH0Mini = groundPlayer;
         bool drawn = false;
         if (gTexEnabled && !gTexFailed) {
-            Scroll sc = prepareScroll(gMini, NB, VIEW, 1, gSX, gSZ, gSmoothH, 24, 6);
-            frame(ctx, x, y, SIZE);
-            if (drawTex(ctx, client, gMini, gMiniTex, x, y, SIZE, NB * PPC, true, sc.u0, sc.v0, sc.uw, sc.vh)) {
-                vignette(ctx, x, y, SIZE);
-                float cell = SIZE / float(VIEW);
-                marker(ctx, x + (sc.pcx - sc.u0 * NB) * cell, y + (sc.pcy - sc.v0 * NB) * cell, 1.3f, yaw);
-                drawn = true;
+            Scroll sc = prepareAsync(gSlots[0], gMiniTex, client, NB, VIEW, 1, gSX, gSZ, gSmoothH, 24, 6);
+            if (!gTexFailed) {
+                frame(ctx, x, y, SIZE);
+                if (!sc.ready) {
+                    vignette(ctx, x, y, SIZE); // first bake still running in the background
+                    drawn = true;
+                } else if (drawTexAsync(ctx, gMiniTex, x, y, SIZE, sc.u0, sc.v0, sc.uw, sc.vh)) {
+                    vignette(ctx, x, y, SIZE);
+                    float cell = SIZE / float(sc.nview);
+                    marker(ctx, x + (sc.pcx - sc.u0 * float(sc.nb)) * cell, y + (sc.pcy - sc.v0 * float(sc.nb)) * cell, 1.3f, yaw);
+                    drawn = true;
+                }
             }
         }
         if (!drawn) {
