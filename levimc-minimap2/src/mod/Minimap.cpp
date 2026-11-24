@@ -372,6 +372,7 @@ uint32_t colorOfBlockSide(::BlockSource& region, ::BlockPos const& pos, ::Block 
 uint32_t shapeAlpha(std::string const& n) {
     if (n.find("slab") != std::string::npos) return 0xE1;
     if (n.find("stairs") != std::string::npos) return 0xE2;
+    if ((n.find("fence") != std::string::npos) || (n.find("_wall") != std::string::npos && n.find("wall_") == std::string::npos) || n.find("iron_bars") != std::string::npos) return 0xE3; // thin post
     return 0xFF;
 }
 uint32_t withShape(uint32_t c, uint32_t a) { return (c & 0xFFFFFFu) | (a << 24); }
@@ -655,8 +656,9 @@ void switchWorld(std::string const& k) {
 
 // ---------- oblique "diorama" projection, baked to merged rectangles ----------
 // Units: 1 unit = one map cell horizontally. Rows are squashed by KY, heights lift by HS per block.
-constexpr float KY  = 0.75f; // pitch ~48.6 deg; KY*PPC must stay an integer (3 px) // 3 px per row at 4 px/cell: pixel-exact so re-bakes are invisible
-constexpr float HS  = 0.63f; // lift per block (Java: cos/sin * KY = 0.63)
+constexpr float KY  = 0.5f; // pitch ~48.6 deg; KY*PPC must stay an integer (3 px) // 3 px per row at 4 px/cell: pixel-exact so re-bakes are invisible
+constexpr float HS  = 0.80f; // sharper camera (~32 deg pitch): taller walls, tree trunks and facades visible. Old: KY=0.75, HS=0.63. NOTE KY*PPC must be an integer (2 px)
+// (old value kept for reference: 0.63) // lift per block (Java: cos/sin * KY = 0.63)
 constexpr int   PPC = 4;     // texture pixels per map cell
 
 struct Rect {
@@ -728,7 +730,7 @@ void bake(Baked& b, int cx, int cz, int h0, int n, int step, uint64_t version, u
     // lift in integer pixels: L(h) = floor(h*PPC*HS/step); h0 is a multiple of step so L(h0) is exact -> mapping independent of the bake origin
     auto L = [&](int h) { return std::floor(float(h) * HS * float(PPC) / float(step)); };
     float L0 = L(h0);
-    int   rowsHalf = int(float(n) / (2.0f * KY)) + 96;
+    int   rowsHalf = int(float(n) / (2.0f * KY)) + 160;
     int   x0 = cx - (n / 2) * step;
     Sampler s;
     struct Row { std::vector<uint32_t> col; std::vector<int> h; std::vector<WRef> wp; };
@@ -982,7 +984,7 @@ void blurAlpha(std::vector<uint32_t>& px, int W, int r) {
 
 // ---------- Java-Diorama style renderer on a height field (port of TileBaker.shade/bakePixels, see HANDOFF) ----------
 // Camera: pitch 50 deg; screen v = z*KY - y*HS (cells, per step). Far rows are painted first, nearer rows over them.
-constexpr float kSinP = 0.7660444f, kCosP = 0.6427876f; // Java pitch 50 deg (used for depth only)
+constexpr float kSinP = 0.5299f, kCosP = 0.8480f; // Java pitch 50 deg (used for depth only)
 constexpr float kCosE = 0.7880108f, kSinE = 0.6156615f; // sun elevation 38 deg
 constexpr float kSunX = kCosE * -0.878f, kSunY = kSinE, kSunZ = kCosE * 0.479f;
 constexpr float kJit[4][3] = {{0.03f, 0.0f, -0.02f}, {-0.02f, 0.0f, 0.03f}, {0.02f, 0.0f, 0.02f}, {-0.03f, 0.0f, -0.03f}};
@@ -1030,7 +1032,7 @@ float bil(float a, float b, float c, float d, float fx, float fy) {
 
 void buildHField(HField& g, Baked const& b) {
     g.n = b.n; g.step = b.step; g.h0 = b.h0; g.cx = b.cx; g.cz = b.cz;
-    g.rowsHalf = int(float(b.n) / (2.0f * KY)) + 96;
+    g.rowsHalf = int(float(b.n) / (2.0f * KY)) + 160;
     g.m        = 2 * g.rowsHalf + 1;
     g.mx       = int(std::ceil(40.0f * 0.7f / float(b.step))) + 2;
     g.gn       = g.n + g.mx;
@@ -1106,7 +1108,7 @@ float skyAtHeight(HField const& g, int gi, int r, float Y) {
     return 1.0f - 0.9f * float(blocked) / 5.0f;
 }
 
-struct VRun { int yt, yb, k0; float topFrac; };
+struct VRun { int yt, yb, k0; float topFrac; bool thin = false; };
 constexpr int kMaxRuns = 48;
 // Builds runs of solid blocks (top-down) from a column profile: entry alpha 0 = air gap, 0xE1 = slab, 0xE2 = stair, else full block.
 int buildRuns(WRef wp, int h, VRun* out) {
@@ -1115,10 +1117,11 @@ int buildRuns(WRef wp, int h, VRun* out) {
     while (k < NW && n < kMaxRuns) {
         if (!(wp[k] >> 24)) { ++k; continue; }
         int k0 = k;
-        while (k + 1 < NW && (wp[k + 1] >> 24)) ++k;
+        bool thin0 = (wp[k0] >> 24) == 0xE3;
+        while (k + 1 < NW && (wp[k + 1] >> 24) && (((wp[k + 1] >> 24) == 0xE3) == thin0)) ++k;
         int   lastDepth = (k + 1 < NW) ? kWallDepth[k + 1] - 1 : 95;
         uint32_t a = wp[k0] >> 24;
-        out[n++] = {h - kWallDepth[k0], h - lastDepth, k0, a == 0xE1 ? 0.5f : (a == 0xE2 ? 0.75f : 1.0f)};
+        out[n++] = {h - kWallDepth[k0], h - lastDepth, k0, a == 0xE1 ? 0.5f : (a == 0xE2 ? 0.75f : 1.0f), thin0};
         ++k;
     }
     if (!n) { out[0] = {h, h - 2, 0, 1.0f}; n = 1; }
@@ -1184,6 +1187,7 @@ void paintHeightfield(Baked const& b, int W, std::vector<uint32_t>& px, std::vec
                 }
                 for (int q = nr - 1; q >= 0; --q) { // runs are listed top-down; paint bottom-up
                     VRun const& R0 = runs[q];
+                    if (R0.thin && (fx < 0.3f || fx > 0.7f)) continue; // fence/wall/bars: only the central post is drawn
                     float Ytop = float(R0.yt) + R0.topFrac;
                     float vTop0 = halfN + float(j) * KYv - (Ytop - float(g.h0)) * HSs, vTop1 = vTop0 + KYv;
                     uint32_t topCol = (R0.k0 == 0) ? g.col[k] : ((wp ? wp[R0.k0] : g.col[k]) | 0xFF000000u);
@@ -1878,10 +1882,10 @@ void startWorker() {
 // Level-0 tile: 128 blocks wide x 170 z-rows (= 510 px: KY*PPC = 3 px per row), 512x510 px content, global reference height kHRef.
 // Level L tile = 2x2 box-filtered children, same 512x510 px, covers 2^L times more world.
 constexpr int   kTW = 512, kTH = 510, kTexH = 512;
-constexpr int   kTileX = 128, kTileZ = 170;
-constexpr int   kHRef = 64, kLMax = 3, kBakeN = 160, kBakeW = 640;
+constexpr int   kTileX = 128, kTileZ = 255;
+constexpr int   kHRef = 64, kLMax = 3, kBakeN = 192, kBakeW = 768;
 constexpr float kLiftPx = HS * float(PPC);
-static_assert(kTileZ * 3 == kTH, "tile rows must be pixel exact");
+static_assert(kTileZ * 2 == kTH, "tile rows must be pixel exact");
 
 int fdiv(int a, int b) { int q = a / b; if ((a % b != 0) && ((a < 0) != (b < 0))) --q; return q; }
 int64_t tkey(int l, int i, int j) { return (int64_t(l) << 58) | (int64_t(uint32_t(i) & 0x1FFFFFFFu) << 29) | int64_t(uint32_t(j) & 0x1FFFFFFFu); }
@@ -2072,8 +2076,8 @@ void markTilesForChunk(int cx, int cz) {
     int x0 = cx * 16, z0 = cz * 16;
     for (int i = fdiv(x0 - 160, kTileX); i <= fdiv(x0 + 48, kTileX); ++i) {
         if (!(kTileX * i - 32 < x0 + 16 && kTileX * i + kTileX + 32 > x0)) continue;
-        for (int j = fdiv(z0 - 280, kTileZ); j <= fdiv(z0 + 56, kTileZ); ++j) {
-            if (!(kTileZ * j - 40 < z0 + 16 && kTileZ * j + kTileZ + 110 > z0)) continue;
+        for (int j = fdiv(z0 - 480, kTileZ); j <= fdiv(z0 + 82, kTileZ); ++j) {
+            if (!(kTileZ * j - 65 < z0 + 16 && kTileZ * j + kTileZ + 65 + 160 > z0)) continue;
             Tile& t = tileAt(0, i, j);
             t.content = true; t.stale = true; t.staleFrame = gFrame;
         }
