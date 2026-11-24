@@ -891,15 +891,31 @@ float frameDt() {
     return std::clamp(dt, 0.001f, 0.1f);
 }
 
+// Game position changes only on ticks (20 Hz). Like the engine's partial-tick interpolation: glide from the
+// currently drawn position to the newest tick position over the measured tick interval -> constant speed, no sawtooth.
+float gTgtX = 0, gTgtY = 0, gTgtZ = 0, gSegX = 0, gSegY = 0, gSegZ = 0, gClock = 0, gLastChange = 0, gSegT = 0, gDur = 0.05f;
+
 void smoothPlayer(float x, float y, float z, bool reset, float dt) {
-    if (reset || !gSInit || std::fabs(x - gSX) > 8.0f || std::fabs(z - gSZ) > 8.0f) {
-        gSX = x; gSY = y; gSZ = z; gSInit = true;
+    gClock += dt;
+    if (reset || !gSInit || std::fabs(x - gTgtX) > 8.0f || std::fabs(z - gTgtZ) > 8.0f) {
+        gSX = gTgtX = gSegX = x; gSY = gTgtY = gSegY = y; gSZ = gTgtZ = gSegZ = z;
+        gSInit = true; gLastChange = gClock; gSegT = 0; gDur = 0.05f;
         return;
     }
-    float a = 1.0f - std::exp(-dt / 0.07f);
-    gSX += (x - gSX) * a;
-    gSY += (y - gSY) * a;
-    gSZ += (z - gSZ) * a;
+    if (x != gTgtX || y != gTgtY || z != gTgtZ) {
+        float iv = gClock - gLastChange;
+        if (iv > 0.2f) iv = 0.05f;
+        gLastChange = gClock;
+        gDur = std::clamp(0.5f * gDur + 0.5f * iv, 0.03f, 0.12f);
+        gSegX = gSX; gSegY = gSY; gSegZ = gSZ;
+        gTgtX = x; gTgtY = y; gTgtZ = z;
+        gSegT = 0;
+    }
+    gSegT += dt;
+    float k = std::clamp(gSegT / gDur, 0.0f, 1.0f);
+    gSX = gSegX + (gTgtX - gSegX) * k;
+    gSY = gSegY + (gTgtY - gSegY) * k;
+    gSZ = gSegZ + (gTgtZ - gSegZ) * k;
 }
 
 struct Scroll { float u0, v0, uw, vh, pcx, pcy; };
@@ -996,11 +1012,11 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
             int g = groundHeight(int(std::floor(tx)), int(std::floor(tz)), gH0Big);
             gH0Big = g;
             if (gBigSH < -1000.0f || gap) gBigSH = float(g);
-            gBigSH += (float(g) - gBigSH) * 0.06f;
+            gBigSH += (float(g) - gBigSH) * (1.0f - std::exp(-dtf / 0.25f));
             (void)sH;
         }
-        Scroll sc = prepareScroll(gBig, nb, nview, step, tx, tz, gBigSH, 60, 8);
-        if (gBig.rects.size() > kBigBudget && gBigBias < 6) ++gBigBias;
+        Scroll sc = prepareScroll(gBig, nb, nview, step, tx, tz, gBigSH, 90, 8);
+        if ((gTexFailed || !gTexEnabled) && gBig.rects.size() > kBigBudget && gBigBias < 6) ++gBigBias; // texture path does not depend on rect count
         rect(ctx, 0, 0, sw, sh, toColor(FOG), 1.0f);
         float cell = size / float(nview);
         if (!drawTex(ctx, client, gBig, gBigTex, x, y, size, nb * PPC, true, sc.u0, sc.v0, sc.uw, sc.vh)) {
@@ -1034,12 +1050,12 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
         float           x      = sw - SIZE - 20.0f;
         float           y      = 22.0f;
         if (gap || gSmoothH < -1000.0f) gSmoothH = float(groundPlayer);
-        gSmoothH += (float(groundPlayer) - gSmoothH) * 0.06f;
+        gSmoothH += (float(groundPlayer) - gSmoothH) * (1.0f - std::exp(-dtf / 0.25f));
         if (!gCfgRead) readConfig();
         gH0Mini = groundPlayer;
         bool drawn = false;
         if (gTexEnabled && !gTexFailed) {
-            Scroll sc = prepareScroll(gMini, NB, VIEW, 1, gSX, gSZ, gSmoothH, 8, 6);
+            Scroll sc = prepareScroll(gMini, NB, VIEW, 1, gSX, gSZ, gSmoothH, 24, 6);
             frame(ctx, x, y, SIZE);
             if (drawTex(ctx, client, gMini, gMiniTex, x, y, SIZE, NB * PPC, true, sc.u0, sc.v0, sc.uw, sc.vh)) {
                 vignette(ctx, x, y, SIZE);
