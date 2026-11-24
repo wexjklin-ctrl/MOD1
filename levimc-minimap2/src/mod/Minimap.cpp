@@ -64,21 +64,56 @@ namespace {
 constexpr uint32_t FOG = 0xFFE8EBF0u; // white fog of war (unexplored / not saved)
 
 // Wall profile: colour of the block at (top - depth) for each depth; used to paint real building/cliff faces.
-constexpr int NW = 32; // per-block profile for the first 24 blocks below the top (windows, floors, trunks), then sparse
-constexpr int kWallDepth[NW] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 26, 29, 32, 36, 40, 48, 56, 64};
-constexpr int kDbm4Depth[16] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 17, 21, 26, 32};
-constexpr int kOldWallDepth[8] = {0, 1, 2, 4, 7, 11, 16, 24}; // DBM3 files
+constexpr int NW = 96; // per-block wall profile down to 96 blocks below the top (tall buildings keep every floor and window)
+struct IdDepth { constexpr int operator[](int k) const { return k; } };
+constexpr IdDepth kWallDepth{}; // depth of profile entry k is k
 
 struct ChunkData {
     std::array<uint32_t, 256> color{}; // 0 = unknown, else 0xFFRRGGBB
     std::array<int16_t, 256>  height{};
-    std::array<uint32_t, 256 * NW> wall{};
+    std::array<uint8_t, 256 * NW> wallId{}; // palette index per (column, depth); 0 = air gap
+    std::array<uint32_t, 256>     pal{};    // per-chunk palette of wall colours (+shape in alpha); pal[0] = 0 (air)
+    int                           palN = 1;
     bool                      scanned  = false;
     bool                      dirty    = false;
     uint64_t                  lastScan = 0;
     uint64_t                  lastTry  = 0;
 };
 
+struct WRef { // view of one column's wall profile
+    uint8_t const*  id  = nullptr;
+    uint32_t const* pal = nullptr;
+    explicit operator bool() const { return id != nullptr; }
+    uint32_t operator[](int k) const { return pal[id[k]]; }
+};
+
+uint8_t encodePal(ChunkData& cd, uint32_t v) {
+    if (v == 0) return 0;
+    for (int i = 1; i < cd.palN; ++i) if (cd.pal[size_t(i)] == v) return uint8_t(i);
+    if (cd.palN < 255) { cd.pal[size_t(cd.palN)] = v; return uint8_t(cd.palN++); }
+    int best = 1; long bd = LONG_MAX; // palette full: nearest colour
+    for (int i = 1; i < cd.palN; ++i) {
+        uint32_t p = cd.pal[size_t(i)];
+        long dr = long((p >> 16) & 255) - long((v >> 16) & 255), dg = long((p >> 8) & 255) - long((v >> 8) & 255), db = long(p & 255) - long(v & 255);
+        long d = dr * dr + dg * dg + db * db + (((p >> 24) != (v >> 24)) ? 3000 : 0);
+        if (d < bd) { bd = d; best = i; }
+    }
+    return uint8_t(best);
+}
+// stores one column profile; returns true when it differs from what was stored
+bool storeWall(ChunkData& cd, int idx, uint32_t const* w) {
+    uint8_t ids[NW];
+    int     prevK = -1; uint8_t prevId = 0;
+    for (int k = 0; k < NW; ++k) {
+        if (k > 0 && w[k] == w[k - 1]) { ids[k] = ids[k - 1]; continue; }
+        (void)prevK; (void)prevId;
+        ids[k] = encodePal(cd, w[k]);
+    }
+    uint8_t* dst = &cd.wallId[size_t(idx) * NW];
+    if (std::memcmp(dst, ids, NW) == 0) return false;
+    std::memcpy(dst, ids, NW);
+    return true;
+}
 
 std::unordered_map<int64_t, ChunkData> gCache;
 std::mutex                             gMapMx; // guards the STRUCTURE of gCache (insert/clear on main thread vs. find on the bake worker)
@@ -348,7 +383,8 @@ bool isSmallPlant(std::string const& n) {
     return false;
 }
 
-bool scanColumn(::BlockSource& region, int x, int z, uint32_t& col, int16_t& h, uint32_t* wall) {
+// need < 0: only colour/height (cheap); else also the wall profile down to `need` blocks (deeper entries repeat the last colour)
+bool scanColumn(::BlockSource& region, int x, int z, uint32_t& col, int16_t& h, uint32_t* wall, int need) {
     int minH = region.getMinHeight();
     int y    = int(region.getAboveTopSolidBlock(x, z, true, true)) - 1;
     if (y < minH) return false;
@@ -371,23 +407,24 @@ bool scanColumn(::BlockSource& region, int x, int z, uint32_t& col, int16_t& h, 
         }
         float k = 1.0f - float(depth) * 0.08f;
         col     = pack(0.16f * k, 0.34f * k, 0.84f * k);
-        for (int k2 = 0; k2 < NW; ++k2) wall[k2] = col;
+        if (wall) for (int k2 = 0; k2 < NW; ++k2) wall[k2] = col;
     } else {
         col = colorOfBlock(region, pos, *block);
-        wall[0]       = withShape(colorOfBlockSide(region, pos, *block), shapeAlpha(name));
-        uint32_t prev = wall[0];
-        for (int k = 1; k < NW; ++k) {
-            int yy = y - kWallDepth[k];
-            if (yy < minH) { wall[k] = prev; continue; }
-            ::BlockPos p2{x, yy, z};
-            ::Block const& b2 = region.getBlock(p2);
-            bool sparse = kWallDepth[k] > 23; // deep sparse samples: assume solid
-            if (b2.isAir() || isWater(b2.getTypeName()) || isSmallPlant(b2.getTypeName())) {
-                wall[k] = sparse ? prev : 0u; // 0 = air gap (open window, space under a roof or canopy)
-                continue;
+        if (wall) {
+            wall[0]       = withShape(colorOfBlockSide(region, pos, *block), shapeAlpha(name));
+            uint32_t prev = wall[0];
+            for (int k = 1; k < NW; ++k) {
+                int yy = y - k;
+                if (k > need || yy < minH) { wall[k] = prev; continue; }
+                ::BlockPos p2{x, yy, z};
+                ::Block const& b2 = region.getBlock(p2);
+                if (b2.isAir() || isWater(b2.getTypeName()) || isSmallPlant(b2.getTypeName())) {
+                    wall[k] = 0u; // 0 = air gap (open window, space under a roof or canopy)
+                    continue;
+                }
+                prev    = withShape(colorOfBlockSide(region, p2, b2), shapeAlpha(b2.getTypeName()));
+                wall[k] = prev;
             }
-            prev    = withShape(colorOfBlockSide(region, p2, b2), shapeAlpha(b2.getTypeName()));
-            wall[k] = prev;
         }
     }
     h = int16_t(y);
@@ -399,18 +436,34 @@ void markDirty(int cx, int cz);
 bool scanChunk(::BlockSource& region, int cx, int cz, ChunkData& cd) {
     ::BlockPos probe{cx * 16 + 8, 64, cz * 16 + 8};
     if (!region.getChunkAt(probe)) return false;
-    bool changed = false;
+    bool    changed = false;
+    int     minH    = region.getMinHeight();
+    // pass 1: colour + height of every column (cheap)
+    uint32_t cols[256]; int16_t hs[256]; bool ok[256];
+    for (int lz = 0; lz < 16; ++lz)
+        for (int lx = 0; lx < 16; ++lx) {
+            int idx = lz * 16 + lx;
+            ok[idx] = scanColumn(region, cx * 16 + lx, cz * 16 + lz, cols[idx], hs[idx], nullptr, -1);
+        }
+    // pass 2: wall profile, only as deep as the wall below the column can be seen (height difference to the southern neighbour)
     for (int lz = 0; lz < 16; ++lz) {
         for (int lx = 0; lx < 16; ++lx) {
-            uint32_t col = 0;
-            int16_t  h   = 0;
-            uint32_t w[NW];
-            if (!scanColumn(region, cx * 16 + lx, cz * 16 + lz, col, h, w)) continue;
             int idx = lz * 16 + lx;
-            if (cd.color[idx] != col || cd.height[idx] != h || std::memcmp(&cd.wall[size_t(idx) * NW], w, sizeof(w)) != 0) {
+            if (!ok[idx]) continue;
+            int hSouth;
+            if (lz < 15 && ok[idx + 16]) hSouth = hs[idx + 16];
+            else {
+                int t = int(region.getAboveTopSolidBlock(cx * 16 + lx, cz * 16 + lz + 1, true, true)) - 1;
+                hSouth = t > minH ? t : int(hs[idx]) - 24;
+            }
+            int need = std::clamp(int(hs[idx]) - hSouth + 3, 2, NW - 1);
+            uint32_t col = 0; int16_t h = 0;
+            uint32_t w[NW];
+            if (!scanColumn(region, cx * 16 + lx, cz * 16 + lz, col, h, w, need)) continue;
+            bool wallChanged = storeWall(cd, idx, w);
+            if (cd.color[idx] != col || cd.height[idx] != h || wallChanged) {
                 cd.color[idx]  = col;
                 cd.height[idx] = h;
-                std::memcpy(&cd.wall[size_t(idx) * NW], w, sizeof(w));
                 changed        = true;
                 cd.dirty       = true;
             }
@@ -499,7 +552,7 @@ void saveRegion(int rx, int rz) {
             auto it = gCache.find(key(rx * 32 + dx, rz * 32 + dz));
             if (it != gCache.end()) { ++count; }
         }
-    f.write("DBM5", 4);
+    f.write("DBM6", 4);
     f.write(reinterpret_cast<char const*>(&count), 4);
     for (int dz = 0; dz < 32; ++dz)
         for (int dx = 0; dx < 32; ++dx) {
@@ -510,7 +563,10 @@ void saveRegion(int rx, int rz) {
             f.write(reinterpret_cast<char const*>(&cz), 4);
             f.write(reinterpret_cast<char const*>(it->second.color.data()), 256 * 4);
             f.write(reinterpret_cast<char const*>(it->second.height.data()), 256 * 2);
-            f.write(reinterpret_cast<char const*>(it->second.wall.data()), 256 * NW * 4);
+            uint16_t pn = uint16_t(it->second.palN);
+            f.write(reinterpret_cast<char const*>(&pn), 2);
+            f.write(reinterpret_cast<char const*>(it->second.pal.data()), pn * 4);
+            f.write(reinterpret_cast<char const*>(it->second.wallId.data()), 256 * NW);
             it->second.dirty = false;
         }
 }
@@ -528,36 +584,38 @@ void loadWorld() {
         std::ifstream f(e.path(), std::ios::binary);
         char          magic[4] = {};
         uint32_t      count    = 0;
-        if (!f.read(magic, 4) || (std::string(magic, 4) != "DBM2" && std::string(magic, 4) != "DBM3" && std::string(magic, 4) != "DBM4" && std::string(magic, 4) != "DBM5") || !f.read(reinterpret_cast<char*>(&count), 4)) continue;
+        if (!f.read(magic, 4) || std::string(magic, 2) != "DB" || magic[2] != 'M' || magic[3] < '2' || magic[3] > '6' || !f.read(reinterpret_cast<char*>(&count), 4)) continue;
         for (uint32_t i = 0; i < count && i < 1024; ++i) {
             int       cx = 0, cz = 0;
             ChunkData cd;
             if (!f.read(reinterpret_cast<char*>(&cx), 4) || !f.read(reinterpret_cast<char*>(&cz), 4)) break;
             if (!f.read(reinterpret_cast<char*>(cd.color.data()), 256 * 4)) break;
             if (!f.read(reinterpret_cast<char*>(cd.height.data()), 256 * 2)) break;
-            if (magic[3] == '5') {
-                if (!f.read(reinterpret_cast<char*>(cd.wall.data()), 256 * NW * 4)) break;
-            } else if (magic[3] == '4') {
-                std::array<uint32_t, 256 * 16> old{};
-                if (!f.read(reinterpret_cast<char*>(old.data()), 256 * 16 * 4)) break;
-                for (int i2 = 0; i2 < 256; ++i2)
-                    for (int k = 0; k < NW; ++k) {
-                        int o = 0;
-                        while (o + 1 < 16 && kDbm4Depth[o + 1] <= kWallDepth[k]) ++o;
-                        cd.wall[size_t(i2) * NW + k] = old[size_t(i2) * 16 + o];
-                    }
-            } else if (magic[3] == '3') {
-                std::array<uint32_t, 256 * 8> old{};
-                if (!f.read(reinterpret_cast<char*>(old.data()), 256 * 8 * 4)) break;
-                for (int i2 = 0; i2 < 256; ++i2)
-                    for (int k = 0; k < NW; ++k) {
-                        int o = 0;
-                        while (o + 1 < 8 && kOldWallDepth[o + 1] <= kWallDepth[k]) ++o;
-                        cd.wall[size_t(i2) * NW + k] = old[size_t(i2) * 8 + o];
-                    }
+            if (magic[3] == '6') {
+                uint16_t pn = 0;
+                if (!f.read(reinterpret_cast<char*>(&pn), 2) || pn < 1 || pn > 255) break;
+                if (!f.read(reinterpret_cast<char*>(cd.pal.data()), pn * 4)) break;
+                if (!f.read(reinterpret_cast<char*>(cd.wallId.data()), 256 * NW)) break;
+                cd.palN = pn;
             } else {
-                for (int i = 0; i < 256; ++i)
-                    for (int k = 0; k < NW; ++k) cd.wall[size_t(i) * NW + k] = cd.color[i];
+                // old formats: wall profile of 32/16/8 u32 entries per column; convert (top colour for the whole depth when unknown)
+                int oldN = magic[3] == '5' ? 32 : (magic[3] == '4' ? 16 : (magic[3] == '3' ? 8 : 0));
+                static constexpr int d5[32] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 26, 29, 32, 36, 40, 48, 56, 64};
+                static constexpr int d4[16] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 17, 21, 26, 32};
+                static constexpr int d3[8]  = {0, 1, 2, 4, 7, 11, 16, 24};
+                std::vector<uint32_t> old(size_t(256) * size_t(std::max(oldN, 1)), 0u);
+                if (oldN && !f.read(reinterpret_cast<char*>(old.data()), std::streamsize(old.size() * 4))) break;
+                int const* dt = oldN == 32 ? d5 : (oldN == 16 ? d4 : d3);
+                for (int i2 = 0; i2 < 256; ++i2) {
+                    uint32_t w[NW];
+                    for (int k = 0; k < NW; ++k) {
+                        if (!oldN) { w[k] = cd.color[i2]; continue; }
+                        int o = 0;
+                        while (o + 1 < oldN && dt[o + 1] <= k) ++o;
+                        w[k] = old[size_t(i2) * size_t(oldN) + size_t(o)];
+                    }
+                    storeWall(cd, i2, w);
+                }
             }
             cd.scanned = false; // will be refreshed when the chunk is loaded again
             std::lock_guard<std::mutex> lk(gMapMx);
@@ -618,14 +676,14 @@ uint32_t shade(uint32_t col, float k) {
     return 0xFF000000u | (m((col >> 16) & 255) << 16) | (m((col >> 8) & 255) << 8) | m(col & 255);
 }
 
-bool sample(Sampler& s, int x, int z, uint32_t& col, int& h, uint32_t const** wall = nullptr) {
+bool sample(Sampler& s, int x, int z, uint32_t& col, int& h, WRef* wall = nullptr) {
     ChunkData* c = s.get(x, z);
     if (!c) return false;
     int idx = (z & 15) * 16 + (x & 15);
     if (!c->color[idx]) return false;
     col = c->color[idx];
     h   = c->height[idx];
-    if (wall) *wall = &c->wall[size_t(idx) * NW];
+    if (wall) *wall = WRef{&c->wallId[size_t(idx) * NW], c->pal.data()};
     return true;
 }
 
@@ -637,15 +695,15 @@ int groundHeight(int x, int z, int fallback) {
 }
 
 // One map cell. For step>1 it averages 2x2 columns spread over the cell (less aliasing / detail loss when zoomed out).
-bool sampleCell(Sampler& s, int x, int z, int step, uint32_t& col, int& h, uint32_t const** wall) {
+bool sampleCell(Sampler& s, int x, int z, int step, uint32_t& col, int& h, WRef* wall) {
     if (step <= 1) return sample(s, x, z, col, h, wall);
     int      g   = std::min(step, 4);          // g x g samples spread over the cell
     int      cnt = 0, hs = 0, hmax = INT_MIN;
     uint32_t r = 0, gg = 0, bl = 0;
-    uint32_t topCol = 0; uint32_t const* topWall = nullptr;
+    uint32_t topCol = 0; WRef topWall;
     for (int oz = 0; oz < g; ++oz)
         for (int ox = 0; ox < g; ++ox) {
-            uint32_t c; int hh; uint32_t const* w = nullptr;
+            uint32_t c; int hh; WRef w;
             if (!sample(s, x + (ox * step) / g, z + (oz * step) / g, c, hh, &w)) continue;
             if (hh > hmax) { hmax = hh; topCol = c; topWall = w; }
             r += (c >> 16) & 255; gg += (c >> 8) & 255; bl += c & 255; hs += hh; ++cnt;
@@ -673,11 +731,11 @@ void bake(Baked& b, int cx, int cz, int h0, int n, int step, uint64_t version, u
     int   rowsHalf = int(float(n) / (2.0f * KY)) + 96;
     int   x0 = cx - (n / 2) * step;
     Sampler s;
-    struct Row { std::vector<uint32_t> col; std::vector<int> h; std::vector<uint32_t const*> wp; };
+    struct Row { std::vector<uint32_t> col; std::vector<int> h; std::vector<WRef> wp; };
     auto fill = [&](Row& r, int z) {
-        r.col.assign(size_t(n), 0u); r.h.assign(size_t(n), 0); r.wp.assign(size_t(n), nullptr);
+        r.col.assign(size_t(n), 0u); r.h.assign(size_t(n), 0); r.wp.assign(size_t(n), WRef{});
         for (int i = 0; i < n; ++i) {
-            uint32_t c = 0; int h = 0; uint32_t const* w = nullptr;
+            uint32_t c = 0; int h = 0; WRef w;
             if (sampleCell(s, x0 + i * step, z, step, c, h, &w)) {
                 // sun shadows (like Diorama): sun to the west / slightly south; a taller block towards the sun darkens this cell
                 float m = -1e9f;
@@ -706,11 +764,11 @@ void bake(Baked& b, int cx, int cz, int h0, int n, int step, uint64_t version, u
             if (!cur.col[size_t(i)]) continue;
             int h = cur.h[size_t(i)];
             int d = 0;
-            if (nxt.col[size_t(i)] && h > nxt.h[size_t(i)]) d = std::min(h - nxt.h[size_t(i)], 48);
+            if (nxt.col[size_t(i)] && h > nxt.h[size_t(i)]) d = std::min(h - nxt.h[size_t(i)], 96);
             dh[size_t(i)] = d;
-            uint32_t const* wp = cur.wp[size_t(i)];
+            WRef wp = cur.wp[size_t(i)];
             if (d > 0 && wp) {
-                std::memcpy(wl[size_t(i)].data(), wp, sizeof(uint32_t) * NW);
+                for (int q = 0; q < NW; ++q) wl[size_t(i)][size_t(q)] = wp[q];
                 uint32_t hs = 2166136261u;
                 int used = 0;
                 while (used + 1 < NW && kWallDepth[used + 1] < d) ++used;
@@ -952,7 +1010,7 @@ struct HField {
     int maxH = INT_MIN;
     std::vector<uint32_t>               col;
     std::vector<int16_t>                h;
-    std::vector<uint32_t const*>        wp;
+    std::vector<WRef>                   wp;
     std::vector<float>                  sky;
     size_t id(int gi, int r) const { return size_t(r) * size_t(gn) + size_t(gi); }
     bool   inside(int gi, int r) const { return gi >= 0 && gi < gn && r >= 0 && r < m; }
@@ -978,13 +1036,13 @@ void buildHField(HField& g, Baked const& b) {
     g.gn       = g.n + g.mx;
     g.x0       = b.cx - (b.n / 2) * b.step;
     size_t N   = size_t(g.gn) * size_t(g.m);
-    g.col.assign(N, 0u); g.h.assign(N, 0); g.wp.assign(N, nullptr); g.sky.assign(N, 1.0f);
+    g.col.assign(N, 0u); g.h.assign(N, 0); g.wp.assign(N, WRef{}); g.sky.assign(N, 1.0f);
     Sampler s;
     for (int gi = 0; gi < g.gn; ++gi) {
         int X = g.x0 + (gi - g.mx) * g.step;
         for (int r = 0; r < g.m; ++r) {
             int Z = g.cz + (r - g.rowsHalf) * g.step;
-            uint32_t c = 0; int hh = 0; uint32_t const* w = nullptr;
+            uint32_t c = 0; int hh = 0; WRef w;
             if (sampleCell(s, X, Z, g.step, c, hh, &w)) {
                 size_t k = g.id(gi, r);
                 g.col[k] = c | 0xFF000000u; g.h[k] = int16_t(hh); g.wp[k] = w;
@@ -1035,12 +1093,26 @@ float skyBilinear(HField const& g, int gi, int r, float fx, float fz) {
     return bil(S(i0, r0), S(i0 + 1, r0), S(i0, r0 + 1), S(i0 + 1, r0 + 1), tx, tz);
 }
 
+// sky visibility of a wall face (normal = south) at height Y: only the south-facing half of the horizon counts
+float skyAtHeight(HField const& g, int gi, int r, float Y) {
+    static constexpr float dirs[5][2] = {{1, 0}, {0.7071f, 0.7071f}, {0, 1}, {-0.7071f, 0.7071f}, {-1, 0}};
+    static constexpr float dists[4]   = {1, 3, 6, 12};
+    int blocked = 0;
+    for (auto const& d : dirs)
+        for (float dist : dists) {
+            int hn = g.hAt(gi + int(std::lround(d[0] * dist / float(g.step))), r + int(std::lround(d[1] * dist / float(g.step))));
+            if (hn != INT_MIN && float(hn) + 1.0f > Y + dist * 0.7f + 0.2f) { ++blocked; break; }
+        }
+    return 1.0f - 0.9f * float(blocked) / 5.0f;
+}
+
 struct VRun { int yt, yb, k0; float topFrac; };
+constexpr int kMaxRuns = 48;
 // Builds runs of solid blocks (top-down) from a column profile: entry alpha 0 = air gap, 0xE1 = slab, 0xE2 = stair, else full block.
-int buildRuns(uint32_t const* wp, int h, VRun* out) {
+int buildRuns(WRef wp, int h, VRun* out) {
     if (!wp) { out[0] = {h, h - 2, 0, 1.0f}; return 1; }
     int n = 0, k = 0;
-    while (k < NW && n < 16) {
+    while (k < NW && n < kMaxRuns) {
         if (!(wp[k] >> 24)) { ++k; continue; }
         int k0 = k;
         while (k + 1 < NW && (wp[k + 1] >> 24)) ++k;
@@ -1052,7 +1124,7 @@ int buildRuns(uint32_t const* wp, int h, VRun* out) {
     if (!n) { out[0] = {h, h - 2, 0, 1.0f}; n = 1; }
     return n;
 }
-uint32_t wallColorAt(uint32_t const* wp, int h, float Y, uint32_t fallback) {
+uint32_t wallColorAt(WRef wp, int h, float Y, uint32_t fallback) {
     if (!wp) return fallback;
     int by = int(std::floor(Y - 1e-4f)), d = std::max(0, h - by), kk = 0;
     while (kk + 1 < NW && kWallDepth[kk + 1] <= d) ++kk;
@@ -1091,8 +1163,8 @@ void paintHeightfield(Baked const& b, int W, std::vector<uint32_t>& px, std::vec
                 if (!g.col[k]) continue;
                 int   j  = r - g.rowsHalf;
                 int   hh = g.h[k];
-                uint32_t const* wp = g.wp[k];
-                VRun runs[16]; int nr = buildRuns(wp, hh, runs);
+                WRef wp = g.wp[k];
+                VRun runs[kMaxRuns]; int nr = buildRuns(wp, hh, runs);
                 int hn = g.known(gi, r + 1) ? int(g.h[g.id(gi, r + 1)]) : hh - 2;
                 for (int q = nr - 1; q >= 0; --q) { // runs are listed top-down; paint bottom-up
                     VRun const& R0 = runs[q];
@@ -1106,7 +1178,7 @@ void paintHeightfield(Baked const& b, int W, std::vector<uint32_t>& px, std::vec
                         R.cell = int32_t(k); R.type = 1; R.a = fx; R.b = std::clamp((vS - vTop0) / KYv, 0.0f, 0.9999f); R.y = Ytop; R.col = topCol;
                     }
                     float lowY = std::max(float(R0.yb), float(hn + 1));
-                    float wallH = std::min(Ytop - lowY, 48.0f);
+                    float wallH = std::min(Ytop - lowY, 96.0f);
                     if (wallH <= 0.0f) continue;
                     float vW1 = vTop1 + wallH * HSs;
                     int   wa = std::max(0, int(std::ceil(vTop1 * sc - sy))), wb = std::min(W, int(std::ceil(vW1 * sc - sy)));
@@ -1156,7 +1228,7 @@ void paintHeightfield(Baked const& b, int W, std::vector<uint32_t>& px, std::vec
                 float tw = aoCorner(ww, up, g.occ(gi - 1, rf, by + 1)), te = aoCorner(ee, up, g.occ(gi + 1, rf, by + 1));
                 float bw = aoCorner(ww, dn, g.occ(gi - 1, rf, by - 1)), be = aoCorner(ee, dn, g.occ(gi + 1, rf, by - 1));
                 ao = bil(tw, te, bw, be, fx, 1.0f - fy);
-                sky = g.known(gi, rf) ? g.sky[g.id(gi, rf)] : g.sky[k];
+                sky = skyAtHeight(g, gi, rf, Y);
                 lambert = lambertSide;
             }
             bool shadowed = lambert > 0.0f && inShadow(g, X, Y + 1e-4f, Zc + (top ? 0.0f : 1e-4f), sunx, suny, sunz);
