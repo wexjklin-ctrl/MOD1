@@ -10,6 +10,14 @@
 #include "mc/client/renderer/screen/MinecraftUIRenderContext.h"
 #include "mc/deps/core/math/Color.h"
 #include "mc/deps/input/RectangleArea.h"
+#include "mc/client/renderer/TextureGroup.h"
+#include "mc/deps/core/image/Image.h"
+#include "mc/deps/core_graphics/ImageBuffer.h"
+#include "mc/deps/core/resource/ResourceLocation.h"
+#include "mc/deps/core/string/HashedString.h"
+#include "mc/deps/minecraft_renderer/renderer/TexturePtr.h"
+#include "mc/deps/minecraft_renderer/renderer/BedrockTextureData.h"
+#include "mc/deps/minecraft_renderer/resources/ClientTexture.h"
 #include "mc/world/level/BlockPos.h"
 #include "mc/world/level/BlockSource.h"
 #include "mc/world/level/Level.h"
@@ -413,11 +421,12 @@ constexpr float HS = 0.85f;
 struct Rect {
     float    x0, y0, x1, y1;
     uint32_t col;
+    int16_t  h; // block height of this surface (used for depth outlines in the texture path)
 };
 
 struct Baked {
     int                cx = INT32_MIN, cz = INT32_MIN, h0 = INT32_MIN, n = 0, step = 0;
-    uint64_t           version = 0, frame = 0;
+    uint64_t           version = 0, frame = 0, bakeId = 0;
     std::vector<Rect>  rects;
 };
 
@@ -446,7 +455,7 @@ int groundHeight(int x, int z, int fallback) {
 
 void bake(Baked& b, int cx, int cz, int h0, int n, int step) {
     b.cx = cx; b.cz = cz; b.h0 = h0; b.n = n; b.step = step;
-    b.version = gVersion; b.frame = gFrame;
+    b.version = gVersion; b.frame = gFrame; ++b.bakeId;
     b.rects.clear();
     float hsu = HS / float(step);
     int   rowsHalf = int(float(n) / (2.0f * KY)) + 28;
@@ -489,11 +498,11 @@ void bake(Baked& b, int cx, int cz, int h0, int n, int step) {
                 ++e;
             float yTop = rowY - float(hh[size_t(i)] - h0) * hsu;
             float yBot = yTop + KY;
-            auto  push = [&](float ya, float yb, uint32_t c) {
+            auto  push = [&](float ya, float yb, uint32_t c, int hv) {
                 if (yb <= 0.0f || ya >= float(n)) return;
-                b.rects.push_back({float(i), std::max(ya, 0.0f), float(e), std::min(yb, float(n)), c});
+                b.rects.push_back({float(i), std::max(ya, 0.0f), float(e), std::min(yb, float(n)), c, int16_t(hv)});
             };
-            push(yTop, yBot, col[size_t(i)]);
+            push(yTop, yBot, col[size_t(i)], hh[size_t(i)]);
             int d = dh[size_t(i)];
             if (d > 0) {
                 int t0 = 0, k = 0;
@@ -501,7 +510,7 @@ void bake(Baked& b, int cx, int cz, int h0, int n, int step) {
                     while (k + 1 < NW && kWallDepth[k + 1] <= t0) ++k;
                     int t1 = (k + 1 < NW) ? std::min(kWallDepth[k + 1], d) : d;
                     uint32_t wc = wl[size_t(i)][size_t(k)];
-                    push(yBot + float(t0) * hsu, yBot + float(t1) * hsu, shade(wc ? wc : col[size_t(i)], 0.62f));
+                    push(yBot + float(t0) * hsu, yBot + float(t1) * hsu, shade(wc ? wc : col[size_t(i)], 0.62f), hh[size_t(i)] - t0);
                     t0 = t1;
                 }
             }
@@ -580,6 +589,152 @@ void drawBaked(::MinecraftUIRenderContext& ctx, Baked const& b, float sx, float 
         rect(ctx, sx + std::floor(r.x0 * cell), sy + std::floor(r.y0 * cell), sx + std::ceil(r.x1 * cell),
              sy + std::ceil(r.y1 * cell), toColor(r.col));
     }
+}
+
+
+// ---------- texture path: rasterise baked rects into ONE RGBA image (outlines + soft fog edge), draw with 1 drawImage ----------
+bool        gTexEnabled = true;   // render.txt: mode=rects disables
+bool        gTexFailed  = false;  // runtime fallback to rects
+bool        gCfgRead    = false;
+std::string gMaterial   = "ui_textured_and_glcolor"; // render.txt: material=...
+bool        gTexLogged  = false;
+
+void readConfig() {
+    gCfgRead = true;
+    try {
+        std::ifstream f(rootDir() / "render.txt");
+        std::string   line;
+        while (std::getline(f, line)) {
+            while (!line.empty() && (line.back() == '\r' || line.back() == ' ')) line.pop_back();
+            if (line == "mode=rects") gTexEnabled = false;
+            if (line.rfind("material=", 0) == 0 && line.size() > 9) gMaterial = line.substr(9);
+        }
+    } catch (...) {}
+}
+
+struct Tex {
+    uint64_t bakeId  = 0;
+    int      W       = 0;
+    int      gen     = 0;
+    bool     created = false;
+    std::string name;
+};
+Tex gMiniTex, gBigTex;
+
+void blurAlpha(std::vector<uint32_t>& px, int W, int r) {
+    if (r < 1) return;
+    std::vector<float> a(size_t(W) * W), t(size_t(W) * W);
+    for (size_t i = 0; i < a.size(); ++i) a[i] = float(px[i] >> 24);
+    float inv = 1.0f / float(2 * r + 1);
+    for (int y = 0; y < W; ++y) { // horizontal
+        float acc = 0;
+        for (int x = -r; x <= r; ++x) acc += a[size_t(y) * W + std::clamp(x, 0, W - 1)];
+        for (int x = 0; x < W; ++x) {
+            t[size_t(y) * W + x] = acc * inv;
+            acc += a[size_t(y) * W + std::min(x + r + 1, W - 1)] - a[size_t(y) * W + std::max(x - r, 0)];
+        }
+    }
+    for (int x = 0; x < W; ++x) { // vertical
+        float acc = 0;
+        for (int y = -r; y <= r; ++y) acc += t[size_t(std::clamp(y, 0, W - 1)) * W + x];
+        for (int y = 0; y < W; ++y) {
+            a[size_t(y) * W + x] = acc * inv;
+            acc += t[size_t(std::min(y + r + 1, W - 1)) * W + x] - t[size_t(std::max(y - r, 0)) * W + x];
+        }
+    }
+    for (size_t i = 0; i < px.size(); ++i) {
+        uint32_t al = uint32_t(std::clamp(a[i], 0.0f, 255.0f) + 0.5f);
+        px[i]       = (px[i] & 0x00FFFFFFu) | (al << 24);
+    }
+}
+
+// px layout: 0xAARRGGBB (A=0 unknown). Returns pixels (W x W).
+void rasterize(Baked const& b, int W, std::vector<uint32_t>& px, bool soft) {
+    px.assign(size_t(W) * W, 0u);
+    std::vector<int16_t> hb(size_t(W) * W, INT16_MIN);
+    float sc = float(W) / float(b.n);
+    for (auto const& r : b.rects) {
+        int x0 = std::max(0, int(std::floor(r.x0 * sc))), x1 = std::min(W, int(std::ceil(r.x1 * sc)));
+        int y0 = std::max(0, int(std::floor(r.y0 * sc))), y1 = std::min(W, int(std::ceil(r.y1 * sc)));
+        for (int y = y0; y < y1; ++y)
+            for (int x = x0; x < x1; ++x) {
+                px[size_t(y) * W + x] = r.col | 0xFF000000u;
+                hb[size_t(y) * W + x] = r.h;
+            }
+    }
+    // depth outlines: neighbouring surfaces at clearly different height get a dark line (Diorama draws outlines by depth)
+    for (int y = 1; y < W; ++y)
+        for (int x = 1; x < W; ++x) {
+            size_t i = size_t(y) * W + x;
+            if (!(px[i] >> 24)) continue;
+            int  h = hb[i], hu = hb[i - W], hl = hb[i - 1];
+            bool edge = (hu != INT16_MIN && std::abs(h - hu) >= 2 && h < hu) || (hl != INT16_MIN && std::abs(h - hl) >= 2 && h < hl);
+            if (edge) px[i] = shade(px[i], 0.72f);
+        }
+    // soft fog edge: unknown pixels take fog colour, alpha is blurred so the explored area fades out smoothly
+    uint32_t fogRgb = FOG & 0x00FFFFFFu;
+    for (auto& p : px)
+        if (!(p >> 24)) p = fogRgb;
+    if (soft) blurAlpha(px, W, std::max(2, int(sc * 1.6f)));
+}
+
+bool fillImage(::mce::Image& img, std::vector<uint32_t> const& px, int W) {
+    if (img.mImageBytes.size() < size_t(W) * W * 4) img.resizeImageBytesToFitImageDescription();
+    if (img.mImageBytes.size() < size_t(W) * W * 4) return false;
+    uint8_t* d = img.mImageBytes.data();
+    for (size_t i = 0; i < px.size(); ++i) {
+        uint32_t p = px[i];
+        d[i * 4 + 0] = uint8_t((p >> 16) & 255);
+        d[i * 4 + 1] = uint8_t((p >> 8) & 255);
+        d[i * 4 + 2] = uint8_t(p & 255);
+        d[i * 4 + 3] = uint8_t(p >> 24);
+    }
+    return true;
+}
+
+bool uploadImage(::IClientInstance& client, Tex& t, std::vector<uint32_t> const& px, int W) {
+    auto tg = client.getTextureGroup();
+    if (!tg) return false;
+    bool ok = false;
+    if (t.created && t.W == W) {
+        ::mce::Image img(uint32_t(W), uint32_t(W), ::mce::ImageFormat::RGBA8Unorm, ::mce::ImageUsage::SRGB);
+        if (!fillImage(img, px, W)) return false;
+        ::cg::ImageBuffer buf(std::move(img));
+        ::ResourceLocation loc(::Core::PathView(t.name), ::ResourceFileSystem::UserPackage);
+        ok = tg->updateTextureInPlace(loc, std::move(buf));
+    }
+    if (!ok) {
+        // new unique name (re-uploading an existing name is not safe)
+        ++t.gen;
+        t.name = "textures/diorama_bedrock/" + std::string(&t == &gMiniTex ? "mini" : "big") + "_" + std::to_string(W) + "_" + std::to_string(t.gen);
+        ::mce::Image img(uint32_t(W), uint32_t(W), ::mce::ImageFormat::RGBA8Unorm, ::mce::ImageUsage::SRGB);
+        if (!fillImage(img, px, W)) return false;
+        ::cg::ImageBuffer buf(std::move(img));
+        ::ResourceLocation loc(::Core::PathView(t.name), ::ResourceFileSystem::UserPackage);
+        tg->uploadTexture(loc, std::move(buf));
+        t.created = true;
+        t.W       = W;
+    }
+    return true;
+}
+
+bool drawTex(::MinecraftUIRenderContext& ctx, ::IClientInstance& client, Baked const& b, Tex& t, float x, float y, float size, int W, bool soft) {
+    if (!gCfgRead) readConfig();
+    if (!gTexEnabled || gTexFailed || b.rects.empty()) return false;
+    if (t.bakeId != b.bakeId || !t.created) {
+        std::vector<uint32_t> px;
+        rasterize(b, W, px, soft);
+        if (!uploadImage(client, t, px, W)) { gTexFailed = true; return false; }
+        t.bakeId = b.bakeId;
+    }
+    ::ResourceLocation loc(::Core::PathView(t.name), ::ResourceFileSystem::UserPackage);
+    ::mce::TexturePtr  tp  = ctx.getTexture(loc, false);
+    auto*              dat = tp.mClientTexture.get().get();
+    if (!dat) { gTexFailed = true; return false; }
+    ctx.drawImage(dat->mClientTexture.get(), ::glm::vec2{x, y}, ::glm::vec2{size, size}, ::glm::vec2{0.0f, 0.0f}, ::glm::vec2{1.0f, 1.0f}, false);
+    ctx.flushImages(::mce::Color{1.0f, 1.0f, 1.0f, 1.0f}, 1.0f, ::HashedString(gMaterial));
+    if (!gTexLogged) gTexLogged = true;
+    return true;
 }
 
 // Dark frame with light bevel, drop shadow, corner studs (Diorama-like).
@@ -723,10 +878,10 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
         int   cx   = px + gPanX, cz = pz + gPanZ;
         int   h0   = groundHeight(cx, cz, gH0Big);
         gH0Big     = h0;
-        ensureBaked(gBig, cx, cz, h0, n, step, 30);
+        ensureBaked(gBig, cx, cz, h0, n, step, 45);
         if (gBig.rects.size() > kBigBudget && gBigBias < 6) ++gBigBias; // too many rectangles: coarser grid next frame
         rect(ctx, 0, 0, sw, sh, toColor(FOG), 1.0f);
-        drawBaked(ctx, gBig, x, y, size);
+        if (!drawTex(ctx, client, gBig, gBigTex, x, y, size, std::min(768, n * 6), true)) drawBaked(ctx, gBig, x, y, size);
         float cell = size / float(n);
         float ux   = float(n) * 0.5f + (float(pos.x) - float(cx)) / float(step);
         float uy   = float(n) * 0.5f + (float(pos.z) - float(cz)) / float(step) * KY - float(groundPlayer - h0) * HS / float(step);
@@ -753,7 +908,7 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
         gH0Mini                = groundPlayer;
         ensureBaked(gMini, px, pz, groundPlayer, BLOCKS, 1, 6);
         frame(ctx, x, y, SIZE);
-        drawBaked(ctx, gMini, x, y, SIZE);
+        if (!drawTex(ctx, client, gMini, gMiniTex, x, y, SIZE, BLOCKS * 5, true)) drawBaked(ctx, gMini, x, y, SIZE);
         vignette(ctx, x, y, SIZE);
         float cell = SIZE / float(BLOCKS);
         float ux   = float(BLOCKS) * 0.5f + (float(pos.x) - float(px));
