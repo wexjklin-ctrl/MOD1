@@ -416,8 +416,9 @@ void switchWorld(std::string const& k) {
 
 // ---------- oblique "diorama" projection, baked to merged rectangles ----------
 // Units: 1 unit = one map cell horizontally. Rows are squashed by KY, heights lift by HS per block.
-constexpr float KY = 0.62f;
-constexpr float HS = 0.85f;
+constexpr float KY  = 0.75f; // 3 px per row at 4 px/cell: pixel-exact so re-bakes are invisible
+constexpr float HS  = 1.0f;  // 4 px lift per block at step 1
+constexpr int   PPC = 4;     // texture pixels per map cell
 
 struct Rect {
     float    x0, y0, x1, y1;
@@ -454,56 +455,85 @@ int groundHeight(int x, int z, int fallback) {
     return sample(s, x, z, c, h) ? h : fallback;
 }
 
+// One map cell. For step>1 it averages 2x2 columns spread over the cell (less aliasing / detail loss when zoomed out).
+bool sampleCell(Sampler& s, int x, int z, int step, uint32_t& col, int& h, uint32_t const** wall) {
+    if (step <= 1) return sample(s, x, z, col, h, wall);
+    int      half = std::max(1, step / 2);
+    int      cnt = 0, hs = 0;
+    uint32_t r = 0, g = 0, bl = 0;
+    for (int oz = 0; oz < 2; ++oz)
+        for (int ox = 0; ox < 2; ++ox) {
+            uint32_t c; int hh; uint32_t const* w = nullptr;
+            if (!sample(s, x + ox * half, z + oz * half, c, hh, &w)) continue;
+            if (!cnt && wall) *wall = w;
+            r += (c >> 16) & 255; g += (c >> 8) & 255; bl += c & 255; hs += hh; ++cnt;
+        }
+    if (!cnt) return false;
+    col = 0xFF000000u | ((r / cnt) << 16) | ((g / cnt) << 8) | (bl / cnt);
+    h   = int(std::lround(float(hs) / float(cnt)));
+    return true;
+}
+
 void bake(Baked& b, int cx, int cz, int h0, int n, int step) {
     b.cx = cx; b.cz = cz; b.h0 = h0; b.n = n; b.step = step;
     b.version = gVersion; b.frame = gFrame; ++b.bakeId;
     b.rects.clear();
-    float hsu = HS / float(step);
+    // lift in integer pixels: L(h) = floor(h*PPC*HS/step); h0 is a multiple of step so L(h0) is exact -> mapping independent of the bake origin
+    auto L = [&](int h) { return std::floor(float(h) * HS * float(PPC) / float(step)); };
+    float L0 = L(h0);
     int   rowsHalf = int(float(n) / (2.0f * KY)) + 28;
     int   x0 = cx - (n / 2) * step;
     Sampler s;
-    std::vector<uint32_t> col(size_t(n), 0u), wh(size_t(n), 0u);
-    std::vector<int>      hh(size_t(n), 0), dh(size_t(n), 0);
-    std::vector<std::array<uint32_t, NW>> wl(static_cast<size_t>(n));
-    for (int j = -rowsHalf; j <= rowsHalf; ++j) {
-        int z = cz + j * step;
+    struct Row { std::vector<uint32_t> col; std::vector<int> h; std::vector<uint32_t const*> wp; };
+    auto fill = [&](Row& r, int z) {
+        r.col.assign(size_t(n), 0u); r.h.assign(size_t(n), 0); r.wp.assign(size_t(n), nullptr);
         for (int i = 0; i < n; ++i) {
-            int      x = x0 + i * step;
-            uint32_t c = 0, c2 = 0;
-            int      h = 0, h2 = 0;
-            uint32_t const* wp = nullptr;
-            if (!sample(s, x, z, c, h, &wp)) { col[size_t(i)] = 0; continue; }
-            col[size_t(i)] = c;
-            hh[size_t(i)]  = h;
+            uint32_t c = 0; int h = 0; uint32_t const* w = nullptr;
+            if (sampleCell(s, x0 + i * step, z, step, c, h, &w)) { r.col[size_t(i)] = c; r.h[size_t(i)] = h; r.wp[size_t(i)] = w; }
+        }
+    };
+    std::vector<uint32_t> wh(size_t(n), 0u);
+    std::vector<int>      dh(size_t(n), 0);
+    std::vector<std::array<uint32_t, NW>> wl(static_cast<size_t>(n));
+    Row cur, nxt;
+    fill(nxt, cz + (-rowsHalf) * step);
+    for (int j = -rowsHalf; j <= rowsHalf; ++j) {
+        std::swap(cur, nxt);
+        fill(nxt, cz + (j + 1) * step);
+        for (int i = 0; i < n; ++i) {
+            wh[size_t(i)] = 0; dh[size_t(i)] = 0;
+            if (!cur.col[size_t(i)]) continue;
+            int h = cur.h[size_t(i)];
             int d = 0;
-            if (sample(s, x, z + step, c2, h2) && h > h2) d = std::min(h - h2, 48);
+            if (nxt.col[size_t(i)] && h > nxt.h[size_t(i)]) d = std::min(h - nxt.h[size_t(i)], 48);
             dh[size_t(i)] = d;
-            uint32_t hs = 0;
+            uint32_t const* wp = cur.wp[size_t(i)];
             if (d > 0 && wp) {
                 std::memcpy(wl[size_t(i)].data(), wp, sizeof(uint32_t) * NW);
-                hs = 2166136261u;
+                uint32_t hs = 2166136261u;
                 int used = 0;
-                while (used + 1 < NW && kWallDepth[used + 1] < d) ++used; // only samples that are visible
+                while (used + 1 < NW && kWallDepth[used + 1] < d) ++used;
                 for (int k = 0; k <= used; ++k) hs = (hs ^ wp[k]) * 16777619u;
-                hs |= 1u;
+                wh[size_t(i)] = hs | 1u;
             }
-            wh[size_t(i)] = hs;
         }
         float rowY = float(n) * 0.5f + float(j) * KY;
         int i = 0;
         while (i < n) {
-            if (!col[size_t(i)]) { ++i; continue; }
+            if (!cur.col[size_t(i)]) { ++i; continue; }
             int e = i + 1;
-            while (e < n && col[size_t(e)] == col[size_t(i)] && hh[size_t(e)] == hh[size_t(i)] && dh[size_t(e)] == dh[size_t(i)] &&
-                   wh[size_t(e)] == wh[size_t(i)])
+            while (e < n && cur.col[size_t(e)] == cur.col[size_t(i)] && cur.h[size_t(e)] == cur.h[size_t(i)] &&
+                   dh[size_t(e)] == dh[size_t(i)] && wh[size_t(e)] == wh[size_t(i)])
                 ++e;
-            float yTop = rowY - float(hh[size_t(i)] - h0) * hsu;
+            int   hh   = cur.h[size_t(i)];
+            float Lh   = L(hh);
+            float yTop = rowY - (Lh - L0) / float(PPC);
             float yBot = yTop + KY;
             auto  push = [&](float ya, float yb, uint32_t c, int hv) {
                 if (yb <= 0.0f || ya >= float(n)) return;
                 b.rects.push_back({float(i), std::max(ya, 0.0f), float(e), std::min(yb, float(n)), c, int16_t(hv)});
             };
-            push(yTop, yBot, col[size_t(i)], hh[size_t(i)]);
+            push(yTop, yBot, cur.col[size_t(i)], hh);
             int d = dh[size_t(i)];
             if (d > 0) {
                 int t0 = 0, k = 0;
@@ -511,7 +541,7 @@ void bake(Baked& b, int cx, int cz, int h0, int n, int step) {
                     while (k + 1 < NW && kWallDepth[k + 1] <= t0) ++k;
                     int t1 = (k + 1 < NW) ? std::min(kWallDepth[k + 1], d) : d;
                     uint32_t wc = wl[size_t(i)][size_t(k)];
-                    push(yBot + float(t0) * hsu, yBot + float(t1) * hsu, shade(wc ? wc : col[size_t(i)], 0.62f), hh[size_t(i)] - t0);
+                    push(yBot + (Lh - L(hh - t0)) / float(PPC), yBot + (Lh - L(hh - t1)) / float(PPC), shade(wc ? wc : cur.col[size_t(i)], 0.62f), hh - t0);
                     t0 = t1;
                 }
             }
@@ -661,6 +691,32 @@ void rasterize(Baked const& b, int W, std::vector<uint32_t>& px, bool soft) {
             for (int x = x0; x < x1; ++x) {
                 px[size_t(y) * W + x] = r.col | 0xFF000000u;
                 hb[size_t(y) * W + x] = r.h;
+            }
+    }
+    // soft rounded blocks: convex corners of colour regions are blended with their neighbours, region edges get a light blend
+    {
+        std::vector<uint32_t> src = px;
+        auto mix = [](uint32_t a, uint32_t c, float t) {
+            auto ch = [&](int sh) { return uint32_t(float((a >> sh) & 255) * (1 - t) + float((c >> sh) & 255) * t + 0.5f); };
+            return 0xFF000000u | (ch(16) << 16) | (ch(8) << 8) | ch(0);
+        };
+        for (int y = 1; y < W - 1; ++y)
+            for (int x = 1; x < W - 1; ++x) {
+                size_t i = size_t(y) * W + x;
+                uint32_t p = src[i];
+                if (!(p >> 24)) continue;
+                uint32_t nb4[4] = {src[i - 1], src[i + 1], src[i - W], src[i + W]};
+                bool dif[4];
+                for (int k = 0; k < 4; ++k) dif[k] = (nb4[k] >> 24) && ((nb4[k] ^ p) & 0xFFFFFFu);
+                bool corner = (dif[0] && dif[2]) || (dif[0] && dif[3]) || (dif[1] && dif[2]) || (dif[1] && dif[3]);
+                uint32_t out = p;
+                int cnt = 0; uint32_t r = 0, g = 0, bl = 0;
+                for (int k = 0; k < 4; ++k) if (dif[k]) { r += (nb4[k] >> 16) & 255; g += (nb4[k] >> 8) & 255; bl += nb4[k] & 255; ++cnt; }
+                if (cnt) {
+                    uint32_t avg = 0xFF000000u | ((r / cnt) << 16) | ((g / cnt) << 8) | (bl / cnt);
+                    out = mix(p, avg, corner ? 0.55f : 0.20f);
+                }
+                px[i] = out;
             }
     }
     // depth outlines: neighbouring surfaces at clearly different height get a dark line (Diorama draws outlines by depth)
@@ -850,15 +906,15 @@ struct Scroll { float u0, v0, uw, vh, pcx, pcy; };
 
 // Bake a window of nb cells (nview visible), centred on a step-aligned grid, re-bake only when the target drifts away (hysteresis);
 // sub-cell scrolling is done by cropping the texture with UV.
-Scroll prepareScroll(Baked& b, int nb, int nview, int step, float tx, float tz, float smoothH, uint64_t minInterval) {
-    float drift = 3.0f * float(step);
+Scroll prepareScroll(Baked& b, int nb, int nview, int step, float tx, float tz, float smoothH, uint64_t minInterval, int drift0) {
+    float drift = float(drift0) * float(step);
     bool  need  = b.n != nb || b.step != step || b.cx == INT32_MIN || std::fabs(tx - float(b.cx)) > drift || std::fabs(tz - float(b.cz)) > drift ||
-                 std::fabs(smoothH - float(b.h0)) > 3.0f;
+                 std::fabs(smoothH - float(b.h0)) > 4.0f * float(step);
     int bcx = b.cx, bcz = b.cz, bh = b.h0;
     if (need) {
         bcx = int(std::floor(tx / float(step))) * step;
         bcz = int(std::floor(tz / float(step))) * step;
-        bh  = int(std::lround(smoothH));
+        bh  = int(std::lround(smoothH / float(step))) * step;
     }
     ensureBaked(b, bcx, bcz, bh, nb, step, minInterval);
     Scroll sc;
@@ -932,8 +988,8 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
         float y    = (sh - size) * 0.5f;
         if (gBigBlocks != gBigLastBlocks) { gBigLastBlocks = gBigBlocks; gBigBias = 0; }
         int   step  = std::max(1, (gBigBlocks + 191) / 192) + gBigBias;
-        int   nview = std::min(192, gBigBlocks / step);
-        int   nb    = nview + 16;
+        int   nview = std::min(192, gBigBlocks / step) & ~1;
+        int   nb    = nview + 32;
         float tx    = gSX + float(gPanX), tz = gSZ + float(gPanZ);
         float sH    = gSY - 1.6f; // eye -> feet
         {
@@ -943,11 +999,11 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
             gBigSH += (float(g) - gBigSH) * 0.06f;
             (void)sH;
         }
-        Scroll sc = prepareScroll(gBig, nb, nview, step, tx, tz, gBigSH, 60);
+        Scroll sc = prepareScroll(gBig, nb, nview, step, tx, tz, gBigSH, 60, 8);
         if (gBig.rects.size() > kBigBudget && gBigBias < 6) ++gBigBias;
         rect(ctx, 0, 0, sw, sh, toColor(FOG), 1.0f);
         float cell = size / float(nview);
-        if (!drawTex(ctx, client, gBig, gBigTex, x, y, size, std::min(1024, nb * 4), true, sc.u0, sc.v0, sc.uw, sc.vh)) {
+        if (!drawTex(ctx, client, gBig, gBigTex, x, y, size, nb * PPC, true, sc.u0, sc.v0, sc.uw, sc.vh)) {
             float k = size / float(nview);
             drawBaked(ctx, gBig, x - sc.u0 * float(nb) * k, y - sc.v0 * float(nb) * k, k * float(nb));
         }
@@ -974,7 +1030,7 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
     } else {
         constexpr float SIZE   = 96.0f;
         constexpr int   VIEW   = 64;          // blocks visible
-        constexpr int   NB     = 76;          // blocks baked (6 block margin each side for sub-block scrolling)
+        constexpr int   NB     = 84;          // blocks baked (10 block margin each side: rare re-bakes)
         float           x      = sw - SIZE - 20.0f;
         float           y      = 22.0f;
         if (gap || gSmoothH < -1000.0f) gSmoothH = float(groundPlayer);
@@ -983,9 +1039,9 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
         gH0Mini = groundPlayer;
         bool drawn = false;
         if (gTexEnabled && !gTexFailed) {
-            Scroll sc = prepareScroll(gMini, NB, VIEW, 1, gSX, gSZ, gSmoothH, 8);
+            Scroll sc = prepareScroll(gMini, NB, VIEW, 1, gSX, gSZ, gSmoothH, 8, 6);
             frame(ctx, x, y, SIZE);
-            if (drawTex(ctx, client, gMini, gMiniTex, x, y, SIZE, NB * 4, true, sc.u0, sc.v0, sc.uw, sc.vh)) {
+            if (drawTex(ctx, client, gMini, gMiniTex, x, y, SIZE, NB * PPC, true, sc.u0, sc.v0, sc.uw, sc.vh)) {
                 vignette(ctx, x, y, SIZE);
                 float cell = SIZE / float(VIEW);
                 marker(ctx, x + (sc.pcx - sc.u0 * NB) * cell, y + (sc.pcy - sc.v0 * NB) * cell, 1.3f, yaw);
