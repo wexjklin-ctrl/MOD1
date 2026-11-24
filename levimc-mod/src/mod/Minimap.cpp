@@ -208,7 +208,7 @@ void bake(Baked& b, int cx, int cz, int n, int step) {
     int x0 = cx - (n * step) / 2;
     int z0 = cz - (n * step) / 2;
     Sampler s;
-    std::vector<uint32_t> row(size_t(n));
+    std::vector<uint32_t> row(static_cast<size_t>(n), 0u);
     std::unordered_map<uint64_t, int> prev, cur;
     for (int j = 0; j < n; ++j) {
         for (int i = 0; i < n; ++i) row[size_t(i)] = shadedPacked(s, x0 + i * step, z0 + j * step, step);
