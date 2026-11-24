@@ -12,13 +12,19 @@
 #include "mc/deps/input/RectangleArea.h"
 #include "mc/world/level/BlockPos.h"
 #include "mc/world/level/BlockSource.h"
+#include "mc/world/level/Level.h"
 #include "mc/world/level/block/Block.h"
 #include "mc/world/level/block/BlockType.h"
 
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cctype>
 #include <cstdint>
+#include <cstdio>
+#include <filesystem>
+#include <fstream>
+#include <unordered_set>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -39,9 +45,11 @@ struct ChunkData {
     std::array<uint32_t, 256> color{}; // 0 = unknown, else 0xFFRRGGBB
     std::array<int16_t, 256>  height{};
     bool                      scanned  = false;
+    bool                      dirty    = false;
     uint64_t                  lastScan = 0;
     uint64_t                  lastTry  = 0;
 };
+
 
 std::unordered_map<int64_t, ChunkData> gCache;
 uint64_t                               gFrame   = 0;
@@ -71,6 +79,90 @@ struct Sampler {
     }
 };
 
+
+// ---------- block colours (approximate Java Diorama look: average texture colours) ----------
+bool has(std::string const& n, char const* s) { return n.find(s) != std::string::npos; }
+
+struct NamedRgb { char const* key; uint32_t rgb; };
+
+uint32_t dyeRgb(std::string const& n, bool& found) {
+    static constexpr NamedRgb dyes[] = {
+        {"light_blue", 0x3AAFD9}, {"light_gray", 0x8E8E86}, {"silver", 0x8E8E86}, {"white", 0xE9ECEC},
+        {"orange", 0xF07613}, {"magenta", 0xBD44B3}, {"yellow", 0xF8C627}, {"lime", 0x70B919},
+        {"pink", 0xED8DAC}, {"gray", 0x3E4447}, {"cyan", 0x158991}, {"purple", 0x792AAC},
+        {"blue", 0x35399D}, {"brown", 0x724728}, {"green", 0x546D1B}, {"red", 0xA12722}, {"black", 0x141519}};
+    for (auto const& d : dyes)
+        if (has(n, d.key)) { found = true; return d.rgb; }
+    found = false;
+    return 0;
+}
+
+uint32_t scaleRgb(uint32_t c, float k) {
+    auto m = [k](uint32_t v) { return uint32_t(std::min(255.0f, float(v) * k)); };
+    return (m((c >> 16) & 255) << 16) | (m((c >> 8) & 255) << 8) | m(c & 255);
+}
+
+// returns 0 when the block is not in the table (caller falls back to the engine map colour)
+uint32_t blockRgb(std::string const& full) {
+    std::string n = full.rfind("minecraft:", 0) == 0 ? full.substr(10) : full;
+
+    // wood families: {log colour, planks colour, leaves colour}
+    struct Wood { char const* key; uint32_t log, plank, leaf; };
+    static constexpr Wood woods[] = {
+        {"dark_oak", 0x3E2A14, 0x4A3018, 0x2E5A1E}, {"spruce", 0x5A3E22, 0x7A5A34, 0x3A5E3A},
+        {"birch", 0xD8D2B0, 0xC8B77A, 0x6A9A45},    {"jungle", 0x7A5A2A, 0xA07850, 0x2F8A1F},
+        {"acacia", 0xA85A32, 0xBA683B, 0x4F8A2A},   {"cherry", 0xE5B5C0, 0xE2B2A8, 0xE8A0C0},
+        {"mangrove", 0x7A3A32, 0x773636, 0x4A7A2A}, {"pale_oak", 0xC9C2B6, 0xE3D6D1, 0x9AA088},
+        {"crimson", 0x6A2A44, 0x65313F, 0x8A1F1F},  {"warped", 0x2A7A74, 0x2B6C66, 0x1F8A7A},
+        {"bamboo", 0x7A9A2A, 0xC2AC55, 0x7A9A2A},   {"azalea", 0x8A6A3A, 0xA27B49, 0x5A8A2E},
+        {"oak", 0x8A6A3A, 0xA27B49, 0x3F7F2A}};
+    for (auto const& w : woods) {
+        if (!has(n, w.key)) continue;
+        if (has(n, "leaves")) return w.leaf;
+        if (has(n, "log") || has(n, "wood") || has(n, "stem") || has(n, "hyphae")) return w.log;
+        if (has(n, "planks") || has(n, "stairs") || has(n, "slab") || has(n, "fence") || has(n, "door") ||
+            has(n, "sign") || has(n, "pressure") || has(n, "button") || has(n, "shelf") || has(n, "mosaic"))
+            return w.plank;
+    }
+    if (n == "leaves" || n == "leaves2") return 0x3F7F2A;
+    if (n == "log" || n == "log2") return 0x8A6A3A;
+    if (n == "planks" || n == "wooden_slab" || n == "wooden_door") return 0xA27B49;
+
+    bool dye = false;
+    if (has(n, "terracotta") || has(n, "hardened_clay")) {
+        uint32_t d = dyeRgb(n, dye);
+        return dye ? scaleRgb(d, 0.68f) : 0x985E43;
+    }
+    if (has(n, "concrete") || has(n, "wool") || has(n, "carpet") || has(n, "glazed") || has(n, "stained") ||
+        has(n, "shulker") || has(n, "candle") || has(n, "banner") || has(n, "bed")) {
+        uint32_t d = dyeRgb(n, dye);
+        if (dye) return d;
+    }
+
+    static constexpr NamedRgb rules[] = {
+        {"grass_block", 0x62A83A}, {"grass_path", 0x95804A}, {"dirt_path", 0x95804A}, {"mycelium", 0x6F6369},
+        {"podzol", 0x5B4020}, {"farmland", 0x6A4A2E}, {"coarse_dirt", 0x77553B}, {"rooted_dirt", 0x80583F},
+        {"mud_brick", 0x8A6B5A}, {"mud", 0x3C3A3F}, {"dirt", 0x866043}, {"moss", 0x596E2C},
+        {"tall_grass", 0x5FA13A}, {"short_grass", 0x5FA13A}, {"fern", 0x4F8F32}, {"vine", 0x3F7F2A},
+        {"lily", 0x2E7A2A}, {"cactus", 0x3E7A2A}, {"pumpkin", 0xC07615}, {"melon", 0x8CA026}, {"hay", 0xB69A12},
+        {"soul_sand", 0x51402F}, {"soul_soil", 0x4B3A2D}, {"red_sandstone", 0xB6652A}, {"sandstone", 0xD9CF9B},
+        {"red_sand", 0xBE6621}, {"sand", 0xDBD3A0}, {"gravel", 0x837F7E}, {"powder_snow", 0xF8FDFD},
+        {"snow", 0xF8FDFD}, {"packed_ice", 0x8DB4F5}, {"blue_ice", 0x74A8FD}, {"ice", 0x91B8FE},
+        {"bedrock", 0x555555}, {"clay", 0xA0A6B3}, {"lava", 0xE25F12}, {"magma", 0x8A3A1A},
+        {"obsidian", 0x14121E}, {"netherrack", 0x6F3535}, {"nether_brick", 0x2C161A}, {"basalt", 0x4A4A4E},
+        {"blackstone", 0x2B2429}, {"cobbled_deepslate", 0x4D4D51}, {"deepslate", 0x4C4C50}, {"tuff", 0x6C6D64},
+        {"calcite", 0xE0E0DA}, {"dripstone", 0x7E6454}, {"andesite", 0x888888}, {"diorite", 0xBDBDBD},
+        {"granite", 0x9A6B58}, {"mossy_cobblestone", 0x6E8A5A}, {"cobblestone", 0x7A7A7A},
+        {"stone_brick", 0x7B7B7B}, {"smooth_stone", 0x9E9E9E}, {"stone", 0x7F7F7F}, {"brick", 0x966A5A},
+        {"quartz", 0xEAE5DE}, {"prismarine", 0x63A0A0}, {"glass", 0xC5E6EE}, {"iron_block", 0xDCDCDC},
+        {"gold_block", 0xF6D03E}, {"oxidized", 0x4FA88A}, {"weathered", 0x6BA38A}, {"exposed", 0xA17E68},
+        {"copper", 0xC06A4C}, {"diamond_block", 0x62EDE4}, {"emerald_block", 0x2ACB58}, {"lapis_block", 0x1F4A9A},
+        {"coal_block", 0x111111}, {"bamboo", 0x7A9A2A}, {"grass", 0x5FA13A}};
+    for (auto const& r : rules)
+        if (has(n, r.key)) return r.rgb;
+    return 0;
+}
+
 bool isWater(std::string const& n) { return n == "minecraft:water" || n == "minecraft:flowing_water"; }
 
 bool scanColumn(::BlockSource& region, int x, int z, uint32_t& col, int16_t& h) {
@@ -97,22 +189,27 @@ bool scanColumn(::BlockSource& region, int x, int z, uint32_t& col, int16_t& h) 
         float k = 1.0f - float(depth) * 0.08f;
         col     = pack(0.16f * k, 0.34f * k, 0.84f * k);
     } else {
-        ::mce::Color mc = block->getBlockType().getMapColor(region, pos, *block);
-        float r = mc.r, g = mc.g, b = mc.b;
-        if (mc.a < 0.02f || std::max({r, g, b}) < 0.02f) {
-            // transparent / unknown map colour: stable pseudo-colour from the block name
-            uint32_t hh = 2166136261u;
-            for (char ch : name) hh = (hh ^ uint8_t(ch)) * 16777619u;
-            r = 0.30f + float(hh & 255) / 255.0f * 0.30f;
-            g = 0.30f + float((hh >> 8) & 255) / 255.0f * 0.30f;
-            b = 0.30f + float((hh >> 16) & 255) / 255.0f * 0.30f;
+        uint32_t rgb = blockRgb(name);
+        if (rgb) {
+            col = 0xFF000000u | rgb;
+        } else {
+            ::mce::Color mc = block->getBlockType().getMapColor(region, pos, *block);
+            float r = mc.r, g = mc.g, b = mc.b;
+            if (mc.a < 0.02f || std::max({r, g, b}) < 0.02f) {
+                uint32_t hh = 2166136261u;
+                for (char ch : name) hh = (hh ^ uint8_t(ch)) * 16777619u;
+                r = 0.30f + float(hh & 255) / 255.0f * 0.30f;
+                g = 0.30f + float((hh >> 8) & 255) / 255.0f * 0.30f;
+                b = 0.30f + float((hh >> 16) & 255) / 255.0f * 0.30f;
+            }
+            col = pack(0.09f + r * 0.91f, 0.09f + g * 0.91f, 0.09f + b * 0.91f);
         }
-        // lift very dark blocks so roofs/asphalt never turn into black holes
-        col = pack(0.09f + r * 0.91f, 0.09f + g * 0.91f, 0.09f + b * 0.91f);
     }
     h = int16_t(y);
     return true;
 }
+
+void markDirty(int cx, int cz);
 
 bool scanChunk(::BlockSource& region, int cx, int cz, ChunkData& cd) {
     ::BlockPos probe{cx * 16 + 8, 64, cz * 16 + 8};
@@ -128,12 +225,16 @@ bool scanChunk(::BlockSource& region, int cx, int cz, ChunkData& cd) {
                 cd.color[idx]  = col;
                 cd.height[idx] = h;
                 changed        = true;
+                cd.dirty       = true;
             }
         }
     }
     cd.scanned  = true;
     cd.lastScan = gFrame;
-    if (changed) ++gVersion;
+    if (changed) {
+        ++gVersion;
+        markDirty(cx, cz);
+    }
     return true;
 }
 
@@ -166,79 +267,189 @@ void updateCache(::BlockSource& region, int px, int pz) {
     }
 }
 
-// --- baked map: merged rectangles, rebuilt only when needed ---
-struct CellRect {
-    int      x0, z0, x1, z1;
+
+// ---------- persistence: one file per 32x32-chunk region, per world ----------
+std::string                    gWorldKey;
+std::filesystem::path          gRoot;
+std::unordered_set<int64_t>    gDirtyRegions;
+uint64_t                       gLastSaveFrame = 0;
+uint64_t                       gLastDrawTick  = 0;
+
+int floorDiv32(int v) { return v >> 5; }
+
+void markDirty(int cx, int cz) { gDirtyRegions.insert(key(floorDiv32(cx), floorDiv32(cz))); }
+
+std::filesystem::path rootDir() {
+    if (!gRoot.empty()) return gRoot;
+    char  buf[MAX_PATH] = {};
+    DWORD n             = GetEnvironmentVariableA("APPDATA", buf, MAX_PATH);
+    std::filesystem::path base = (n > 0 && n < MAX_PATH) ? std::filesystem::path(std::string(buf, n)) : std::filesystem::path(".");
+    gRoot = base / "diorama-bedrock";
+    return gRoot;
+}
+
+std::filesystem::path worldDir() { return rootDir() / gWorldKey; }
+
+std::filesystem::path regionFile(int rx, int rz) {
+    return worldDir() / ("r." + std::to_string(rx) + "." + std::to_string(rz) + ".bin");
+}
+
+void saveRegion(int rx, int rz) {
+    if (gWorldKey.empty()) return;
+    std::error_code ec;
+    std::filesystem::create_directories(worldDir(), ec);
+    std::ofstream f(regionFile(rx, rz), std::ios::binary | std::ios::trunc);
+    if (!f) return;
+    uint32_t count = 0;
+    for (int dz = 0; dz < 32; ++dz)
+        for (int dx = 0; dx < 32; ++dx) {
+            auto it = gCache.find(key(rx * 32 + dx, rz * 32 + dz));
+            if (it != gCache.end()) { ++count; }
+        }
+    f.write("DBM2", 4);
+    f.write(reinterpret_cast<char const*>(&count), 4);
+    for (int dz = 0; dz < 32; ++dz)
+        for (int dx = 0; dx < 32; ++dx) {
+            int  cx = rx * 32 + dx, cz = rz * 32 + dz;
+            auto it = gCache.find(key(cx, cz));
+            if (it == gCache.end()) continue;
+            f.write(reinterpret_cast<char const*>(&cx), 4);
+            f.write(reinterpret_cast<char const*>(&cz), 4);
+            f.write(reinterpret_cast<char const*>(it->second.color.data()), 256 * 4);
+            f.write(reinterpret_cast<char const*>(it->second.height.data()), 256 * 2);
+            it->second.dirty = false;
+        }
+}
+
+void saveAll() {
+    for (int64_t k : gDirtyRegions) saveRegion(int(k >> 32), int(int32_t(uint32_t(k & 0xFFFFFFFFu))));
+    gDirtyRegions.clear();
+}
+
+void loadWorld() {
+    if (gWorldKey.empty()) return;
+    std::error_code ec;
+    for (auto const& e : std::filesystem::directory_iterator(worldDir(), ec)) {
+        if (ec) break;
+        std::ifstream f(e.path(), std::ios::binary);
+        char          magic[4] = {};
+        uint32_t      count    = 0;
+        if (!f.read(magic, 4) || std::string(magic, 4) != "DBM2" || !f.read(reinterpret_cast<char*>(&count), 4)) continue;
+        for (uint32_t i = 0; i < count && i < 1024; ++i) {
+            int       cx = 0, cz = 0;
+            ChunkData cd;
+            if (!f.read(reinterpret_cast<char*>(&cx), 4) || !f.read(reinterpret_cast<char*>(&cz), 4)) break;
+            if (!f.read(reinterpret_cast<char*>(cd.color.data()), 256 * 4)) break;
+            if (!f.read(reinterpret_cast<char*>(cd.height.data()), 256 * 2)) break;
+            cd.scanned = false; // will be refreshed when the chunk is loaded again
+            gCache[key(cx, cz)] = cd;
+        }
+    }
+    ++gVersion;
+}
+
+std::string computeWorldKey(::Level& level) {
+    std::string id = level.getLevelId();
+    std::string s;
+    for (char c : id)
+        if (std::isalnum(uint8_t(c)) && s.size() < 40) s += c;
+    char seed[16];
+    std::snprintf(seed, sizeof(seed), "%08x", unsigned(level.getSeed()));
+    return std::string(seed) + "_" + s;
+}
+
+void switchWorld(std::string const& k) {
+    saveAll();
+    gCache.clear();
+    gDirtyRegions.clear();
+    gWorldKey = k;
+    loadWorld();
+}
+
+// ---------- oblique "diorama" projection, baked to merged rectangles ----------
+// Units: 1 unit = one map cell horizontally. Rows are squashed by KY, heights lift by HS per block.
+constexpr float KY = 0.62f;
+constexpr float HS = 0.85f;
+
+struct Rect {
+    float    x0, y0, x1, y1;
     uint32_t col;
 };
 
 struct Baked {
-    int                   cx = INT32_MIN, cz = INT32_MIN, n = 0, step = 0;
-    uint64_t              version = 0, frame = 0;
-    std::vector<CellRect> rects;
+    int                cx = INT32_MIN, cz = INT32_MIN, h0 = INT32_MIN, n = 0, step = 0;
+    uint64_t           version = 0, frame = 0;
+    std::vector<Rect>  rects;
 };
 
-uint32_t shadedPacked(Sampler& s, int x, int z, int step) {
-    ChunkData* c = s.get(x, z);
-    if (!c) return FOG;
-    int idx = (z & 15) * 16 + (x & 15);
-    uint32_t col = c->color[idx];
-    if (!col) return FOG;
-    int h = c->height[idx];
-    int d = 0;
-    if (ChunkData* cn = s.get(x, z - step)) {
-        int i2 = ((z - step) & 15) * 16 + (x & 15);
-        if (cn->color[i2]) d += h - cn->height[i2];
-    }
-    if (ChunkData* cw = s.get(x - step, z)) {
-        int i2 = (z & 15) * 16 + ((x - step) & 15);
-        if (cw->color[i2]) d += h - cw->height[i2];
-    }
-    d = std::clamp(d, -4, 4);
-    if (d == 0) return col;
-    float k = 1.0f + float(d) * 0.065f;
-    auto  m = [k](uint32_t v) { return std::min(255.0f, float(v) * k) + 0.5f; };
-    return 0xFF000000u | (uint32_t(m((col >> 16) & 255)) << 16) | (uint32_t(m((col >> 8) & 255)) << 8) | uint32_t(m(col & 255));
+uint32_t shade(uint32_t col, float k) {
+    auto m = [k](uint32_t v) { return uint32_t(std::min(255.0f, float(v) * k) + 0.5f); };
+    return 0xFF000000u | (m((col >> 16) & 255) << 16) | (m((col >> 8) & 255) << 8) | m(col & 255);
 }
 
-void bake(Baked& b, int cx, int cz, int n, int step) {
-    b.cx = cx; b.cz = cz; b.n = n; b.step = step;
+bool sample(Sampler& s, int x, int z, uint32_t& col, int& h) {
+    ChunkData* c = s.get(x, z);
+    if (!c) return false;
+    int idx = (z & 15) * 16 + (x & 15);
+    if (!c->color[idx]) return false;
+    col = c->color[idx];
+    h   = c->height[idx];
+    return true;
+}
+
+int groundHeight(int x, int z, int fallback) {
+    Sampler s;
+    uint32_t c;
+    int      h;
+    return sample(s, x, z, c, h) ? h : fallback;
+}
+
+void bake(Baked& b, int cx, int cz, int h0, int n, int step) {
+    b.cx = cx; b.cz = cz; b.h0 = h0; b.n = n; b.step = step;
     b.version = gVersion; b.frame = gFrame;
     b.rects.clear();
-    int x0 = cx - (n * step) / 2;
-    int z0 = cz - (n * step) / 2;
+    float hsu = HS / float(step);
+    int   rowsHalf = int(float(n) / (2.0f * KY)) + 28;
+    int   x0 = cx - (n / 2) * step;
     Sampler s;
-    std::vector<uint32_t> row(static_cast<size_t>(n), 0u);
-    std::unordered_map<uint64_t, int> prev, cur;
-    for (int j = 0; j < n; ++j) {
-        for (int i = 0; i < n; ++i) row[size_t(i)] = shadedPacked(s, x0 + i * step, z0 + j * step, step);
-        cur.clear();
+    std::vector<uint32_t> col(size_t(n), 0u);
+    std::vector<int>      hh(size_t(n), 0), dh(size_t(n), 0);
+    for (int j = -rowsHalf; j <= rowsHalf; ++j) {
+        int z = cz + j * step;
+        for (int i = 0; i < n; ++i) {
+            int      x = x0 + i * step;
+            uint32_t c = 0, c2 = 0;
+            int      h = 0, h2 = 0;
+            if (!sample(s, x, z, c, h)) { col[size_t(i)] = 0; continue; }
+            col[size_t(i)] = c;
+            hh[size_t(i)]  = h;
+            int d = 0;
+            if (sample(s, x, z + step, c2, h2) && h > h2) d = std::min(h - h2, 48);
+            dh[size_t(i)] = d;
+        }
+        float rowY = float(n) * 0.5f + float(j) * KY;
         int i = 0;
         while (i < n) {
+            if (!col[size_t(i)]) { ++i; continue; }
             int e = i + 1;
-            while (e < n && row[size_t(e)] == row[size_t(i)]) ++e;
-            uint32_t col = row[size_t(i)];
-            if (col != FOG) {
-                uint64_t k  = (uint64_t(uint32_t(i)) << 32) | uint32_t(e);
-                auto     it = prev.find(k);
-                if (it != prev.end() && b.rects[size_t(it->second)].col == col) {
-                    b.rects[size_t(it->second)].z1 = j + 1;
-                    cur[k]                         = it->second;
-                } else {
-                    b.rects.push_back({i, j, e, j + 1, col});
-                    cur[k] = int(b.rects.size()) - 1;
-                }
-            }
+            while (e < n && col[size_t(e)] == col[size_t(i)] && hh[size_t(e)] == hh[size_t(i)] && dh[size_t(e)] == dh[size_t(i)]) ++e;
+            float yTop = rowY - float(hh[size_t(i)] - h0) * hsu;
+            float yBot = yTop + KY;
+            auto  push = [&](float ya, float yb, uint32_t c) {
+                if (yb <= 0.0f || ya >= float(n)) return;
+                b.rects.push_back({float(i), std::max(ya, 0.0f), float(e), std::min(yb, float(n)), c});
+            };
+            push(yTop, yBot, col[size_t(i)]);
+            if (dh[size_t(i)] > 0) push(yBot, yBot + float(dh[size_t(i)]) * hsu, shade(col[size_t(i)], 0.62f));
             i = e;
         }
-        std::swap(prev, cur);
     }
 }
 
-void ensureBaked(Baked& b, int cx, int cz, int n, int step, uint64_t minInterval) {
-    bool geom = b.cx != cx || b.cz != cz || b.n != n || b.step != step;
+void ensureBaked(Baked& b, int cx, int cz, int h0, int n, int step, uint64_t minInterval) {
+    bool geom  = b.cx != cx || b.cz != cz || b.h0 != h0 || b.n != n || b.step != step;
     bool dirty = b.version != gVersion && gFrame - b.frame >= minInterval;
-    if (geom || dirty) bake(b, cx, cz, n, step);
+    if (geom || dirty) bake(b, cx, cz, h0, n, step);
 }
 
 Baked gMini, gBig;
@@ -259,8 +470,8 @@ void rect(::MinecraftUIRenderContext& ctx, float x0, float y0, float x1, float y
 void drawBaked(::MinecraftUIRenderContext& ctx, Baked const& b, float sx, float sy, float size) {
     float cell = size / float(b.n);
     for (auto const& r : b.rects) {
-        rect(ctx, sx + float(r.x0) * cell, sy + float(r.z0) * cell, sx + float(r.x1) * cell + 0.4f,
-             sy + float(r.z1) * cell + 0.4f, toColor(r.col));
+        rect(ctx, sx + std::floor(r.x0 * cell), sy + std::floor(r.y0 * cell), sx + std::ceil(r.x1 * cell),
+             sy + std::ceil(r.y1 * cell), toColor(r.col));
     }
 }
 
@@ -269,7 +480,7 @@ void frame(::MinecraftUIRenderContext& ctx, float x, float y, float size) {
     ::mce::Color dark{0.04f, 0.04f, 0.05f, 1.0f};
     ::mce::Color edge{0.78f, 0.80f, 0.86f, 1.0f};
     ::mce::Color mid{0.30f, 0.31f, 0.36f, 1.0f};
-    rect(ctx, x - 2, y - 2, x + size + 8, y + size + 8, ::mce::Color{0, 0, 0, 1}, 0.30f); // shadow
+    rect(ctx, x - 2, y - 2, x + size + 8, y + size + 8, ::mce::Color{0, 0, 0, 1}, 0.30f);
     rect(ctx, x - 6, y - 6, x + size + 6, y + size + 6, dark);
     rect(ctx, x - 5, y - 5, x + size + 5, y + size + 5, mid);
     rect(ctx, x - 4, y - 4, x + size + 4, y + size + 4, dark);
@@ -277,12 +488,12 @@ void frame(::MinecraftUIRenderContext& ctx, float x, float y, float size) {
     rect(ctx, x - 6, y + size + 5, x + size + 6, y + size + 6, edge, 0.9f);
     rect(ctx, x - 6, y - 6, x - 5, y + size + 6, edge, 0.9f);
     rect(ctx, x + size + 5, y - 6, x + size + 6, y + size + 6, edge, 0.9f);
-    rect(ctx, x, y, x + size, y + size, toColor(FOG)); // unexplored background
+    // unexplored background: deep blue-grey like Diorama's fog
+    rect(ctx, x, y, x + size, y + size, toColor(FOG));
     for (float cxp : {x - 6, x + size + 3})
         for (float cyp : {y - 6, y + size + 3}) rect(ctx, cxp, cyp, cxp + 3, cyp + 3, edge);
 }
 
-// Soft inner vignette over the terrain edges.
 void vignette(::MinecraftUIRenderContext& ctx, float x, float y, float size) {
     ::mce::Color k{0, 0, 0, 1};
     for (int i = 0; i < 3; ++i) {
@@ -295,10 +506,9 @@ void vignette(::MinecraftUIRenderContext& ctx, float x, float y, float size) {
     }
 }
 
-// Player marker with a short facing indicator (yaw in degrees, 0 = +Z / south).
 void marker(::MinecraftUIRenderContext& ctx, float cx, float cy, float s, float yawDeg) {
     float rad = yawDeg * 3.14159265f / 180.0f;
-    float dx = -std::sin(rad), dy = std::cos(rad);
+    float dx = -std::sin(rad), dy = std::cos(rad) * KY;
     for (int t = 1; t <= 3; ++t) {
         float px = cx + dx * s * 1.8f * float(t), py = cy + dy * s * 1.8f * float(t);
         float hs = s * 0.55f;
@@ -310,11 +520,11 @@ void marker(::MinecraftUIRenderContext& ctx, float cx, float cy, float s, float 
 }
 
 // --- input (polled, edge detected; only while our window is focused) ---
-bool gBigMap     = false;
-bool gMWasDown   = false;
-int  gBigBlocks  = 160;
-int  gPanX       = 0;
-int  gPanZ       = 0;
+bool gBigMap    = false;
+bool gMWasDown  = false;
+int  gBigBlocks = 160;
+int  gPanX      = 0;
+int  gPanZ      = 0;
 
 bool windowFocused() {
     HWND fg = GetForegroundWindow();
@@ -327,20 +537,14 @@ bool windowFocused() {
 bool down(int vk) { return (GetAsyncKeyState(vk) & 0x8000) != 0; }
 
 void pollInput() {
-    if (!windowFocused()) {
-        gMWasDown = false;
-        return;
-    }
+    if (!windowFocused()) { gMWasDown = false; return; }
     bool m = down('M');
-    if (m && !gMWasDown) {
-        gBigMap = !gBigMap;
-        gPanX = gPanZ = 0;
-    }
+    if (m && !gMWasDown) { gBigMap = !gBigMap; gPanX = gPanZ = 0; }
     gMWasDown = m;
     if (!gBigMap) return;
     if (down(VK_OEM_PLUS) || down(VK_ADD)) gBigBlocks = std::max(32, gBigBlocks - 2);
-    if (down(VK_OEM_MINUS) || down(VK_SUBTRACT)) gBigBlocks = std::min(320, gBigBlocks + 2);
-    int step = std::max(1, gBigBlocks / 60);
+    if (down(VK_OEM_MINUS) || down(VK_SUBTRACT)) gBigBlocks = std::min(400, gBigBlocks + 2);
+    int step = std::max(1, gBigBlocks / 60) * (down(VK_SHIFT) ? 3 : 1);
     if (down(VK_LEFT)) gPanX -= step;
     if (down(VK_RIGHT)) gPanX += step;
     if (down(VK_UP)) gPanZ -= step;
@@ -348,14 +552,18 @@ void pollInput() {
     if (down(VK_HOME)) gPanX = gPanZ = 0;
 }
 
+int gH0Mini = 64, gH0Big = 64;
+
 } // namespace
 
 void reset() {
+    saveAll();
     gCache.clear();
     gMini = Baked{};
     gBig  = Baked{};
+    gWorldKey.clear();
     ++gVersion;
-    gBigMap    = false;
+    gBigMap = false;
 }
 
 void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
@@ -365,12 +573,26 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
     if (int(region->getDimensionId()) != 0) return; // Overworld only
 
     ++gFrame;
+    uint64_t tick = GetTickCount64();
+    bool     gap  = tick - gLastDrawTick > 3000; // we were not drawing (menu / other world / other dimension)
+    gLastDrawTick = tick;
+    if (gWorldKey.empty() || gap || gFrame % 600 == 0) {
+        std::string k = computeWorldKey(player->getLevel());
+        if (k != gWorldKey) switchWorld(k);
+    }
+
     auto const& pos = player->getPosition();
     int         px  = int(std::floor(pos.x));
     int         pz  = int(std::floor(pos.z));
     float       yaw = player->getRotation().y;
 
     updateCache(*region, px, pz);
+    if (!gDirtyRegions.empty() && gFrame - gLastSaveFrame >= 300) {
+        gLastSaveFrame = gFrame;
+        int64_t k = *gDirtyRegions.begin();
+        gDirtyRegions.erase(gDirtyRegions.begin());
+        saveRegion(int(k >> 32), int(int32_t(uint32_t(k & 0xFFFFFFFFu))));
+    }
     pollInput();
 
     ::RectangleArea screen = ctx.getFullClippingRectangle();
@@ -378,33 +600,41 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
     float           sh     = float(screen._y1) - float(screen._y0);
     if (sw < 50.0f || sh < 50.0f) return;
 
+    int groundPlayer = groundHeight(px, pz, int(pos.y) - 2);
+
     if (gBigMap) {
-        float size = std::min(sw, sh) * 0.86f;
+        float size = std::min(sw, sh) * 0.88f;
         float x    = (sw - size) * 0.5f;
         float y    = (sh - size) * 0.5f;
-        int   step = std::max(1, (gBigBlocks + 127) / 128);
+        int   step = std::max(1, (gBigBlocks + 111) / 112);
         int   n    = gBigBlocks / step;
         int   cx   = px + gPanX, cz = pz + gPanZ;
-        ensureBaked(gBig, cx, cz, n, step, 10);
+        int   h0   = groundHeight(cx, cz, gH0Big);
+        gH0Big     = h0;
+        ensureBaked(gBig, cx, cz, h0, n, step, 10);
         rect(ctx, 0, 0, sw, sh, ::mce::Color{0.0f, 0.0f, 0.0f, 1.0f}, 0.55f);
         frame(ctx, x, y, size);
         drawBaked(ctx, gBig, x, y, size);
         vignette(ctx, x, y, size);
         float cell = size / float(n);
-        float mx   = x + (float(pos.x) - float(cx - (n * step) / 2)) / float(step) * cell;
-        float my   = y + (float(pos.z) - float(cz - (n * step) / 2)) / float(step) * cell;
+        float ux   = float(n) * 0.5f + (float(pos.x) - float(cx)) / float(step);
+        float uy   = float(n) * 0.5f + (float(pos.z) - float(cz)) / float(step) * KY - float(groundPlayer - h0) * HS / float(step);
+        float mx = x + ux * cell, my = y + uy * cell;
         if (mx > x && mx < x + size && my > y && my < y + size) marker(ctx, mx, my, 2.5f, yaw);
     } else {
-        constexpr float SIZE   = 96.0f;
-        constexpr int   BLOCKS = 64;
+        constexpr float SIZE   = 112.0f;
+        constexpr int   BLOCKS = 56;
         float           x      = sw - SIZE - 12.0f;
         float           y      = 12.0f;
-        ensureBaked(gMini, px, pz, BLOCKS, 1, 6);
+        gH0Mini                = groundPlayer;
+        ensureBaked(gMini, px, pz, groundPlayer, BLOCKS, 1, 6);
         frame(ctx, x, y, SIZE);
         drawBaked(ctx, gMini, x, y, SIZE);
         vignette(ctx, x, y, SIZE);
         float cell = SIZE / float(BLOCKS);
-        marker(ctx, x + (float(pos.x) - float(px - BLOCKS / 2)) * cell, y + (float(pos.z) - float(pz - BLOCKS / 2)) * cell, 1.5f, yaw);
+        float ux   = float(BLOCKS) * 0.5f + (float(pos.x) - float(px));
+        float uy   = float(BLOCKS) * 0.5f + (float(pos.z) - float(pz)) * KY;
+        marker(ctx, x + ux * cell, y + uy * cell, 1.5f, yaw);
     }
 }
 
