@@ -4,6 +4,7 @@
 // Visual style follows Diorama (MIT, (c) Dara Adedeji): dark frame, relief shading, fog for unknown areas.
 
 #include "mod/Minimap.h"
+#include "mod/DioramaMod.h"
 
 #include "mc/client/game/IClientInstance.h"
 #include "mc/client/player/LocalPlayer.h"
@@ -667,12 +668,17 @@ void readConfig() {
     } catch (...) {}
 }
 
+// Double buffered: new bakes are uploaded into the hidden texture and shown 2 frames later, so a half-uploaded
+// or not yet resident texture is never drawn (that produced flashes / jumps).
 struct Tex {
-    uint64_t bakeId  = 0;
-    int      W       = 0;
-    int      gen     = 0;
-    bool     created = false;
-    std::string name;
+    uint64_t    bakeId  = 0;
+    int         W[2]    = {0, 0};
+    int         gen     = 0;
+    bool        created[2] = {false, false};
+    std::string name[2];
+    int         cur       = 0;
+    bool        pending   = false;
+    uint64_t    pendFrame = 0;
 };
 Tex gMiniTex, gBigTex;
 
@@ -775,37 +781,49 @@ bool fillImage(::mce::Image& img, std::vector<uint32_t> const& px, int W) {
     return true;
 }
 
+uint64_t gPerfUploads = 0, gPerfInPlaceFail = 0;
+double   gPerfMaxUploadMs = 0;
+
 bool uploadImage(::IClientInstance& client, Tex& t, std::vector<uint32_t> const& px, int W) {
     auto tg = client.getTextureGroup();
     if (!tg) return false;
+    LARGE_INTEGER f, c0, c1;
+    QueryPerformanceFrequency(&f);
+    QueryPerformanceCounter(&c0);
+    int  h  = 1 - t.cur; // hidden buffer
     bool ok = false;
-    if (t.created && t.W == W) {
+    if (t.created[h] && t.W[h] == W) {
         ::mce::Image img(uint32_t(W), uint32_t(W), ::mce::ImageFormat::RGBA8Unorm, ::mce::ImageUsage::SRGB);
         if (!fillImage(img, px, W)) return false;
         ::cg::ImageBuffer buf(std::move(img));
-        ::ResourceLocation loc(::Core::PathView(t.name), ::ResourceFileSystem::UserPackage);
+        ::ResourceLocation loc(::Core::PathView(t.name[h]), ::ResourceFileSystem::UserPackage);
         ok = tg->updateTextureInPlace(loc, std::move(buf));
+        if (!ok) ++gPerfInPlaceFail;
     }
     if (!ok) {
         // new unique name (re-uploading an existing name is not safe)
         ++t.gen;
-        t.name = "textures/diorama_bedrock/" + std::string(&t == &gMiniTex ? "mini" : "big") + "_" + std::to_string(W) + "_" + std::to_string(t.gen);
+        t.name[h] = "textures/diorama_bedrock/" + std::string(&t == &gMiniTex ? "mini" : "big") + "_" + std::to_string(W) + "_" + std::to_string(t.gen);
         ::mce::Image img(uint32_t(W), uint32_t(W), ::mce::ImageFormat::RGBA8Unorm, ::mce::ImageUsage::SRGB);
         if (!fillImage(img, px, W)) return false;
         ::cg::ImageBuffer buf(std::move(img));
-        ::ResourceLocation loc(::Core::PathView(t.name), ::ResourceFileSystem::UserPackage);
+        ::ResourceLocation loc(::Core::PathView(t.name[h]), ::ResourceFileSystem::UserPackage);
         tg->uploadTexture(loc, std::move(buf));
-        t.created = true;
-        t.W       = W;
+        t.created[h] = true;
+        t.W[h]       = W;
     }
+    QueryPerformanceCounter(&c1);
+    double ms = double(c1.QuadPart - c0.QuadPart) * 1000.0 / double(f.QuadPart);
+    ++gPerfUploads;
+    if (ms > gPerfMaxUploadMs) gPerfMaxUploadMs = ms;
     return true;
 }
 
 // Draws the texture that was last uploaded (the displayed bake); baking itself happens on the worker thread.
 bool drawTexAsync(::MinecraftUIRenderContext& ctx, Tex const& t, float x, float y, float size, float u0, float v0, float uw, float vh) {
     if (!gCfgRead) readConfig();
-    if (!gTexEnabled || gTexFailed || !t.created) return false;
-    ::ResourceLocation loc(::Core::PathView(t.name), ::ResourceFileSystem::UserPackage);
+    if (!gTexEnabled || gTexFailed || !t.created[t.cur]) return false;
+    ::ResourceLocation loc(::Core::PathView(t.name[t.cur]), ::ResourceFileSystem::UserPackage);
     ::mce::TexturePtr  tp  = ctx.getTexture(loc, false);
     auto const*        dat = tp.mClientTexture.get();
     if (!dat) { gTexFailed = true; return false; }
@@ -912,29 +930,32 @@ float frameDt() {
 
 // Game position changes only on ticks (20 Hz). Like the engine's partial-tick interpolation: glide from the
 // currently drawn position to the newest tick position over the measured tick interval -> constant speed, no sawtooth.
-float gTgtX = 0, gTgtY = 0, gTgtZ = 0, gSegX = 0, gSegY = 0, gSegZ = 0, gClock = 0, gLastChange = 0, gSegT = 0, gDur = 0.05f;
+// Position-with-velocity extrapolation: at each tick we learn the per-tick step; between ticks the target keeps moving
+// with that velocity (so it is continuous at the next tick when speed is constant), then a short low-pass removes the
+// residual frame-timing noise.
+float gCurX = 0, gCurY = 0, gCurZ = 0, gVX = 0, gVZ = 0, gSince = 0;
 
 void smoothPlayer(float x, float y, float z, bool reset, float dt) {
-    gClock += dt;
-    if (reset || !gSInit || std::fabs(x - gTgtX) > 8.0f || std::fabs(z - gTgtZ) > 8.0f) {
-        gSX = gTgtX = gSegX = x; gSY = gTgtY = gSegY = y; gSZ = gTgtZ = gSegZ = z;
-        gSInit = true; gLastChange = gClock; gSegT = 0; gDur = 0.05f;
+    if (reset || !gSInit || std::fabs(x - gCurX) > 8.0f || std::fabs(z - gCurZ) > 8.0f) {
+        gSX = gCurX = x; gSY = gCurY = y; gSZ = gCurZ = z;
+        gVX = gVZ = 0; gSince = 0; gSInit = true;
         return;
     }
-    if (x != gTgtX || y != gTgtY || z != gTgtZ) {
-        float iv = gClock - gLastChange;
-        if (iv > 0.2f) iv = 0.05f;
-        gLastChange = gClock;
-        gDur = std::clamp(0.5f * gDur + 0.5f * iv, 0.03f, 0.12f);
-        gSegX = gSX; gSegY = gSY; gSegZ = gSZ;
-        gTgtX = x; gTgtY = y; gTgtZ = z;
-        gSegT = 0;
+    if (x != gCurX || y != gCurY || z != gCurZ) {
+        gVX = (x - gCurX) / 0.05f;
+        gVZ = (z - gCurZ) / 0.05f;
+        gCurX = x; gCurY = y; gCurZ = z;
+        gSince = 0;
+    } else {
+        gSince += dt;
     }
-    gSegT += dt;
-    float k = std::clamp(gSegT / gDur, 0.0f, 1.0f);
-    gSX = gSegX + (gTgtX - gSegX) * k;
-    gSY = gSegY + (gTgtY - gSegY) * k;
-    gSZ = gSegZ + (gTgtZ - gSegZ) * k;
+    float e  = gSince < 0.1f ? std::min(gSince, 0.05f) : 0.0f;
+    float tx = gCurX + (gSince < 0.1f ? gVX * e : 0.0f);
+    float tz = gCurZ + (gSince < 0.1f ? gVZ * e : 0.0f);
+    float a  = 1.0f - std::exp(-dt / 0.035f);
+    gSX += (tx - gSX) * a;
+    gSZ += (tz - gSZ) * a;
+    gSY += (gCurY - gSY) * a;
 }
 
 struct Scroll { float u0, v0, uw, vh, pcx, pcy; int nb, nview, step, cx, cz, h0; bool ready; };
@@ -975,6 +996,7 @@ struct Job { int cx = 0, cz = 0, h0 = 0, n = 0, step = 1, view = 0, W = 0; uint6
 
 struct Slot {
     Baked                 disp;   // parameters of the bake currently shown (no rects)
+    Baked                 pendDisp; // parameters of the bake uploaded into the hidden texture
     Job                   job;
     bool                  queued = false, busy = false, done = false;
     Baked                 res;
@@ -1047,12 +1069,24 @@ void asyncQuiesce() {
 }
 
 void resetSlots() {
-    for (auto& s : gSlots) s.disp = Baked{};
+    for (auto& s : gSlots) { s.disp = Baked{}; s.pendDisp = Baked{}; }
     gMiniTex.bakeId = gBigTex.bakeId = 0;
+    gMiniTex.pending = gBigTex.pending = false;
 }
 
 // Take a finished bake from the worker (if any) and upload it as the displayed texture.
+void commitPending(Slot& s, Tex& t) {
+    if (t.pending && gFrame - t.pendFrame >= 2) {
+        t.cur     = 1 - t.cur;
+        t.pending = false;
+        s.disp    = std::move(s.pendDisp);
+        t.bakeId  = ++gBakeCounter;
+    }
+}
+
 void pollAsync(Slot& s, Tex& t, ::IClientInstance& client) {
+    commitPending(s, t);
+    if (t.pending) return; // previous upload not shown yet; the finished bake waits in the slot
     Baked                 res;
     std::vector<uint32_t> px;
     {
@@ -1064,8 +1098,9 @@ void pollAsync(Slot& s, Tex& t, ::IClientInstance& client) {
         px  = std::move(s.px);
     }
     if (!uploadImage(client, t, px, res.n * PPC)) { gTexFailed = true; return; }
-    t.bakeId = ++gBakeCounter;
-    s.disp   = res;
+    t.pending   = true;
+    t.pendFrame = gFrame;
+    s.pendDisp  = std::move(res);
 }
 
 void requestBake(Slot& s, Tex& t, ::IClientInstance& client, Job const& j) {
@@ -1084,9 +1119,11 @@ void requestBake(Slot& s, Tex& t, ::IClientInstance& client, Job const& j) {
     Baked                 res;
     std::vector<uint32_t> px;
     if (!runJob(j, res, px)) return;
+    if (t.pending) return;
     if (!uploadImage(client, t, px, j.W)) { gTexFailed = true; return; }
-    t.bakeId = ++gBakeCounter;
-    s.disp   = res;
+    t.pending   = true;
+    t.pendFrame = gFrame;
+    s.pendDisp  = std::move(res);
 }
 
 // Decide (against the DISPLAYED bake) whether a new bake is needed, request it in the background and return the scroll for what is shown now.
@@ -1176,6 +1213,18 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
     }
     pollInput();
     float dtf = frameDt();
+    {
+        static float maxDt = 0, sumDt = 0;
+        static int   nDt = 0;
+        maxDt = std::max(maxDt, dtf); sumDt += dtf; ++nDt;
+        if (nDt >= 600) {
+            char m[200];
+            std::snprintf(m, sizeof(m), "perf: %d hook calls, avg dt %.1f ms, max dt %.1f ms, uploads %llu, in-place failed %llu, max upload %.1f ms, bigmap=%d",
+                          nDt, 1000.0f * sumDt / float(nDt), 1000.0f * maxDt, (unsigned long long)gPerfUploads, (unsigned long long)gPerfInPlaceFail, gPerfMaxUploadMs, int(gBigMap));
+            DioramaMod::getInstance().getSelf().getLogger().info(std::string(m));
+            maxDt = sumDt = 0; nDt = 0; gPerfMaxUploadMs = 0;
+        }
+    }
     smoothPlayer(float(pos.x), float(pos.y), float(pos.z), gap, dtf);
 
     ::RectangleArea screen = ctx.getFullClippingRectangle();
