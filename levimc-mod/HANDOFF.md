@@ -74,5 +74,10 @@
 - 2026-11-24: workflow `levimc-build` теперь игнорирует изменения только в `.md` (paths `!levimc-mod/**/*.md`). Коммиты с одними заметками всё равно подписывать `[skip ci]`
   (иначе стартует и старый Gradle-workflow `build`). Токен владельца НЕ имеет права Actions:write, отменять запуски через API нельзя (403); читать запуски/логи можно.
 
+- 2026-11-24: workflow теперь публикует zip в Releases: тег `diorama-bedrock-latest` (prerelease, пересоздаётся при каждой сборке),
+  файл `diorama-bedrock-client-windows-x64.zip` = папка `diorama-bedrock/` (dll, pdb, manifest.json), как у MelonRind. Проверено: релиз создан, zip корректный.
+  Ссылка: https://github.com/wexjklin-ctrl/MOD1/releases/tag/diorama-bedrock-latest  (старые релизы «Последняя версия» относятся к Java-проекту rz_auto, не к нам).
+  Ждём от владельца: лог загрузки в игре + версии Minecraft/LeviLamina.
+
 ## 7. Открытые вопросы к владельцу
 - Версия Minecraft и LeviLamina в LeviMC (по умолчанию предполагаем 1.26.51.1 / 26.51.6, как у MelonRind).
