@@ -81,3 +81,10 @@
 
 ## 7. Открытые вопросы к владельцу
 - Версия Minecraft и LeviLamina в LeviMC (по умолчанию предполагаем 1.26.51.1 / 26.51.6, как у MelonRind).
+
+## Лог: сессия 3
+- Запись в репозиторий через git + токен РАБОТАЕТ (push в claude-work проходит). Структура файлов исправлена (все исходники в levimc-mod/src/mod/, корень очищен от Minimap/HudHook/DioramaMod/xmake).
+- Логи Actions недоступны из песочницы (blob.core.windows.net заблокирован). Workflow теперь при падении пушит ошибки в ветку `build-logs` (файл errors.txt): читать через `git fetch origin build-logs && git show origin/build-logs:errors.txt`.
+- Первая сборка: компиляция прошла, ЛИНКОВКА упала: `HotBarSlotsRenderer::$render` помечен MCNAPI (не экспортируется). Хук перенесён на `HudCursorRenderer::$render` (MCAPI, рисуется в любом режиме).
+- Сборка зелёная, релиз diorama-bedrock-latest обновлён. В игре НЕ проверено. Ждём от владельца: скриншот и строки из latest.log («HUD hook fired (cursor, minimap active)»).
+- Версия LeviLamina при сборке: 26.60.9 (xmake тянет пакет сам).
