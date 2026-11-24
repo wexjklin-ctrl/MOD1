@@ -42,7 +42,7 @@
 - Хранение карты: тайлы на диск по миру/измерению (в Diorama `.minecraft/diorama/`).
 
 ## 4. План (этапы)
-1. [~] Скелет мода: ЗАЛИТ (manifest.json, xmake.lua, src/mod/DioramaMod.*, NOTICE.md, workflow `.github/workflows/levimc-build.yml`). Ждём результат первой сборки в Actions. config.json пока нет.
+1. [x] Скелет мода: СОБИРАЕТСЯ в Actions (первая сборка успешна, ~10 мин из-за скачивания зависимостей; в игре ещё НЕ проверено) (manifest.json, xmake.lua, src/mod/DioramaMod.*, NOTICE.md, workflow `.github/workflows/levimc-build.yml`). config.json пока нет.
 2. [ ] Хук/рисование на HUD: нарисовать квадрат на экране (проверка пайплайна рендера).
 3. [ ] Чтение позиции игрока и блоков вокруг (BlockSource), только Overworld.
 4. [ ] Верхняя миникарта: цвета блоков, высота, поворот/север, рамка из PNG Diorama, размер/угол/прозрачность в конфиге.
@@ -66,6 +66,10 @@
   Workflow `levimc-build.yml` собирает только client, триггер: push в `claude-work` по путям `levimc-mod/**` и ручной запуск. Артефакт: `levimc-mod/bin/`.
   ВАЖНО: в репозитории уже есть старый workflow `build` (Gradle, от Java-проекта rz_auto), он запускается на каждый push и нам не нужен; выключать только по команде владельца.
   Сборку на лету проверять через API: `GET /repos/wexjklin-ctrl/MOD1/actions/runs?branch=claude-work`. Одной командой bash нельзя ждать больше ~300 с.
+
+- 2026-11-24: первая сборка `levimc-build` прошла успешно (run 45378230882). Артефакт `diorama-bedrock-<sha>-client-windows-x64` содержит `bin/`.
+  Следующий шаг: владелец скачивает артефакт, кладёт в LeviMC, запускает игру и присылает лог (должны быть строки "Diorama (Bedrock) loaded/enabled").
+  Если загрузился, делаем этап 2 (HUD-хук). Если нет: смотреть версию LeviLamina (закрепить в xmake.lua `add_requires("levilamina <версия>")`).
 
 ## 7. Открытые вопросы к владельцу
 - Версия Minecraft и LeviLamina в LeviMC (по умолчанию предполагаем 1.26.51.1 / 26.51.6, как у MelonRind).
