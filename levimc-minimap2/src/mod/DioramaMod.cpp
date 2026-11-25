@@ -1,6 +1,7 @@
 // build: session 30 (publish retry)
 #include "mod/DioramaMod.h"
 
+#include "mod/GpuHook.h"
 #include "mod/HudHook.h"
 #include "mod/Minimap.h"
 
@@ -25,10 +26,12 @@ bool DioramaMod::enable() {
     } else {
         getSelf().getLogger().error("Could not install HUD hook.");
     }
+    gpu::install();
     return true;
 }
 
 bool DioramaMod::disable() {
+    gpu::uninstall();
     hud::uninstall();
     minimap::shutdown();
     getSelf().getLogger().info("Minimap 2 disabled.");

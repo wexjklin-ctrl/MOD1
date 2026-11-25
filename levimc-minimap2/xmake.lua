@@ -42,7 +42,7 @@ target("minimap2")
     end
     add_packages("levilamina")
     if is_plat("windows") then
-        add_syslinks("user32")
+        add_syslinks("user32", "d3d12", "dxgi")
     end
     set_kind("shared")
     set_languages("c++20")
