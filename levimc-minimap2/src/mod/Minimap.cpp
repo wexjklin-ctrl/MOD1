@@ -42,6 +42,7 @@
 #include <array>
 #include <atomic>
 #include <condition_variable>
+#include <deque>
 #include <mutex>
 #include <thread>
 #include <cmath>
@@ -738,6 +739,7 @@ void saveAll() {
     gDirtyRegions.clear();
 }
 
+void markTilesForChunk(int cx, int cz, bool init);
 using ChunkSink = std::unordered_map<int64_t, ChunkData>;
 void loadRegionStream(std::istream& f, char ver, uint32_t count, ChunkSink* sink = nullptr) {
     for (uint32_t i = 0; i < count && i < 1024; ++i) {
@@ -846,48 +848,159 @@ void migQuiesce() { // wait for the background conversion and drop its result (t
     gMig.known.clear();
 }
 
-// Lazy loading: a region is read into RAM only when something needs its chunks (scanning near the player, baking a tile).
+// ---- asynchronous region loading: files are read and parsed on a worker thread, chunks are merged into gCache a few per frame ----
+struct LoadRes { int rx = 0, rz = 0; bool ok = false; ChunkSink sink; };
+struct Loader {
+    std::mutex              mx;
+    std::condition_variable cv;
+    std::deque<std::pair<int, int>> q;
+    std::deque<LoadRes>     done;
+    bool                    busy = false, started = false;
+    std::thread             th;
+};
+Loader                       gLoader;
+std::unordered_set<int64_t>  gLoading; // requested, not merged yet (main thread)
+struct MergeJob { int64_t k = 0; bool active = false; ChunkSink sink; ChunkSink::iterator it; };
+MergeJob gMerge;
+struct IdxResult { std::unordered_set<int64_t> disk, tiles; std::vector<std::pair<int, int>> legacy; };
+std::mutex          gIdxMx;
+IdxResult           gIdxRes;
+std::atomic<bool>   gIndexReady{false}, gIdxBusy{false}, gIdxDone{false};
+
+void loaderMain() {
+    for (;;) {
+        std::pair<int, int> r;
+        {
+            std::unique_lock<std::mutex> lk(gLoader.mx);
+            gLoader.cv.wait(lk, [] { return !gLoader.q.empty(); });
+            r = gLoader.q.front(); gLoader.q.pop_front();
+            gLoader.busy = true;
+        }
+        LoadRes res; res.rx = r.first; res.rz = r.second;
+        try { res.ok = loadRegionFile(r.first, r.second, &res.sink); } catch (...) { res.ok = false; }
+        {
+            std::lock_guard<std::mutex> lk(gLoader.mx);
+            gLoader.done.push_back(std::move(res));
+            gLoader.busy = false;
+        }
+    }
+}
+
+void idxQuiesce() { while (gIdxBusy.load()) Sleep(2); gIdxDone = false; }
+
+void loadQuiesce() { // drop queued/finished loads of the old world
+    for (;;) {
+        {
+            std::lock_guard<std::mutex> lk(gLoader.mx);
+            gLoader.q.clear();
+            if (!gLoader.busy) { gLoader.done.clear(); break; }
+        }
+        Sleep(2);
+    }
+    gLoading.clear();
+    gMerge.active = false; gMerge.sink.clear();
+}
+
+// per frame: adopt the finished disk index, merge a slice of a loaded region into gCache
+void pumpLoads() {
+    if (gIdxDone.exchange(false)) {
+        std::lock_guard<std::mutex> lk(gIdxMx);
+        gDiskRegions.swap(gIdxRes.disk); gTileDisk.swap(gIdxRes.tiles); gLegacyPending.swap(gIdxRes.legacy);
+        gIdxRes = IdxResult{};
+        gIndexReady = true; ++gVersion;
+    }
+    if (!gMerge.active) {
+        LoadRes r; bool have = false;
+        {
+            std::lock_guard<std::mutex> lk(gLoader.mx);
+            if (!gLoader.done.empty()) { r = std::move(gLoader.done.front()); gLoader.done.pop_front(); have = true; }
+        }
+        if (have) {
+            int64_t k = key(r.rx, r.rz);
+            if (!r.ok) { // unreadable: keep the file as .bad and start the region empty
+                std::error_code ec;
+                std::filesystem::rename(regionFile(r.rx, r.rz), regionFile(r.rx, r.rz).string() + ".bad", ec);
+                gDiskRegions.erase(k); gLoading.erase(k); gRegions[k] = gFrame;
+            } else {
+                gMerge.k = k; gMerge.sink = std::move(r.sink); gMerge.it = gMerge.sink.begin(); gMerge.active = true;
+            }
+        }
+    }
+    if (gMerge.active) {
+        int                         n = 0;
+        std::vector<int64_t>        added;
+        std::unique_lock<std::mutex> lk(gMapMx);
+        while (gMerge.it != gMerge.sink.end() && n < 160) {
+            ChunkData& cd  = gMerge.it->second;
+            bool       any = false;
+            for (int q = 0; q < 256; ++q) if (cd.color[q]) { any = true; break; }
+            cd.scanned = false;
+            if (gCache.emplace(gMerge.it->first, std::move(cd)).second && any && gKnown.insert(gMerge.it->first).second) added.push_back(gMerge.it->first);
+            ++gMerge.it; ++n;
+        }
+        lk.unlock();
+        if (gTilesInit) for (int64_t k : added) markTilesForChunk(int(int32_t(uint32_t(uint64_t(k) >> 32))), int(int32_t(uint32_t(k & 0xFFFFFFFFu))), true);
+        if (gMerge.it == gMerge.sink.end()) {
+            gRegions[gMerge.k] = gFrame; gLoading.erase(gMerge.k);
+            gMerge.active = false; gMerge.sink.clear();
+        }
+    }
+}
+
+// Lazy loading: a region is requested when something needs its chunks (scanning near the player, baking a tile); false until it is in RAM.
 bool regionReady(int rx, int rz, bool allowLoad) {
     int64_t k  = key(rx, rz);
     auto    it = gRegions.find(k);
     if (it != gRegions.end()) { it->second = gFrame; return true; }
-    if (!allowLoad || k == gMigKey.load()) return false; // a region being converted in the background is not touched
-    static uint64_t lastLoad = UINT64_MAX;
-    if (lastLoad == gFrame) return false; // one region read per frame
-    lastLoad = gFrame;
-    if (gDiskRegions.count(k) && !loadRegionFile(rx, rz)) { // unreadable: keep the file as .bad and start the region empty, never overwrite silently
-        std::error_code ec;
-        std::filesystem::rename(regionFile(rx, rz), regionFile(rx, rz).string() + ".bad", ec);
-        gDiskRegions.erase(k);
+    if (!gIndexReady.load()) return false;
+    if (!gDiskRegions.count(k)) { gRegions[k] = gFrame; return true; } // no file: empty region
+    if (!allowLoad || k == gMigKey.load() || gLoading.count(k)) return false;
+    gLoading.insert(k);
+    {
+        std::lock_guard<std::mutex> lk(gLoader.mx);
+        gLoader.q.push_back({rx, rz});
+        if (!gLoader.started) { gLoader.started = true; gLoader.th = std::thread(loaderMain); gLoader.th.detach(); }
     }
-    gRegions[k] = gFrame;
-    return true;
+    gLoader.cv.notify_one();
+    return false;
 }
 
-// Startup only lists what is on disk: region files, their .idx bitmaps (-> known chunks for the fog) and tile images. No chunk data is read.
+// Startup: a worker thread lists the region files, their .idx bitmaps (-> known chunks for the fog) and the tile images; nothing blocks the game.
 void loadWorld() {
     if (gWorldKey.empty()) return;
-    std::error_code ec;
     gKnown.clear(); gRegions.clear(); gDiskRegions.clear(); gLegacyPending.clear(); gTileDisk.clear();
-    for (auto const& e : std::filesystem::directory_iterator(worldDir(), ec)) {
-        if (ec) break;
-        std::string name = e.path().filename().string();
-        int         rx = 0, rz = 0; char tail[8] = {};
-        if (std::sscanf(name.c_str(), "r.%d.%d.%7s", &rx, &rz, tail) != 3 || std::string(tail) != "bin") continue;
-        gDiskRegions.insert(key(rx, rz));
-        std::ifstream f(regionIdxFile(rx, rz), std::ios::binary);
-        uint8_t       idx[128] = {};
-        if (f.read(reinterpret_cast<char*>(idx), 128)) {
-            for (int bit = 0; bit < 1024; ++bit)
-                if (idx[bit >> 3] & (1u << (bit & 7))) gKnown.insert(key(rx * 32 + (bit & 31), rz * 32 + (bit >> 5)));
-        } else gLegacyPending.push_back({rx, rz});
-    }
-    for (auto const& e : std::filesystem::directory_iterator(worldDir() / "tiles3", ec)) {
-        if (ec) break;
-        std::string name = e.path().filename().string();
-        int         l = 0, i = 0, j = 0; char tail[8] = {};
-        if (std::sscanf(name.c_str(), "t%d.%d.%d.%7s", &l, &i, &j, tail) == 4 && std::string(tail) == "dtl") gTileDisk.insert(tkey(l, i, j));
-    }
+    gIndexReady = false; gIdxDone = false; gIdxBusy = true;
+    std::filesystem::path wd = worldDir();
+    std::thread([wd] {
+        IdxResult             r;
+        std::error_code       ec;
+        std::vector<int64_t>  batch;
+        auto flush = [&] { if (batch.empty()) return; std::lock_guard<std::mutex> lk(gMapMx); for (int64_t k : batch) gKnown.insert(k); batch.clear(); };
+        for (auto const& e : std::filesystem::directory_iterator(wd, ec)) {
+            if (ec) break;
+            std::string name = e.path().filename().string();
+            int         rx = 0, rz = 0; char tail[8] = {};
+            if (std::sscanf(name.c_str(), "r.%d.%d.%7s", &rx, &rz, tail) != 3 || std::string(tail) != "bin") continue;
+            r.disk.insert(key(rx, rz));
+            std::ifstream f(wd / ("r." + std::to_string(rx) + "." + std::to_string(rz) + ".idx"), std::ios::binary);
+            uint8_t       idx[128] = {};
+            if (f.read(reinterpret_cast<char*>(idx), 128)) {
+                for (int bit = 0; bit < 1024; ++bit)
+                    if (idx[bit >> 3] & (1u << (bit & 7))) batch.push_back(key(rx * 32 + (bit & 31), rz * 32 + (bit >> 5)));
+                if (batch.size() > 8192) flush();
+            } else r.legacy.push_back({rx, rz});
+        }
+        flush();
+        for (auto const& e : std::filesystem::directory_iterator(wd / "tiles3", ec)) {
+            if (ec) break;
+            std::string name = e.path().filename().string();
+            int         l = 0, i = 0, j = 0; char tail[8] = {};
+            if (std::sscanf(name.c_str(), "t%d.%d.%d.%7s", &l, &i, &j, tail) == 4 && std::string(tail) == "dtl") r.tiles.insert(tkey(l, i, j));
+        }
+        { std::lock_guard<std::mutex> lk(gIdxMx); gIdxRes = std::move(r); }
+        gIdxDone = true;
+        gIdxBusy = false;
+    }).detach();
     ++gVersion;
 }
 
@@ -935,6 +1048,8 @@ void clearTiles();
 
 void switchWorld(std::string const& k) {
     migQuiesce();
+    idxQuiesce();
+    loadQuiesce();
     saveAll();
     asyncQuiesce(); // the bake worker must not touch gCache while it is cleared
     resetSlots();
@@ -2274,13 +2389,16 @@ void pumpRegions() {
     if (gMigDone.exchange(false)) {
         std::vector<int64_t> kn;
         { std::lock_guard<std::mutex> lk(gMig.mx); kn.swap(gMig.known); }
-        { std::lock_guard<std::mutex> lk(gMapMx); for (int64_t k : kn) gKnown.insert(k); }
+        std::vector<int64_t> added;
+        { std::lock_guard<std::mutex> lk(gMapMx); for (int64_t k : kn) if (gKnown.insert(k).second) added.push_back(k); }
+        if (gTilesInit) for (int64_t k : added) markTilesForChunk(int(int32_t(uint32_t(uint64_t(k) >> 32))), int(int32_t(uint32_t(k & 0xFFFFFFFFu))), true);
         gMigKey = INT64_MIN; gMigBusy = false; ++gVersion;
     }
     if (!gMigBusy.load() && !gLegacyPending.empty()) {
         auto c = gLegacyPending.back(); gLegacyPending.pop_back();
         int64_t k = key(c.first, c.second);
-        if (gRegions.count(k)) markDirty(c.first * 32, c.second * 32); // already loaded by the player: .idx is written when it is saved
+        if (gLoading.count(k)) gLegacyPending.insert(gLegacyPending.begin(), c);
+        else if (gRegions.count(k)) markDirty(c.first * 32, c.second * 32); // already loaded by the player: .idx is written when it is saved
         else {
             if (!gMig.started) { gMig.started = true; gMig.th = std::thread(migMain); gMig.th.detach(); }
             gMigKey = k; gMigBusy = true;
@@ -2589,7 +2707,7 @@ void tileTick(float tx, float tz, bool bigOpen) {
     for (auto const& c : gChangedChunks) markTilesForChunk(c.first, c.second);
     gChangedChunks.clear();
     if (!bigOpen || !gTexEnabled || gTexFailed) return;
-    if (!gTilesInit) initTilesFromCache();
+    if (!gTilesInit && gIndexReady.load() && !gMerge.active) initTilesFromCache();
     startTileWorker();
     // finished bakes
     std::vector<TileResult> done;
@@ -3124,6 +3242,8 @@ void shutdown() {
 
 void reset() {
     migQuiesce();
+    idxQuiesce();
+    loadQuiesce();
     saveAll();
     asyncQuiesce();
     resetSlots();
@@ -3173,13 +3293,14 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
     int         pz  = int(std::floor(pos.z));
     float       yaw = player->getRotation().y;
 
+    pumpLoads();
     updateCache(*region, px, pz);
     pumpRegions();
     if (!gDirtyRegions.empty() && gFrame - gLastSaveFrame >= 240) {
         gLastSaveFrame = gFrame;
         int64_t k = *gDirtyRegions.begin();
         gDirtyRegions.erase(gDirtyRegions.begin());
-        saveRegion(int(k >> 32), int(int32_t(uint32_t(k & 0xFFFFFFFFu))));
+        if (gRegions.count(k)) saveRegion(int(k >> 32), int(int32_t(uint32_t(k & 0xFFFFFFFFu)))); // never write a region that is not in RAM
     }
     pollInput();
     setBigMapHud(client, gBigMap);
