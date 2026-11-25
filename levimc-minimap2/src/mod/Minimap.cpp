@@ -296,6 +296,7 @@ uint32_t vanillaRgb(std::string const& bedrockName, bool side) {
     if (it == idx.end()) return 0;
     auto const& L = minimap2::vanilla::kLooks[it->second];
     if (L.kind == 0) return 0;
+    if (L.kind == 2 && bedrockName.find("water") == std::string::npos && bedrockName.find("bubble") == std::string::npos) return 0; // Java table maps walls/signs/rails to the water look: ignore, use name colours
     uint32_t base = side ? L.side : L.top, tinted = side ? L.sideTinted : L.topTinted;
     float    w    = side ? L.sideW : L.topW;
     uint32_t rgb  = base & 0xFFFFFF;
@@ -346,8 +347,14 @@ uint32_t colorOfBlock(::BlockSource& region, ::BlockPos const& pos, ::Block cons
         uint32_t kw = 0;
         {
             auto has = [&](char const* t) { return name.find(t) != std::string::npos; };
-            if (has("nether_brick")) kw = 0x2C151A; else if (has("brick")) kw = 0x96513F; else if (has("cobble")) kw = 0x7A7A7A;
-            else if (has("stone_brick") || has("stonebrick")) kw = 0x7B7B7B; else if (has("sandstone")) kw = 0xDBCF9D; else if (has("fence") || has("planks")) kw = 0x9C7F4E;
+            if (has("mossy_stone_brick")) kw = 0x6F7B5C; else if (has("mossy")) kw = 0x6B7D4F;
+            else if (has("red_nether_brick")) kw = 0x450709; else if (has("nether_brick")) kw = 0x2C151A;
+            else if (has("end_stone_brick")) kw = 0xDBDE9E; else if (has("mud_brick")) kw = 0x8B6B53;
+            else if (has("deepslate")) kw = 0x4B4B50; else if (has("blackstone")) kw = 0x2A2328; else if (has("prismarine")) kw = 0x63A194;
+            else if (has("granite")) kw = 0x95674F; else if (has("diorite")) kw = 0xBFBFC1; else if (has("andesite")) kw = 0x888889;
+            else if (has("tuff")) kw = 0x6C6D67; else if (has("red_sandstone")) kw = 0xBA6A1E; else if (has("sandstone")) kw = 0xDBCF9D;
+            else if (has("stone_brick") || has("stonebrick")) kw = 0x7B7B7B; else if (has("brick")) kw = 0x96513F; else if (has("cobble")) kw = 0x7A7A7A;
+            else if (has("fence") || has("planks")) kw = 0x9C7F4E;
             else if (has("_wall") && !has("wall_")) kw = 0x7A7A7A;
         }
         if (kw) { gBlockCol[&block] = 0xFF000000u | kw; logUnmapped(name, 0xFF000000u | kw); return 0xFF000000u | kw; }
