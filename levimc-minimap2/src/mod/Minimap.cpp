@@ -399,6 +399,23 @@ bool isSmallPlant(std::string const& n) {
     return false;
 }
 
+// per-block-state classification cache: no string work per block in the hot scan loop
+struct BlkInfo { uint8_t kind; uint32_t side; }; // kind: 0 solid, 1 skip (air/water/small plant)
+std::unordered_map<::Block const*, BlkInfo> gBlkInfo;
+BlkInfo const& blkInfo(::BlockSource& region, ::BlockPos const& p, ::Block const& b) {
+    auto it = gBlkInfo.find(&b);
+    if (it != gBlkInfo.end()) return it->second;
+    BlkInfo bi{0, 0};
+    if (b.isAir()) bi.kind = 1;
+    else {
+        std::string const& n = b.getTypeName();
+        if (isWater(n) || isSmallPlant(n)) bi.kind = 1;
+        else bi.side = withShape(colorOfBlockSide(region, p, b), shapeAlpha(n));
+    }
+    return gBlkInfo.emplace(&b, bi).first->second;
+}
+constexpr int kScanFloorY = 50; // do not scan below this (caves / mines are not shown)
+
 // need < 0: only colour/height (cheap); else also the wall profile down to `need` blocks (deeper entries repeat the last colour)
 bool scanColumn(::BlockSource& region, int x, int z, uint32_t& col, int16_t& h, uint32_t* wall, int need) {
     int minH = region.getMinHeight();
@@ -427,18 +444,17 @@ bool scanColumn(::BlockSource& region, int x, int z, uint32_t& col, int16_t& h, 
     } else {
         col = colorOfBlock(region, pos, *block);
         if (wall) {
-            wall[0]       = withShape(colorOfBlockSide(region, pos, *block), shapeAlpha(name));
+            int floorY    = std::min(kScanFloorY, y - 3); // columns whose top is already low still get a short profile
+            wall[0]       = blkInfo(region, pos, *block).kind ? withShape(colorOfBlockSide(region, pos, *block), shapeAlpha(name)) : blkInfo(region, pos, *block).side;
             uint32_t prev = wall[0];
             for (int k = 1; k < NW; ++k) {
                 int yy = y - k;
-                if (k > need || yy < minH) { wall[k] = 0u; continue; }
+                if (k > need || yy < minH || yy < floorY) { wall[k] = 0u; continue; }
                 ::BlockPos p2{x, yy, z};
                 ::Block const& b2 = region.getBlock(p2);
-                if (b2.isAir() || isWater(b2.getTypeName()) || isSmallPlant(b2.getTypeName())) {
-                    wall[k] = 0u; // 0 = air gap (open window, space under a roof or canopy)
-                    continue;
-                }
-                prev    = withShape(colorOfBlockSide(region, p2, b2), shapeAlpha(b2.getTypeName()));
+                BlkInfo const& bi = blkInfo(region, p2, b2);
+                if (bi.kind) { wall[k] = 0u; continue; } // 0 = air gap (open window, space under a roof or canopy)
+                prev    = bi.side;
                 wall[k] = prev;
             }
         }
