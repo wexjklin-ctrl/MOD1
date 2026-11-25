@@ -1377,11 +1377,15 @@ uint32_t wallColorAt(WRef wp, int h, float Y, uint32_t fallback) {
 struct Rec { int32_t cell; float a, b, y; uint32_t col; uint8_t type; }; // type 1 top (a=fx,b=fz), 2 south wall (a=fx,b=depth below the top surface)
 
 // px: 0xAARRGGBB (A=0 unknown); hb: surface height per pixel (for hole filling)
-void paintHeightfield(Baked const& b, int W, std::vector<uint32_t>& px, std::vector<int16_t>& hb, uint64_t epoch) {
+void paintHeightfield(Baked const& b, int W, std::vector<uint32_t>& px, std::vector<int16_t>& hb, uint64_t epoch, bool cpuOnly = false) {
     SrgbTables const& T = srgb();
     HField g;
     buildHField(g, b);
     size_t NP = size_t(W) * size_t(W);
+    // GPU shading (GpuBake.cpp): the CPU paints the visible records, the GPU shades them. Falls back to the CPU shading below.
+    bool useGpu = !cpuOnly && g.step == 1 && gpu::bakeAvailable();
+    std::vector<uint32_t> gpuRec;
+    if (useGpu) gpuRec.assign(size_t(4) * NP * 6, 0xFFFFFFFFu);
     float  sc = float(W) / float(b.n);
     std::vector<Rec>     rec(NP);
     std::vector<float>   accR(NP, 0), accG(NP, 0), accB(NP, 0), dsum(NP, 0);
@@ -1452,6 +1456,17 @@ void paintHeightfield(Baked const& b, int W, std::vector<uint32_t>& px, std::vec
                 }
             }
         }
+        if (useGpu) { // hand the records of this sample to the GPU instead of shading them here
+            uint32_t* o = gpuRec.data() + size_t(s) * NP * 6;
+            for (size_t p = 0; p < NP; ++p) {
+                Rec const& R = rec[p];
+                if (R.cell < 0) continue;
+                o[p * 6 + 0] = uint32_t(R.cell);
+                std::memcpy(&o[p * 6 + 1], &R.a, 4); std::memcpy(&o[p * 6 + 2], &R.b, 4); std::memcpy(&o[p * 6 + 3], &R.y, 4);
+                o[p * 6 + 4] = R.col; o[p * 6 + 5] = R.type;
+            }
+            continue;
+        }
         // ---- shade each visible sample once ----
         float sunx = kSunX + kJit[s][0], suny = kSunY + kJit[s][1], sunz = kSunZ + kJit[s][2];
         float lambertSide = std::max(0.0f, sunz) / suny;
@@ -1506,6 +1521,36 @@ void paintHeightfield(Baked const& b, int W, std::vector<uint32_t>& px, std::vec
             hsum[p] = int16_t(std::floor(Y));
             ++cnt[p];
         }
+    }
+    if (useGpu) {
+        std::vector<int32_t> h32(g.h.begin(), g.h.end());
+        gpu::BakeIn in;
+        in.W = W; in.gn = g.gn; in.m = g.m; in.mx = g.mx; in.rowsHalf = g.rowsHalf; in.x0 = g.x0; in.cz = g.cz; in.maxH = g.maxH == INT_MIN ? 0 : g.maxH;
+        in.col = g.col.data(); in.h = h32.data(); in.sky = g.sky.data(); in.rec = gpuRec.data();
+        std::vector<uint32_t> gp; std::vector<int16_t> gh;
+        if (gpu::bakeShade(in, gp, gh)) {
+            static std::atomic<int> verified{0};
+            if (verified.load() < 2) { // compare the first two tiles with the CPU result; a bad GPU path is switched off
+                ++verified;
+                std::vector<uint32_t> cp; std::vector<int16_t> ch;
+                paintHeightfield(b, W, cp, ch, epoch, true);
+                if (cp.size() == gp.size()) {
+                    double sum = 0; size_t n = 0, mism = 0;
+                    for (size_t i = 0; i < gp.size(); ++i) {
+                        bool ka = (gp[i] >> 24) != 0, kb = (cp[i] >> 24) != 0;
+                        if (ka != kb) { ++mism; continue; }
+                        if (ka) for (int sh = 0; sh <= 16; sh += 8) { sum += std::abs(int((gp[i] >> sh) & 255) - int((cp[i] >> sh) & 255)); ++n; }
+                    }
+                    double mean = n ? sum / double(n) : 0.0;
+                    gpu::bakeLog("GPU tilebake check: mean difference " + std::to_string(mean) + " levels, " + std::to_string(mism) + " coverage mismatches of " + std::to_string(gp.size()) + " px.");
+                    if (mean > 4.0 || mism > gp.size() / 50) { gpu::bakeDisable(); px = std::move(cp); hb = std::move(ch); return; }
+                }
+            }
+            px = std::move(gp); hb = std::move(gh);
+            return;
+        }
+        paintHeightfield(b, W, px, hb, epoch, true); // GPU unavailable for this tile: shade on the CPU
+        return;
     }
     // ---- resolve samples, grade ----
     px.assign(NP, 0u);

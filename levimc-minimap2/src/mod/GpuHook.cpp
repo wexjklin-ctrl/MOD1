@@ -66,6 +66,7 @@ void log(std::string const& m) { if (gLog) gLog(m); }
 
 bool initCtx(ID3D12Device* dev, ID3D12CommandQueue*) {
     gC.dev = dev;
+    bakeSetDevice(dev, gLog);
     for (UINT i = 0; i < kFrames; ++i)
         if (FAILED(dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&gC.alloc[i])))) return false;
     if (FAILED(dev->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, gC.alloc[0], nullptr, IID_PPV_ARGS(&gC.list)))) return false;

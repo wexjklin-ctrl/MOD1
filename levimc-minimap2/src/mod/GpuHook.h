@@ -1,6 +1,8 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
+#include <vector>
 
 namespace diorama_bedrock::gpu {
 
@@ -31,5 +33,20 @@ void fogSetMask(int view, int G, float cx, float cz, float blocks, float const* 
 void fogSetNoise(float const* noise, int N);
 /// Asks for the fog to be drawn in this frame's Present (valid for ~2 presents).
 void fogRequest(FogDraw const& d);
+
+
+// ---- GPU shading of map tiles (GpuBake.cpp); enabled by "tilebake=1" in gpu.txt ----
+struct BakeIn {
+    int W = 0, gn = 0, m = 0, mx = 0, rowsHalf = 0, x0 = 0, cz = 0, maxH = 0;
+    uint32_t const* col = nullptr; // gn*m cells, 0 = unknown
+    int32_t const*  h   = nullptr;
+    float const*    sky = nullptr;
+    uint32_t const* rec = nullptr; // 4 samples * W*W records * 6 uints (cell, a, b, y, colour, type); cell = 0xFFFFFFFF none
+};
+void bakeSetDevice(void* d3d12Device, LogFn logFn);
+bool bakeAvailable();
+void bakeDisable();
+void bakeLog(std::string const& m);
+bool bakeShade(BakeIn const& in, std::vector<uint32_t>& px, std::vector<int16_t>& hb);
 
 } // namespace diorama_bedrock::gpu
