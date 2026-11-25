@@ -62,7 +62,7 @@ namespace diorama_bedrock::minimap {
 
 namespace {
 
-constexpr uint32_t FOG = 0xFFE8EBF0u; // white fog of war (unexplored / not saved)
+constexpr uint32_t FOG = 0xFFD2D7E4u; // white fog of war (unexplored / not saved)
 
 // Wall profile: colour of the block at (top - depth) for each depth; used to paint real building/cliff faces.
 constexpr int NW = 96; // per-block wall profile down to 96 blocks below the top (tall buildings keep every floor and window)
@@ -696,6 +696,10 @@ std::string computeWorldKey(::Level& level) {
     return std::string(seed) + "_" + s;
 }
 
+struct FogChunk { float k = 0.0f; bool mem = false; uint64_t stamp = 0; };
+std::unordered_map<int64_t, FogChunk> gFogChunks;
+uint64_t gFogEpoch = 0;
+
 void asyncQuiesce();
 void resetSlots();
 void clearTiles();
@@ -711,6 +715,8 @@ void switchWorld(std::string const& k) {
     }
     gDirtyRegions.clear();
     gWorldKey = k;
+    gFogChunks.clear();
+    gFogEpoch = gFrame;
     loadWorld();
 }
 
@@ -1465,72 +1471,9 @@ void rasterize(Baked const& b, int W, std::vector<uint32_t>& px, bool soft, uint
             bool edge = (hu != INT16_MIN && std::abs(h - hu) >= 2 && h < hu) || (hl != INT16_MIN && std::abs(h - hl) >= 2 && h < hl);
             if (edge) px[i] = shade(px[i], 0.72f);
         }
-    // ---- volumetric cartoon fog ----
-    // chamfer distance from explored pixels to the unknown area; the edge is eroded by world-anchored noise, shaded as puffy clouds
-    {
-        size_t N = size_t(W) * W;
-        bool   any = false;
-        for (size_t i = 0; i < N; ++i) if (!(px[i] >> 24)) { any = true; break; }
-        if (any) {
-            std::vector<float> dIn(N); // for known px: distance to nearest unknown px
-            {
-                const float INF = 1e9f, D1 = 1.0f, D2 = 1.4142f;
-                for (size_t i = 0; i < N; ++i) dIn[i] = (px[i] >> 24) ? INF : 0.0f;
-                for (int y = 0; y < W; ++y)
-                    for (int x = 0; x < W; ++x) {
-                        size_t i = size_t(y) * W + x; float v = dIn[i];
-                        if (x > 0) v = std::min(v, dIn[i - 1] + D1);
-                        if (y > 0) { v = std::min(v, dIn[i - W] + D1); if (x > 0) v = std::min(v, dIn[i - W - 1] + D2); if (x < W - 1) v = std::min(v, dIn[i - W + 1] + D2); }
-                        dIn[i] = v;
-                    }
-                for (int y = W - 1; y >= 0; --y)
-                    for (int x = W - 1; x >= 0; --x) {
-                        size_t i = size_t(y) * W + x; float v = dIn[i];
-                        if (x < W - 1) v = std::min(v, dIn[i + 1] + D1);
-                        if (y < W - 1) { v = std::min(v, dIn[i + W] + D1); if (x < W - 1) v = std::min(v, dIn[i + W + 1] + D2); if (x > 0) v = std::min(v, dIn[i + W - 1] + D2); }
-                        dIn[i] = v;
-                    }
-            }
-            auto hash = [](int x, int y) { uint32_t h = uint32_t(x) * 374761393u + uint32_t(y) * 668265263u; h = (h ^ (h >> 13)) * 1274126177u; return float((h ^ (h >> 16)) & 0xFFFF) / 65535.0f; };
-            auto vnoise = [&](float fx, float fy) {
-                int ix = int(std::floor(fx)), iy = int(std::floor(fy)); float tx = fx - float(ix), ty = fy - float(iy);
-                tx = tx * tx * (3 - 2 * tx); ty = ty * ty * (3 - 2 * ty);
-                float a0 = hash(ix, iy), b2 = hash(ix + 1, iy), c = hash(ix, iy + 1), d = hash(ix + 1, iy + 1);
-                return (a0 + (b2 - a0) * tx) * (1 - ty) + (c + (d - c) * tx) * ty;
-            };
-            int   wx0 = b.cx - (b.n / 2) * b.step, wz0 = b.cz - (b.n / 2) * b.step;
-            float ws  = float(b.step) / float(PPC);
-            std::vector<float> H(N);
-            for (int y = 0; y < W; ++y)
-                for (int x = 0; x < W; ++x) {
-                    float wxp = float(wx0) + float(x) * ws, wzp = float(wz0) + float(y) * ws / KY;
-                    H[size_t(y) * W + x] = 0.55f * vnoise(wxp * 0.035f, wzp * 0.035f) + 0.30f * vnoise(wxp * 0.09f, wzp * 0.09f) + 0.15f * vnoise(wxp * 0.21f, wzp * 0.21f);
-                }
-            float fadeW = 16.0f * sc, amp = 8.0f * sc; // pixels
-            for (int y = 0; y < W; ++y)
-                for (int x = 0; x < W; ++x) {
-                    size_t i     = size_t(y) * W + x;
-                    bool   known = (px[i] >> 24) != 0;
-                    float  f     = 1.0f; // fog coverage
-                    if (known) {
-                        float t = (dIn[i] + (H[i] - 0.5f) * 2.0f * amp) / fadeW;
-                        t       = std::clamp(t, 0.0f, 1.0f);
-                        f       = 1.0f - t * t * (3.0f - 2.0f * t);
-                        if (f <= 0.003f) continue;
-                    }
-                    // puffy 3D shading: light from north-west on the noise height field
-                    float hx  = H[i + (x < W - 1 ? 1 : 0)] - H[i - (x > 0 ? 1 : 0)];
-                    float hy  = H[i + (y < W - 1 ? size_t(W) : 0)] - H[i - (y > 0 ? size_t(W) : 0)];
-                    float lit = std::clamp(1.0f - (hx + hy) * 9.0f, 0.80f, 1.10f);
-                    float k   = (0.91f + 0.12f * H[i]) * lit;
-                    float fr = float((FOG >> 16) & 255) * k, fg = float((FOG >> 8) & 255) * k, fb = float(FOG & 255) * std::min(1.0f, k + 0.04f);
-                    float tr = known ? float((px[i] >> 16) & 255) : fr, tg = known ? float((px[i] >> 8) & 255) : fg, tb = known ? float(px[i] & 255) : fb;
-                    auto  mixc = [&](float a1, float b1) { return uint32_t(std::clamp(a1 + (b1 - a1) * f, 0.0f, 255.0f)); };
-                    px[i] = 0xFF000000u | (mixc(tr, fr) << 16) | (mixc(tg, fg) << 8) | mixc(tb, fb);
-                }
-        }
-        for (auto& p : px) p |= 0xFF000000u;
-    }
+    // unknown area: flat fog colour. The animated volumetric fog (port of Diorama fog.fsh) is a separate overlay (FogView).
+    for (auto& p : px) if (!(p >> 24)) p = FOG;
+    for (auto& p : px) p |= 0xFF000000u;
     (void)soft;
 }
 
@@ -2327,6 +2270,293 @@ void drawTileMap(::MinecraftUIRenderContext& ctx, ::IClientInstance& client, flo
     if (mx > 0 && mx < sw && my > 0 && my < sh) marker(ctx, mx, my, std::clamp(3.5f * std::pow(256.0f / gZoom, 0.5f), 1.1f, 4.0f), yaw);
 }
 
+
+// ---------- animated volumetric fog overlay: port of Diorama fog.fsh (CPU, worker thread, one texture per view) ----------
+// Known share per cell comes from the chunk cache: freshly scanned chunks ease from 0 to 1 (the fog parts as chunks load);
+// chunks only remembered from disk keep a low haze that thins out as they are scanned again. The fog is a height field marched
+// through the tilted camera in 8 layers, shaded from the north-west, with noise that drifts over time.
+constexpr int kFogNT = 256;
+std::vector<float> gFogNoise; // kFogNT*kFogNT*3, tileable
+
+void fogInitNoise() {
+    if (!gFogNoise.empty()) return;
+    gFogNoise.assign(size_t(kFogNT) * kFogNT * 3, 0.5f);
+    const int Ls[3] = {4, 8, 16};
+    uint32_t  rs    = 0x9E3779B9u;
+    auto      rnd   = [&]() { rs = rs * 1664525u + 1013904223u; return float((rs >> 8) & 0xFFFF) / 65535.0f; };
+    for (int c = 0; c < 3; ++c) {
+        int                L = Ls[c];
+        std::vector<float> lat(size_t(L) * L);
+        for (auto& v : lat) v = rnd();
+        for (int y = 0; y < kFogNT; ++y)
+            for (int x = 0; x < kFogNT; ++x) {
+                float fx = float(x) * float(L) / float(kFogNT), fy = float(y) * float(L) / float(kFogNT);
+                int   ix = int(fx), iy = int(fy);
+                float tx = fx - float(ix), ty = fy - float(iy);
+                tx = tx * tx * (3 - 2 * tx); ty = ty * ty * (3 - 2 * ty);
+                int   x1 = (ix + 1) % L, y1 = (iy + 1) % L;
+                float a0 = lat[size_t(iy) * L + ix], b0 = lat[size_t(iy) * L + x1], c0 = lat[size_t(y1) * L + ix], d0 = lat[size_t(y1) * L + x1];
+                gFogNoise[(size_t(y) * kFogNT + x) * 3 + c] = (a0 + (b0 - a0) * tx) * (1 - ty) + (c0 + (d0 - c0) * tx) * ty;
+            }
+    }
+}
+
+float fogSamp(int ch, float u, float v) {
+    u -= std::floor(u); v -= std::floor(v);
+    float x = u * float(kFogNT) - 0.5f, y = v * float(kFogNT) - 0.5f;
+    float fx = std::floor(x), fy = std::floor(y);
+    float tx = x - fx, ty = y - fy;
+    int   x0 = int(fx) & (kFogNT - 1), y0 = int(fy) & (kFogNT - 1), x1 = (x0 + 1) & (kFogNT - 1), y1 = (y0 + 1) & (kFogNT - 1);
+    auto  at = [&](int xx, int yy) { return gFogNoise[(size_t(yy) * kFogNT + xx) * 3 + ch]; };
+    return (at(x0, y0) * (1 - tx) + at(x1, y0) * tx) * (1 - ty) + (at(x0, y1) * (1 - tx) + at(x1, y1) * tx) * ty;
+}
+
+inline float fSstep(float a, float b, float x) { float t = std::clamp((x - a) / (b - a), 0.0f, 1.0f); return t * t * (3.0f - 2.0f * t); }
+
+void fogBoxBlur(std::vector<float>& a, int G, int r) {
+    if (r < 1) return;
+    std::vector<float> t(a.size()), line(size_t(G) + 2 * r), pre(size_t(G) + 2 * r + 1);
+    auto pass = [&](bool horiz, std::vector<float> const& src, std::vector<float>& dst) {
+        for (int l = 0; l < G; ++l) {
+            for (int k = 0; k < G + 2 * r; ++k) { int sidx = std::clamp(k - r, 0, G - 1); line[size_t(k)] = horiz ? src[size_t(l) * G + sidx] : src[size_t(sidx) * G + l]; }
+            pre[0] = 0.0f;
+            for (int k = 0; k < G + 2 * r; ++k) pre[size_t(k) + 1] = pre[size_t(k)] + line[size_t(k)];
+            for (int k = 0; k < G; ++k) {
+                float v = (pre[size_t(k) + 2 * r + 1] - pre[size_t(k)]) / float(2 * r + 1);
+                if (horiz) dst[size_t(l) * G + k] = v; else dst[size_t(k) * G + l] = v;
+            }
+        }
+    };
+    pass(true, a, t);
+    pass(false, t, a);
+}
+
+struct FogJob {
+    int                G = 0;
+    float              cx = 0, cz = 0, blocks = 64;
+    bool               round = false;
+    float              seconds = 0;
+    std::vector<float> known, lift;
+};
+
+void fogCompute(FogJob const& j, std::vector<uint32_t>& out) {
+    fogInitNoise();
+    const int G = j.G;
+    const size_t N = size_t(G) * G;
+    out.assign(N, 0);
+    const float cellB = j.blocks / float(G);
+    const float stepsF = std::max(0.0f, std::log2(j.blocks / 320.0f)), steps = std::floor(stepsF), frac = stepsF - steps, fogScale = std::exp2(stepsF);
+    const float fogHeight = 10.0f;
+    std::vector<float> nearK = j.known, wideK = j.known, lift = j.lift;
+    fogBoxBlur(nearK, G, std::clamp(int(std::lround(7.0f * fogScale / cellB)), 1, 24));
+    fogBoxBlur(wideK, G, std::clamp(int(std::lround(18.0f * fogScale / cellB)), 2, 48));
+    fogBoxBlur(lift, G, 1);
+    std::vector<float> soft(N);
+    for (size_t i = 0; i < N; ++i) soft[i] = 0.5f * (nearK[i] + wideK[i]);
+
+    auto bil = [&](std::vector<float> const& g, float fx, float fy) {
+        fx = std::clamp(fx - 0.5f, 0.0f, float(G - 1)); fy = std::clamp(fy - 0.5f, 0.0f, float(G - 1));
+        int   x0 = int(fx), y0 = int(fy), x1 = std::min(x0 + 1, G - 1), y1 = std::min(y0 + 1, G - 1);
+        float tx = fx - float(x0), ty = fy - float(y0);
+        return (g[size_t(y0) * G + x0] * (1 - tx) + g[size_t(y0) * G + x1] * tx) * (1 - ty) + (g[size_t(y1) * G + x0] * (1 - tx) + g[size_t(y1) * G + x1] * tx) * ty;
+    };
+    const float t = std::fmod(j.seconds, 1200.0f) / 1200.0f;
+    auto layerN = [&](float nx, float nz) {
+        float a = fogSamp(0, nx + 5.0f * t, nz + 2.0f * t), b = fogSamp(1, nx - 8.0f * t, nz + 3.0f * t), c = fogSamp(2, nx + 13.0f * t, nz - 9.0f * t);
+        float n = a * 0.55f + b * 0.30f + c * 0.15f;
+        return std::clamp(0.5f + (n - 0.5f) * 1.9f, 0.0f, 1.0f);
+    };
+    const float inv = 1.0f / (512.0f * std::exp2(steps + 1.0f));
+    auto noiseAt = [&](float wx, float wz) {
+        float cx = wx * inv, cz = wz * inv;
+        float fine = layerN(cx * 2.0f, cz * 2.0f);
+        return frac == 0.0f ? fine : fine + (layerN(cx, cz) - fine) * frac;
+    };
+    auto thicknessFrom = [&](float known, float n, float lf) {
+        float unknown = 1.0f - known;
+        float edge    = fSstep(0.0f, 0.35f, unknown);
+        float amount  = fSstep(0.12f, 0.75f, unknown + (n - 0.5f) * 1.5f * edge);
+        return fogHeight * (0.12f + 0.88f * lf) * amount * (0.45f + 0.75f * n);
+    };
+    auto thicknessAt = [&](float gx, float gy) {
+        float known = bil(soft, gx, gy);
+        if (known >= 0.95f) return 0.0f;
+        float wx = j.cx + (gx - float(G) * 0.5f) * cellB, wz = j.cz + (gy - float(G) * 0.5f) * cellB / KY;
+        return thicknessFrom(known, noiseAt(wx, wz), bil(lift, gx, gy));
+    };
+    auto h2 = [](int x, int y) { uint32_t h = uint32_t(x) * 374761393u + uint32_t(y) * 668265263u; h = (h ^ (h >> 13)) * 1274126177u; return float((h ^ (h >> 16)) & 0xFFFF) / 65535.0f; };
+    const float lg = std::log2(std::max(cellB, 1e-3f)), q0 = std::exp2(std::floor(lg)), tq = lg - std::floor(lg);
+    const float vx[3] = {0.97f, 0.97f, 0.99f}, vs[3] = {0.48f, 0.55f, 0.67f};
+    const int   LAYERS = 8;
+    const float sunDx = -9.0f * fogScale / cellB, sunDy = -0.4f * 9.0f * fogScale / cellB;
+    const float rad = float(G) * 0.5f;
+    for (int jy = 0; jy < G; ++jy)
+        for (int ix = 0; ix < G; ++ix) {
+            size_t idx = size_t(jy) * G + ix;
+            float  px = float(ix) + 0.5f, py = float(jy) + 0.5f;
+            float  softHere = soft[idx], knownHere = j.known[idx], liftHere = bil(lift, px, py);
+            float  wx = j.cx + (px - rad) * cellB, wz = j.cz + (py - rad) * cellB / KY;
+            float  jit = (h2(int(std::floor(wx / q0)), int(std::floor(wz / q0))) * (1.0f - tq) + h2(int(std::floor(wx / (q0 * 2))), int(std::floor(wz / (q0 * 2)))) * tq) - 0.5f;
+            float  cr = 0, cg = 0, cb = 0, alpha = 0;
+            if (softHere < 0.999f || bil(soft, px, py + fogHeight * HS / cellB) < 0.95f) {
+                for (int L = 0; L < LAYERS; ++L) {
+                    float h  = fogHeight * (1.0f - (float(L) + 0.5f + jit * 0.6f) / float(LAYERS));
+                    float gy = py + h * HS / cellB;
+                    float th = thicknessAt(px, gy);
+                    float a  = fSstep(h - 1.4f, h + 1.4f, th);
+                    if (a <= 0.002f) continue;
+                    float toward = thicknessAt(px + sunDx, gy + sunDy);
+                    float occ    = std::clamp((toward - th) / fogHeight * 2.2f, 0.0f, 1.0f);
+                    float light  = std::clamp(0.2f + 0.7f * (h / fogHeight) + 0.3f - occ * 0.7f, 0.0f, 1.0f);
+                    float la     = a * 0.45f;
+                    float k      = (1.0f - alpha) * la;
+                    cr += k * (vs[0] + (vx[0] - vs[0]) * light); cg += k * (vs[1] + (vx[1] - vs[1]) * light); cb += k * (vs[2] + (vx[2] - vs[2]) * light);
+                    alpha += k;
+                    if (alpha > 0.985f) break;
+                }
+                float floorFog = fSstep(0.5f, 2.5f, thicknessAt(px, py)) * fSstep(0.3f, 0.9f, liftHere);
+                cr += (1 - alpha) * floorFog * vs[0]; cg += (1 - alpha) * floorFog * vs[1]; cb += (1 - alpha) * floorFog * vs[2];
+                alpha += (1 - alpha) * floorFog;
+                alpha *= 1.0f - 0.85f * fSstep(0.45f, 0.95f, softHere);
+                float empty = (1.0f - fSstep(0.3f, 0.85f, knownHere)) * fSstep(0.7f, 1.0f, liftHere);
+                float ccr = alpha > 0.02f ? cr / alpha : vs[0] + (vx[0] - vs[0]) * 0.7f, ccg = alpha > 0.02f ? cg / alpha : vs[1] + (vx[1] - vs[1]) * 0.7f,
+                      ccb = alpha > 0.02f ? cb / alpha : vs[2] + (vx[2] - vs[2]) * 0.7f;
+                cr += (1 - alpha) * empty * ccr; cg += (1 - alpha) * empty * ccg; cb += (1 - alpha) * empty * ccb;
+                alpha += (1 - alpha) * empty;
+            }
+            if (j.round) {
+                float dx = px - rad, dy = py - rad, d = std::sqrt(dx * dx + dy * dy);
+                alpha *= std::clamp((rad - d) / 1.5f, 0.0f, 1.0f) * 1.0f;
+            }
+            float or_ = vs[0] + (vx[0] - vs[0]) * 0.7f, og = vs[1] + (vx[1] - vs[1]) * 0.7f, ob = vs[2] + (vx[2] - vs[2]) * 0.7f;
+            if (alpha > 0.002f) { or_ = cr / alpha; og = cg / alpha; ob = cb / alpha; } else alpha = 0.0f;
+            auto b8 = [](float v) { return uint32_t(std::clamp(v, 0.0f, 1.0f) * 255.0f + 0.5f); };
+            out[idx] = (b8(alpha) << 24) | (b8(or_) << 16) | (b8(og) << 8) | b8(ob);
+        }
+}
+
+struct FogView {
+    Tex                   tex;
+    bool                  jobReady = false, running = false, resultReady = false, shown = false;
+    FogJob                job;
+    std::vector<uint32_t> out;
+    int                   G = 0;
+    float                 rCx = 0, rCz = 0, rBl = 64;    // params of the finished result
+    float                 pCx = 0, pCz = 0, pBl = 64;    // of the upload in flight
+    float                 sCx = 0, sCz = 0, sBl = 64;    // of the displayed texture
+    uint64_t              lastReq = 0, lastBuildTick = 0;
+};
+FogView                 gFogMini, gFogBig;
+std::mutex              gFogMx;
+std::condition_variable gFogCv;
+std::thread             gFogThread;
+bool                    gFogStop = false, gFogStarted = false;
+uint64_t                gFogStamp = 0;
+
+void fogWorkerMain() {
+    for (;;) {
+        FogView* v = nullptr;
+        FogJob   job;
+        {
+            std::unique_lock<std::mutex> lk(gFogMx);
+            gFogCv.wait(lk, [] { return gFogStop || gFogMini.jobReady || gFogBig.jobReady; });
+            if (gFogStop) return;
+            v   = gFogBig.jobReady ? &gFogBig : &gFogMini;
+            job = std::move(v->job);
+            v->jobReady = false;
+            v->running  = true;
+        }
+        std::vector<uint32_t> out;
+        try { fogCompute(job, out); } catch (...) { out.clear(); }
+        {
+            std::lock_guard<std::mutex> lk(gFogMx);
+            if (!out.empty()) { v->out = std::move(out); v->G = job.G; v->rCx = job.cx; v->rCz = job.cz; v->rBl = job.blocks; v->resultReady = true; }
+            v->running = false;
+        }
+    }
+}
+
+void fogBuildMask(FogJob& j, int G, float cx, float cz, float blocks, bool round, float dt) {
+    j.G = G; j.cx = cx; j.cz = cz; j.blocks = blocks; j.round = round;
+    size_t N = size_t(G) * G;
+    j.known.assign(N, 0.0f);
+    j.lift.assign(N, 1.0f);
+    float cellB = blocks / float(G);
+    float ease  = 1.0f - std::exp(-std::clamp(dt, 0.0f, 0.5f) / 0.9f);
+    ++gFogStamp;
+    std::lock_guard<std::mutex> lk(gMapMx);
+    int64_t lastKey = INT64_MIN; float lk_ = 0.0f, ll_ = 1.0f;
+    for (int jy = 0; jy < G; ++jy)
+        for (int ix = 0; ix < G; ++ix) {
+            float wx = cx + (float(ix) + 0.5f - float(G) * 0.5f) * cellB, wz = cz + (float(jy) + 0.5f - float(G) * 0.5f) * cellB / KY;
+            int   ccx = floorDiv16(int(std::floor(wx))), ccz = floorDiv16(int(std::floor(wz)));
+            int64_t kk = key(ccx, ccz);
+            if (kk != lastKey) {
+                lastKey = kk; lk_ = 0.0f; ll_ = 1.0f;
+                auto it = gCache.find(kk);
+                if (it != gCache.end()) {
+                    ChunkData const& cd = it->second;
+                    bool hasData = cd.color[0] | cd.color[255] | cd.color[119] | cd.color[136];
+                    auto fi = gFogChunks.find(kk);
+                    if (fi == gFogChunks.end()) {
+                        FogChunk fc;
+                        fc.mem = hasData && !cd.scanned;
+                        fc.k   = cd.scanned ? ((gFrame - gFogEpoch < 600) ? 0.0f : 1.0f) : 0.0f;
+                        fi     = gFogChunks.emplace(kk, fc).first;
+                    }
+                    FogChunk& fc = fi->second;
+                    if (fc.stamp != gFogStamp) {
+                        fc.stamp = gFogStamp;
+                        if (cd.scanned) fc.k += (1.0f - fc.k) * ease;
+                        else { fc.k = 0.0f; if (hasData) fc.mem = true; }
+                    }
+                    lk_ = fc.k;
+                    ll_ = 1.0f - (fc.mem ? 0.88f * (1.0f - fc.k) : 0.0f);
+                }
+            }
+            j.known[size_t(jy) * G + ix] = lk_;
+            j.lift[size_t(jy) * G + ix]  = ll_;
+        }
+}
+
+// Uploads a finished fog image, swaps buffers and queues the next job. (cx,cz) = world point at the view centre.
+void fogTick(::IClientInstance& client, FogView& v, int G, float cx, float cz, float blocks, bool round, float dt) {
+    if (!gFogStarted) { gFogStarted = true; gFogStop = false; gFogThread = std::thread(fogWorkerMain); }
+    if (v.tex.pending && gFrame - v.tex.pendFrame >= 2) { v.tex.cur = 1 - v.tex.cur; v.tex.pending = false; v.shown = true; v.sCx = v.pCx; v.sCz = v.pCz; v.sBl = v.pBl; }
+    if (!v.tex.pending) {
+        std::vector<uint32_t> img; float rcx = 0, rcz = 0, rbl = 64; int rg = 0;
+        {
+            std::lock_guard<std::mutex> lk(gFogMx);
+            if (v.resultReady) { img = std::move(v.out); rg = v.G; rcx = v.rCx; rcz = v.rCz; rbl = v.rBl; v.resultReady = false; }
+        }
+        if (!img.empty() && uploadImage(client, v.tex, img, rg)) { v.tex.pending = true; v.tex.pendFrame = gFrame; v.pCx = rcx; v.pCz = rcz; v.pBl = rbl; }
+    }
+    bool busy;
+    { std::lock_guard<std::mutex> lk(gFogMx); busy = v.jobReady || v.running; }
+    if (!busy && gFrame - v.lastReq >= 3) {
+        uint64_t now = GetTickCount64();
+        float    el  = v.lastBuildTick ? float(now - v.lastBuildTick) / 1000.0f : 0.1f;
+        v.lastBuildTick = now;
+        FogJob job;
+        job.seconds = float(std::fmod(double(now) / 1000.0, 1200.0));
+        fogBuildMask(job, G, cx, cz, blocks, round, el);
+        v.lastReq = gFrame;
+        { std::lock_guard<std::mutex> lk(gFogMx); v.job = std::move(job); v.jobReady = true; }
+        gFogCv.notify_one();
+    }
+}
+
+// Draws the displayed fog texture where its world area lies now (it may be a few frames old), cropped to (cx0,cy0,cx1,cy1).
+void fogDraw(::MinecraftUIRenderContext& ctx, FogView& v, float scrCx, float scrCy, float pxPerBlock, float curCx, float curCz,
+             float cx0, float cy0, float cx1, float cy1) {
+    if (!v.shown || !v.tex.created[v.tex.cur]) return;
+    float sz = v.sBl * pxPerBlock;
+    float x0 = scrCx + (v.sCx - curCx) * pxPerBlock - sz * 0.5f, y0 = scrCy + (v.sCz - curCz) * KY * pxPerBlock - sz * 0.5f;
+    float ax = std::max(x0, cx0), ay = std::max(y0, cy0), bx = std::min(x0 + sz, cx1), by = std::min(y0 + sz, cy1);
+    if (bx <= ax || by <= ay) return;
+    drawTileTex(ctx, v.tex, ax, ay, bx - ax, by - ay, (ax - x0) / sz, (ay - y0) / sz, (bx - ax) / sz, (by - ay) / sz);
+}
+
 int gH0Mini = 64, gH0Big = 64;
 float gSmoothH = -99999.0f;
 float gBigSH = -99999.0f;
@@ -2335,6 +2565,14 @@ float gBigSH = -99999.0f;
 
 void shutdown() {
     removeWheelHook();
+    {
+        std::lock_guard<std::mutex> lk(gFogMx);
+        gFogStop = true;
+    }
+    gFogCv.notify_all();
+    if (gFogThread.joinable()) gFogThread.join();
+    gFogStarted = false;
+    gFogStop    = false;
     {
         std::lock_guard<std::mutex> lk(gTileMx);
         gTileStop = true;
@@ -2501,6 +2739,10 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
             float k = size / sc.vcells;
             drawBaked(ctx, gBig, x - sc.u0 * float(nb) * k, y - sc.v0 * float(nb) * k, k * float(nb));
         }
+        if (texOk) {
+            fogTick(client, gFogBig, 192, tx, tz, gZoom, false, dtf);
+            fogDraw(ctx, gFogBig, sw * 0.5f, sh * 0.5f, size / gZoom, tx, tz, 0.0f, 0.0f, sw, sh);
+        }
         // player marker: smoothed position relative to the same view window
         if (sc.ready) {
             float cell = size / sc.vcells;
@@ -2559,6 +2801,11 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
             float ux   = float(BLOCKS) * 0.5f + (float(pos.x) - float(px));
             float uy   = float(BLOCKS) * 0.5f + (float(pos.z) - float(pz)) * KY;
             marker(ctx, x + ux * cell, y + uy * cell, 1.3f, yaw);
+        }
+        if (drawn) {
+            constexpr float kFogBlocks = 80.0f; // a margin around the 64 visible blocks, so a slightly old image still covers the window
+            fogTick(client, gFogMini, 96, gSX, gSZ, kFogBlocks, gRound, dtf);
+            fogDraw(ctx, gFogMini, x + SIZE * 0.5f, y + SIZE * 0.5f, SIZE / float(VIEW), gSX, gSZ, x, y, x + SIZE, y + SIZE);
         }
         compassLetter(ctx, 'N', x + SIZE / 2, y - 10, true);
         compassLetter(ctx, 'S', x + SIZE / 2, y + SIZE + 10, false);
