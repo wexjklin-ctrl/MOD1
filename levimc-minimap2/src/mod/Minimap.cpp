@@ -32,6 +32,8 @@
 #include "mc/util/HudVisibility.h"
 #include "mc/world/level/BlockPos.h"
 #include "mc/world/level/BlockSource.h"
+#include "mc/world/level/ChunkBlockPos.h"
+#include "mc/world/level/chunk/LevelChunk.h"
 #include "mc/world/level/Level.h"
 #include "mc/world/level/block/Block.h"
 #include "mc/world/level/block/BlockType.h"
@@ -428,16 +430,21 @@ BlkInfo const& blkInfo(::BlockSource& region, ::BlockPos const& p, ::Block const
 constexpr int kScanFloorY = 50; // do not scan below this (caves / mines are not shown)
 
 // need < 0: only colour/height (cheap); else also the wall profile down to `need` blocks (deeper entries repeat the last colour)
-bool scanColumn(::BlockSource& region, int x, int z, uint32_t& col, int16_t& h, uint32_t* wall, int need) {
+bool scanColumn(::BlockSource& region, int x, int z, uint32_t& col, int16_t& h, uint32_t* wall, int need, ::LevelChunk* lc = nullptr) {
     int minH = region.getMinHeight();
+    // read blocks straight from the chunk (no BlockSource chunk lookup per block)
+    auto getB = [&](::BlockPos const& p) -> ::Block const& {
+        if (lc && p.y >= minH && p.y < minH + 384) return lc->getBlock(::ChunkBlockPos(p, short(minH)));
+        return region.getBlock(p);
+    };
     int y    = int(region.getAboveTopSolidBlock(x, z, true, true)) - 1;
     if (y < minH) return false;
     ::BlockPos pos{x, y, z};
-    ::Block const* block = &region.getBlock(pos);
+    ::Block const* block = &getB(pos);
     for (int guard = 0; block->isAir() && y > minH && guard < 24; ++guard) {
         --y;
         pos   = ::BlockPos{x, y, z};
-        block = &region.getBlock(pos);
+        block = &getB(pos);
     }
     if (block->isAir()) return false;
 
@@ -446,7 +453,7 @@ bool scanColumn(::BlockSource& region, int x, int z, uint32_t& col, int16_t& h, 
         int depth = 0;
         for (int yy = y - 1; depth < 6 && yy > minH; --yy) {
             ::BlockPos p2{x, yy, z};
-            if (!isWater(region.getBlock(p2).getTypeName())) break;
+            if (!isWater(getB(p2).getTypeName())) break;
             ++depth;
         }
         float k = 1.0f - float(depth) * 0.08f;
@@ -462,7 +469,7 @@ bool scanColumn(::BlockSource& region, int x, int z, uint32_t& col, int16_t& h, 
                 int yy = y - k;
                 if (k > need || yy < minH || yy < floorY) { wall[k] = 0u; continue; }
                 ::BlockPos p2{x, yy, z};
-                ::Block const& b2 = region.getBlock(p2);
+                ::Block const& b2 = getB(p2);
                 BlkInfo const& bi = blkInfo(region, p2, b2);
                 if (bi.kind) { wall[k] = 0u; continue; } // 0 = air gap (open window, space under a roof or canopy)
                 prev    = bi.side;
@@ -481,12 +488,13 @@ bool scanChunk(::BlockSource& region, int cx, int cz, ChunkData& cd) {
     if (!region.getChunkAt(probe)) return false;
     bool    changed = false;
     int     minH    = region.getMinHeight();
+    ::LevelChunk* lc = region.getChunkAt(probe);
     // pass 1: colour + height of every column (cheap)
     uint32_t cols[256]; int16_t hs[256]; bool ok[256];
     for (int lz = 0; lz < 16; ++lz)
         for (int lx = 0; lx < 16; ++lx) {
             int idx = lz * 16 + lx;
-            ok[idx] = scanColumn(region, cx * 16 + lx, cz * 16 + lz, cols[idx], hs[idx], nullptr, -1);
+            ok[idx] = scanColumn(region, cx * 16 + lx, cz * 16 + lz, cols[idx], hs[idx], nullptr, -1, lc);
         }
     int chunkMinH = INT_MAX;
     for (int q = 0; q < 256; ++q) if (ok[q]) chunkMinH = std::min(chunkMinH, int(hs[q]));
@@ -506,7 +514,7 @@ bool scanChunk(::BlockSource& region, int cx, int cz, ChunkData& cd) {
             else need = std::max(need, 24);
             uint32_t col = 0; int16_t h = 0;
             uint32_t w[NW];
-            if (!scanColumn(region, cx * 16 + lx, cz * 16 + lz, col, h, w, need)) continue;
+            if (!scanColumn(region, cx * 16 + lx, cz * 16 + lz, col, h, w, need, lc)) continue;
             bool wallChanged = storeWall(cd, idx, w);
             if (cd.color[idx] != col || cd.height[idx] != h || wallChanged) {
                 cd.color[idx]  = col;
@@ -2478,6 +2486,38 @@ void contributeToParent(Tile const& c) {
     p.pxFrame = gFrame;
 }
 
+// Video memory: tile textures that have not been drawn for a while are unloaded (the image stays on disk and is reloaded on demand).
+constexpr size_t kTexCap = 160;
+void evictTileTextures(::IClientInstance& client) {
+    if (gFrame % 120 != 0) return;
+    size_t                              live = 0;
+    std::vector<std::pair<uint64_t, Tile*>> cand;
+    for (auto& kv : gTiles) {
+        Tile& t = kv.second;
+        if (!t.tex.created[0] && !t.tex.created[1]) continue;
+        ++live;
+        if (t.tex.pending || gFrame - t.lastUse < 600 || t.diskVer != t.pxVer || !gTileDisk.count(kv.first)) continue;
+        cand.push_back({t.lastUse, &t});
+    }
+    if (live <= kTexCap || cand.empty()) return;
+    auto tg = client.getTextureGroup();
+    if (!tg) return;
+    std::sort(cand.begin(), cand.end(), [](auto const& a, auto const& b) { return a.first < b.first; });
+    size_t n = std::min<size_t>(std::min<size_t>(live - kTexCap, 12), cand.size());
+    for (size_t q = 0; q < n; ++q) {
+        Tile& t = *cand[q].second;
+        for (int k = 0; k < 2; ++k)
+            if (t.tex.created[k]) {
+                ::ResourceLocation loc(::Core::PathView(t.tex.name[k]), ::ResourceFileSystem::UserPackage);
+                tg->unloadTexture(loc, false);
+                t.tex.created[k] = false;
+            }
+        t.shown = false; t.tex.pending = false; t.miss = 0;
+        if (!t.px.empty()) t.upVer = t.pxVer + 1; // upload again when it is drawn
+        else { t.diskTried = false; t.freed = false; } // draw path reloads it from disk
+    }
+}
+
 void tileTick(float tx, float tz, bool bigOpen) {
     for (auto const& c : gChangedChunks) markTilesForChunk(c.first, c.second);
     gChangedChunks.clear();
@@ -3100,6 +3140,7 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
     int groundPlayer = groundHeight(px, pz, int(pos.y) - 2);
 
     if (!gBigMap) tileTick(gSX, gSZ, false);
+    evictTileTextures(client);
     if (gBigMap) {
         // fullscreen like Java Diorama: map fills the screen, top bar with coords + chunk count, bottom hint
         float size = std::max(sw, sh);
