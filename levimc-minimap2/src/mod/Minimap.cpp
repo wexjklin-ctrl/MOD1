@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include "mod/VanillaColors.h"
 #include <set>
+#include <sstream>
 #include "mod/GpuHook.h"
 #include "mod/Minimap.h"
 #include "mod/DioramaMod.h"
@@ -118,6 +119,14 @@ bool storeWall(ChunkData& cd, int idx, uint32_t const* w) {
 }
 
 std::unordered_map<int64_t, ChunkData> gCache;
+std::unordered_set<int64_t>            gKnown;        // chunks with map data (fog + counter), independent of what is in RAM
+std::unordered_map<int64_t, uint64_t>  gRegions;      // regions currently loaded into gCache -> last use frame (main thread only)
+std::unordered_set<int64_t>            gDiskRegions;  // region files that exist on disk
+std::vector<std::pair<int, int>>       gLegacyPending; // regions without an .idx sidecar: loaded once to build it
+std::unordered_set<int64_t>            gTileDisk;     // tile images that exist on disk
+constexpr size_t                       kRegionCap = 10;
+int64_t tkey(int l, int i, int j);
+bool    regionReady(int rx, int rz, bool allowLoad);
 std::mutex                             gMapMx; // guards the STRUCTURE of gCache (insert/clear on main thread vs. find on the bake worker)
 uint64_t                               gFrame   = 0;
 std::vector<std::pair<int, int>>        gChangedChunks; // chunks whose pixels changed (tile invalidation)
@@ -509,6 +518,11 @@ bool scanChunk(::BlockSource& region, int cx, int cz, ChunkData& cd) {
     }
     cd.scanned  = true;
     cd.lastScan = gFrame;
+    {
+        bool any = false;
+        for (int q = 0; q < 256; ++q) if (cd.color[q]) { any = true; break; }
+        if (any) { std::lock_guard<std::mutex> lk(gMapMx); if (gKnown.insert(key(cx, cz)).second) markDirty(cx, cz); }
+    }
     if (changed) {
         ++gVersion;
         markDirty(cx, cz);
@@ -548,6 +562,7 @@ void updateCache(::BlockSource& region, int px, int pz) {
             if (double(qn.QuadPart - q0.QuadPart) * 1000.0 / double(qf.QuadPart) > kBudgetMs) break;
         }
         int  cx = pcx + dx, cz = pcz + dz;
+        if (!regionReady(cx >> 5, cz >> 5, true)) continue; // never create chunks in a region that is not loaded (the file would be overwritten)
         ChunkData* cdp;
         {
             std::lock_guard<std::mutex> lk(gMapMx);
@@ -588,87 +603,224 @@ std::filesystem::path regionFile(int rx, int rz) {
     return worldDir() / ("r." + std::to_string(rx) + "." + std::to_string(rz) + ".bin");
 }
 
+// ---- byte-oriented LZ4 block codec (regions and tile images are stored compressed) ----
+std::vector<uint8_t> lz4Compress(uint8_t const* src, size_t n) {
+    std::vector<uint8_t> out;
+    out.reserve(n / 2 + 64);
+    std::vector<int32_t> ht(1u << 14, -1);
+    auto rd32  = [&](size_t p) { uint32_t v; std::memcpy(&v, src + p, 4); return v; };
+    auto hashf = [](uint32_t v) { return (v * 2654435761u) >> (32 - 14); };
+    auto emitLen = [&](size_t len) { while (len >= 255) { out.push_back(255); len -= 255; } out.push_back(uint8_t(len)); };
+    size_t ip = 0, anchor = 0;
+    if (n >= 13) {
+        size_t limit = n - 12;
+        while (ip < limit) {
+            uint32_t h = hashf(rd32(ip));
+            int32_t  ref = ht[h];
+            ht[h] = int32_t(ip);
+            if (ref >= 0 && ip - size_t(ref) < 65536 && rd32(size_t(ref)) == rd32(ip)) {
+                size_t ml = 4, maxm = n - 5 - ip;
+                while (ml < maxm && src[size_t(ref) + ml] == src[ip + ml]) ++ml;
+                size_t lit = ip - anchor, mlc = ml - 4;
+                out.push_back(uint8_t(((lit >= 15 ? 15 : lit) << 4) | (mlc >= 15 ? 15 : mlc)));
+                if (lit >= 15) emitLen(lit - 15);
+                out.insert(out.end(), src + anchor, src + ip);
+                uint16_t off = uint16_t(ip - size_t(ref));
+                out.push_back(uint8_t(off & 255)); out.push_back(uint8_t(off >> 8));
+                if (mlc >= 15) emitLen(mlc - 15);
+                ip += ml; anchor = ip;
+            } else ++ip;
+        }
+    }
+    size_t lit = n - anchor;
+    out.push_back(uint8_t((lit >= 15 ? 15 : lit) << 4));
+    if (lit >= 15) emitLen(lit - 15);
+    out.insert(out.end(), src + anchor, src + n);
+    return out;
+}
+
+bool lz4Decompress(uint8_t const* src, size_t cn, uint8_t* dst, size_t rawN) {
+    size_t ip = 0, op = 0;
+    while (ip < cn) {
+        uint8_t tok = src[ip++];
+        size_t  lit = tok >> 4;
+        if (lit == 15) { uint8_t b; do { if (ip >= cn) return false; b = src[ip++]; lit += b; } while (b == 255); }
+        if (ip + lit > cn || op + lit > rawN) return false;
+        std::memcpy(dst + op, src + ip, lit); ip += lit; op += lit;
+        if (ip >= cn) break;
+        if (ip + 2 > cn) return false;
+        size_t off = size_t(src[ip]) | (size_t(src[ip + 1]) << 8); ip += 2;
+        if (off == 0 || off > op) return false;
+        size_t ml = tok & 15;
+        if (ml == 15) { uint8_t b; do { if (ip >= cn) return false; b = src[ip++]; ml += b; } while (b == 255); }
+        ml += 4;
+        if (op + ml > rawN) return false;
+        for (size_t k = 0; k < ml; ++k) { dst[op] = dst[op - off]; ++op; }
+    }
+    return op == rawN;
+}
+
+std::filesystem::path regionIdxFile(int rx, int rz) {
+    return worldDir() / ("r." + std::to_string(rx) + "." + std::to_string(rz) + ".idx");
+}
+
+void putBytes(std::vector<uint8_t>& v, void const* p, size_t n) {
+    auto const* b = static_cast<uint8_t const*>(p);
+    v.insert(v.end(), b, b + n);
+}
+
+// DBM7: header (magic, chunk count, raw size, compressed size) + one LZ4 block holding the DBM6 chunk records.
+// Next to it r.X.Z.idx: 1024-bit map of the chunks that have data, so the "known chunks" list loads without reading the region.
 void saveRegion(int rx, int rz) {
     if (gWorldKey.empty()) return;
     std::error_code ec;
     std::filesystem::create_directories(worldDir(), ec);
-    std::ofstream f(regionFile(rx, rz), std::ios::binary | std::ios::trunc);
-    if (!f) return;
-    uint32_t count = 0;
-    for (int dz = 0; dz < 32; ++dz)
-        for (int dx = 0; dx < 32; ++dx) {
-            auto it = gCache.find(key(rx * 32 + dx, rz * 32 + dz));
-            if (it != gCache.end()) { ++count; }
-        }
-    f.write("DBM6", 4);
-    f.write(reinterpret_cast<char const*>(&count), 4);
+    std::vector<uint8_t> raw;
+    uint32_t             count = 0;
+    uint8_t              idx[128] = {};
     for (int dz = 0; dz < 32; ++dz)
         for (int dx = 0; dx < 32; ++dx) {
             int  cx = rx * 32 + dx, cz = rz * 32 + dz;
             auto it = gCache.find(key(cx, cz));
             if (it == gCache.end()) continue;
-            f.write(reinterpret_cast<char const*>(&cx), 4);
-            f.write(reinterpret_cast<char const*>(&cz), 4);
-            f.write(reinterpret_cast<char const*>(it->second.color.data()), 256 * 4);
-            f.write(reinterpret_cast<char const*>(it->second.height.data()), 256 * 2);
-            uint16_t pn = uint16_t(it->second.palN);
-            f.write(reinterpret_cast<char const*>(&pn), 2);
-            f.write(reinterpret_cast<char const*>(it->second.pal.data()), pn * 4);
-            f.write(reinterpret_cast<char const*>(it->second.wallId.data()), 256 * NW);
-            it->second.dirty = false;
+            ChunkData& cd = it->second;
+            ++count;
+            putBytes(raw, &cx, 4); putBytes(raw, &cz, 4);
+            putBytes(raw, cd.color.data(), 256 * 4);
+            putBytes(raw, cd.height.data(), 256 * 2);
+            uint16_t pn = uint16_t(cd.palN);
+            putBytes(raw, &pn, 2);
+            putBytes(raw, cd.pal.data(), size_t(pn) * 4);
+            putBytes(raw, cd.wallId.data(), 256 * NW);
+            cd.dirty = false;
+            for (int q = 0; q < 256; ++q) if (cd.color[q]) { int bit = dz * 32 + dx; idx[bit >> 3] |= uint8_t(1u << (bit & 7)); break; }
         }
+    std::vector<uint8_t> comp = lz4Compress(raw.data(), raw.size());
+    auto                 path = regionFile(rx, rz);
+    auto                 tmp  = path; tmp += ".tmp";
+    {
+        std::ofstream f(tmp, std::ios::binary | std::ios::trunc);
+        if (!f) return;
+        uint32_t rs = uint32_t(raw.size()), cs = uint32_t(comp.size());
+        f.write("DBM7", 4);
+        f.write(reinterpret_cast<char const*>(&count), 4);
+        f.write(reinterpret_cast<char const*>(&rs), 4);
+        f.write(reinterpret_cast<char const*>(&cs), 4);
+        f.write(reinterpret_cast<char const*>(comp.data()), std::streamsize(comp.size()));
+        if (!f) return;
+    }
+    std::filesystem::rename(tmp, path, ec);
+    if (ec) return;
+    {
+        std::ofstream f(regionIdxFile(rx, rz), std::ios::binary | std::ios::trunc);
+        if (f) f.write(reinterpret_cast<char const*>(idx), 128);
+    }
+    gDiskRegions.insert(key(rx, rz));
 }
 
 void saveAll() {
-    for (int64_t k : gDirtyRegions) saveRegion(int(k >> 32), int(int32_t(uint32_t(k & 0xFFFFFFFFu))));
+    for (int64_t k : gDirtyRegions) {
+        int rx = int(k >> 32), rz = int(int32_t(uint32_t(k & 0xFFFFFFFFu)));
+        if (gRegions.count(k)) saveRegion(rx, rz); // only regions that are in RAM can be dirty
+    }
     gDirtyRegions.clear();
 }
 
+void loadRegionStream(std::istream& f, char ver, uint32_t count) {
+    for (uint32_t i = 0; i < count && i < 1024; ++i) {
+        int       cx = 0, cz = 0;
+        ChunkData cd;
+        if (!f.read(reinterpret_cast<char*>(&cx), 4) || !f.read(reinterpret_cast<char*>(&cz), 4)) break;
+        if (!f.read(reinterpret_cast<char*>(cd.color.data()), 256 * 4)) break;
+        if (!f.read(reinterpret_cast<char*>(cd.height.data()), 256 * 2)) break;
+        if (ver >= '6') {
+            uint16_t pn = 0;
+            if (!f.read(reinterpret_cast<char*>(&pn), 2) || pn < 1 || pn > 255) break;
+            if (!f.read(reinterpret_cast<char*>(cd.pal.data()), pn * 4)) break;
+            if (!f.read(reinterpret_cast<char*>(cd.wallId.data()), 256 * NW)) break;
+            cd.palN = pn;
+        } else {
+            // old formats: wall profile of 32/16/8 u32 entries per column; convert (top colour for the whole depth when unknown)
+            int oldN = ver == '5' ? 32 : (ver == '4' ? 16 : (ver == '3' ? 8 : 0));
+            static constexpr int d5[32] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 26, 29, 32, 36, 40, 48, 56, 64};
+            static constexpr int d4[16] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 17, 21, 26, 32};
+            static constexpr int d3[8]  = {0, 1, 2, 4, 7, 11, 16, 24};
+            std::vector<uint32_t> old(size_t(256) * size_t(std::max(oldN, 1)), 0u);
+            if (oldN && !f.read(reinterpret_cast<char*>(old.data()), std::streamsize(old.size() * 4))) break;
+            int const* dt = oldN == 32 ? d5 : (oldN == 16 ? d4 : d3);
+            for (int i2 = 0; i2 < 256; ++i2) {
+                uint32_t w[NW];
+                for (int k = 0; k < NW; ++k) {
+                    if (!oldN) { w[k] = cd.color[i2]; continue; }
+                    int o = 0;
+                    while (o + 1 < oldN && dt[o + 1] <= k) ++o;
+                    w[k] = old[size_t(i2) * size_t(oldN) + size_t(o)];
+                }
+                storeWall(cd, i2, w);
+            }
+        }
+        cd.scanned = false; // will be refreshed when the chunk is loaded again
+        bool any = false;
+        for (int q = 0; q < 256; ++q) if (cd.color[q]) { any = true; break; }
+        std::lock_guard<std::mutex> lk(gMapMx);
+        if (gCache.emplace(key(cx, cz), std::move(cd)).second && any) gKnown.insert(key(cx, cz));
+    }
+}
+
+void loadRegionFile(int rx, int rz) {
+    std::ifstream f(regionFile(rx, rz), std::ios::binary);
+    char          magic[4] = {};
+    uint32_t      count    = 0;
+    if (!f.read(magic, 4) || std::string(magic, 3) != "DBM" || magic[3] < '2' || magic[3] > '7' || !f.read(reinterpret_cast<char*>(&count), 4)) return;
+    if (magic[3] == '7') {
+        uint32_t rs = 0, cs = 0;
+        if (!f.read(reinterpret_cast<char*>(&rs), 4) || !f.read(reinterpret_cast<char*>(&cs), 4) || rs > (1u << 28) || cs > (1u << 28)) return;
+        std::vector<uint8_t> comp(cs);
+        if (!f.read(reinterpret_cast<char*>(comp.data()), std::streamsize(cs))) return;
+        std::string raw(rs, '\0');
+        if (!lz4Decompress(comp.data(), cs, reinterpret_cast<uint8_t*>(raw.data()), rs)) return;
+        std::istringstream is(std::move(raw), std::ios::binary);
+        loadRegionStream(is, '7', count);
+    } else loadRegionStream(f, magic[3], count);
+}
+
+// Lazy loading: a region is read into RAM only when something needs its chunks (scanning near the player, baking a tile).
+bool regionReady(int rx, int rz, bool allowLoad) {
+    int64_t k  = key(rx, rz);
+    auto    it = gRegions.find(k);
+    if (it != gRegions.end()) { it->second = gFrame; return true; }
+    if (!allowLoad) return false;
+    static uint64_t lastLoad = UINT64_MAX;
+    if (lastLoad == gFrame) return false; // one region read per frame
+    lastLoad = gFrame;
+    if (gDiskRegions.count(k)) loadRegionFile(rx, rz);
+    gRegions[k] = gFrame;
+    return true;
+}
+
+// Startup only lists what is on disk: region files, their .idx bitmaps (-> known chunks for the fog) and tile images. No chunk data is read.
 void loadWorld() {
     if (gWorldKey.empty()) return;
     std::error_code ec;
+    gKnown.clear(); gRegions.clear(); gDiskRegions.clear(); gLegacyPending.clear(); gTileDisk.clear();
     for (auto const& e : std::filesystem::directory_iterator(worldDir(), ec)) {
         if (ec) break;
-        std::ifstream f(e.path(), std::ios::binary);
-        char          magic[4] = {};
-        uint32_t      count    = 0;
-        if (!f.read(magic, 4) || std::string(magic, 2) != "DB" || magic[2] != 'M' || magic[3] < '2' || magic[3] > '6' || !f.read(reinterpret_cast<char*>(&count), 4)) continue;
-        for (uint32_t i = 0; i < count && i < 1024; ++i) {
-            int       cx = 0, cz = 0;
-            ChunkData cd;
-            if (!f.read(reinterpret_cast<char*>(&cx), 4) || !f.read(reinterpret_cast<char*>(&cz), 4)) break;
-            if (!f.read(reinterpret_cast<char*>(cd.color.data()), 256 * 4)) break;
-            if (!f.read(reinterpret_cast<char*>(cd.height.data()), 256 * 2)) break;
-            if (magic[3] == '6') {
-                uint16_t pn = 0;
-                if (!f.read(reinterpret_cast<char*>(&pn), 2) || pn < 1 || pn > 255) break;
-                if (!f.read(reinterpret_cast<char*>(cd.pal.data()), pn * 4)) break;
-                if (!f.read(reinterpret_cast<char*>(cd.wallId.data()), 256 * NW)) break;
-                cd.palN = pn;
-            } else {
-                // old formats: wall profile of 32/16/8 u32 entries per column; convert (top colour for the whole depth when unknown)
-                int oldN = magic[3] == '5' ? 32 : (magic[3] == '4' ? 16 : (magic[3] == '3' ? 8 : 0));
-                static constexpr int d5[32] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 26, 29, 32, 36, 40, 48, 56, 64};
-                static constexpr int d4[16] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 17, 21, 26, 32};
-                static constexpr int d3[8]  = {0, 1, 2, 4, 7, 11, 16, 24};
-                std::vector<uint32_t> old(size_t(256) * size_t(std::max(oldN, 1)), 0u);
-                if (oldN && !f.read(reinterpret_cast<char*>(old.data()), std::streamsize(old.size() * 4))) break;
-                int const* dt = oldN == 32 ? d5 : (oldN == 16 ? d4 : d3);
-                for (int i2 = 0; i2 < 256; ++i2) {
-                    uint32_t w[NW];
-                    for (int k = 0; k < NW; ++k) {
-                        if (!oldN) { w[k] = cd.color[i2]; continue; }
-                        int o = 0;
-                        while (o + 1 < oldN && dt[o + 1] <= k) ++o;
-                        w[k] = old[size_t(i2) * size_t(oldN) + size_t(o)];
-                    }
-                    storeWall(cd, i2, w);
-                }
-            }
-            cd.scanned = false; // will be refreshed when the chunk is loaded again
-            std::lock_guard<std::mutex> lk(gMapMx);
-            gCache[key(cx, cz)] = cd;
-        }
+        std::string name = e.path().filename().string();
+        int         rx = 0, rz = 0; char tail[8] = {};
+        if (std::sscanf(name.c_str(), "r.%d.%d.%7s", &rx, &rz, tail) != 3 || std::string(tail) != "bin") continue;
+        gDiskRegions.insert(key(rx, rz));
+        std::ifstream f(regionIdxFile(rx, rz), std::ios::binary);
+        uint8_t       idx[128] = {};
+        if (f.read(reinterpret_cast<char*>(idx), 128)) {
+            for (int bit = 0; bit < 1024; ++bit)
+                if (idx[bit >> 3] & (1u << (bit & 7))) gKnown.insert(key(rx * 32 + (bit & 31), rz * 32 + (bit >> 5)));
+        } else gLegacyPending.push_back({rx, rz});
+    }
+    for (auto const& e : std::filesystem::directory_iterator(worldDir() / "tiles", ec)) {
+        if (ec) break;
+        std::string name = e.path().filename().string();
+        int         l = 0, i = 0, j = 0; char tail[8] = {};
+        if (std::sscanf(name.c_str(), "t%d.%d.%d.%7s", &l, &i, &j, tail) == 4 && std::string(tail) == "dtl") gTileDisk.insert(tkey(l, i, j));
     }
     ++gVersion;
 }
@@ -725,6 +877,7 @@ void switchWorld(std::string const& k) {
         gCache.clear();
     }
     gDirtyRegions.clear();
+    gKnown.clear(); gRegions.clear(); gDiskRegions.clear(); gLegacyPending.clear(); gTileDisk.clear();
     gWorldKey = k;
     gFogChunks.clear();
     gFogChunksBig.clear();
@@ -1983,6 +2136,32 @@ void tileQuiesce() {
     gTileIdleCv.wait(lk, [] { return gTileBusyN == 0; });
 }
 
+// Region housekeeping (main thread, every frame): finish legacy regions, drop the least recently used regions from RAM.
+void pumpRegions() {
+    if (!gLegacyPending.empty() && gFrame % 10 == 0) {
+        auto c = gLegacyPending.back();
+        if (regionReady(c.first, c.second, true)) { gLegacyPending.pop_back(); markDirty(c.first * 32, c.second * 32); } // rewritten compressed + .idx on save/evict
+    }
+    if (gRegions.size() <= kRegionCap) return;
+    {
+        std::lock_guard<std::mutex> lk(gTileMx);
+        if (gTileBusyN != 0 || !gTileQueue.empty()) return; // bakers read chunk data: evict only while they are idle
+    }
+    while (gRegions.size() > kRegionCap) {
+        int64_t best = 0; uint64_t bu = UINT64_MAX;
+        for (auto const& kv : gRegions) if (kv.second + 3 < gFrame && kv.second < bu) { bu = kv.second; best = kv.first; }
+        if (bu == UINT64_MAX) break;
+        int rx = int(best >> 32), rz = int(int32_t(uint32_t(best & 0xFFFFFFFFu)));
+        if (gDirtyRegions.count(best)) { saveRegion(rx, rz); gDirtyRegions.erase(best); }
+        {
+            std::lock_guard<std::mutex> lk(gMapMx);
+            for (int dz = 0; dz < 32; ++dz)
+                for (int dx = 0; dx < 32; ++dx) gCache.erase(key(rx * 32 + dx, rz * 32 + dz));
+        }
+        gRegions.erase(best);
+    }
+}
+
 void asyncQuiesce() {
     ++gEpoch; // running jobs abort at the next row, queued/finished ones are dropped
     std::unique_lock<std::mutex> lk(gAsyncMx);
@@ -2083,6 +2262,8 @@ struct Tile {
     uint64_t              pxVer = 0, upVer = 0, propVer = 0, pxFrame = 0, staleFrame = 0, lastUse = 0;
     bool                  baked = false, queued = false, stale = false, content = false, shown = false;
     int                   miss = 0;
+    uint64_t              diskVer = 0; // pxVer that is stored on disk
+    bool                  diskTried = false;
 };
 std::unordered_map<int64_t, Tile> gTiles;
 
@@ -2096,6 +2277,80 @@ Tile* findTile(int l, int i, int j) {
     return it == gTiles.end() ? nullptr : &it->second;
 }
 
+// ---- tile images on disk: LZ4 over byte planes (all B, all G, all R, all A) ----
+constexpr uint32_t kTileFmt = 1; // bump whenever the painter output changes: older images are then ignored and baked again
+
+std::filesystem::path tileFile(int l, int i, int j) {
+    return worldDir() / "tiles" / ("t" + std::to_string(l) + "." + std::to_string(i) + "." + std::to_string(j) + ".dtl");
+}
+
+bool writeTileFile(int l, int i, int j, std::vector<uint32_t> const& px) {
+    if (gWorldKey.empty() || px.empty()) return false;
+    size_t               N = px.size();
+    std::vector<uint8_t> raw(N * 4);
+    for (size_t q = 0; q < N; ++q) {
+        uint32_t v = px[q];
+        raw[q] = uint8_t(v); raw[N + q] = uint8_t(v >> 8); raw[2 * N + q] = uint8_t(v >> 16); raw[3 * N + q] = uint8_t(v >> 24);
+    }
+    std::vector<uint8_t> comp = lz4Compress(raw.data(), raw.size());
+    std::error_code      ec;
+    auto                 path = tileFile(l, i, j);
+    std::filesystem::create_directories(path.parent_path(), ec);
+    auto tmp = path; tmp += ".tmp";
+    {
+        std::ofstream f(tmp, std::ios::binary | std::ios::trunc);
+        if (!f) return false;
+        uint32_t hdr[3] = {kTileFmt, uint32_t(N), uint32_t(comp.size())};
+        f.write("DTL1", 4);
+        f.write(reinterpret_cast<char const*>(hdr), 12);
+        f.write(reinterpret_cast<char const*>(comp.data()), std::streamsize(comp.size()));
+        if (!f) return false;
+    }
+    std::filesystem::rename(tmp, path, ec);
+    return !ec;
+}
+
+bool readTileFile(int l, int i, int j, std::vector<uint32_t>& px) {
+    std::ifstream f(tileFile(l, i, j), std::ios::binary);
+    char          m[4] = {};
+    uint32_t      hdr[3] = {};
+    if (!f.read(m, 4) || std::memcmp(m, "DTL1", 4) != 0 || !f.read(reinterpret_cast<char*>(hdr), 12)) return false;
+    size_t N = size_t(kTW) * size_t(kTexH);
+    if (hdr[0] != kTileFmt || hdr[1] != N || hdr[2] > (1u << 26)) return false;
+    std::vector<uint8_t> comp(hdr[2]), raw(N * 4);
+    if (!f.read(reinterpret_cast<char*>(comp.data()), std::streamsize(comp.size()))) return false;
+    if (!lz4Decompress(comp.data(), comp.size(), raw.data(), raw.size())) return false;
+    px.resize(N);
+    for (size_t q = 0; q < N; ++q) px[q] = uint32_t(raw[q]) | (uint32_t(raw[N + q]) << 8) | (uint32_t(raw[2 * N + q]) << 16) | (uint32_t(raw[3 * N + q]) << 24);
+    return true;
+}
+
+bool tileLoadBudget() {
+    static uint64_t at = UINT64_MAX; static int n = 0;
+    if (at != gFrame) { at = gFrame; n = 0; }
+    return n++ < 2; // at most two disk loads per frame
+}
+
+// Loads a tile that exists only on disk (nothing in RAM yet).
+Tile* tileFromDisk(int l, int i, int j) {
+    if (!gTileDisk.count(tkey(l, i, j)) || !tileLoadBudget()) return nullptr;
+    std::vector<uint32_t> px;
+    if (!readTileFile(l, i, j, px)) { gTileDisk.erase(tkey(l, i, j)); return nullptr; }
+    Tile& t = tileAt(l, i, j);
+    t.px = std::move(px); t.pxVer = 1; t.propVer = 1; t.diskVer = 1; t.baked = true; t.content = true; t.diskTried = true; t.pxFrame = gFrame;
+    return &t;
+}
+
+// Existing in-RAM entry without pixels (created by a chunk change, or its pixels were freed): bring the stored image back.
+void ensureTilePx(Tile& t, bool force = false) {
+    if (!t.px.empty() || t.diskTried || !gTileDisk.count(tkey(t.l, t.i, t.j))) return;
+    if (!force && !tileLoadBudget()) return;
+    t.diskTried = true;
+    std::vector<uint32_t> px;
+    if (!readTileFile(t.l, t.i, t.j, px)) return;
+    t.px = std::move(px); t.pxVer += 1; t.propVer = t.pxVer; t.diskVer = t.pxVer; t.pxFrame = gFrame;
+}
+
 void clearTiles() {
     gTiles.clear();
     gTilesInit = false;
@@ -2103,12 +2358,13 @@ void clearTiles() {
 }
 
 // A changed chunk can show up in every level-0 tile whose bake window (x -32..+32 blocks, z rows -40..+110 for lifted roofs) reaches it.
-void markTilesForChunk(int cx, int cz) {
+void markTilesForChunk(int cx, int cz, bool init = false) {
     int x0 = cx * 16, z0 = cz * 16;
     for (int i = fdiv(x0 - 160, kTileX); i <= fdiv(x0 + 48, kTileX); ++i) {
         if (!(kTileX * i - 32 < x0 + 16 && kTileX * i + kTileX + 32 > x0)) continue;
         for (int j = fdiv(z0 - 480, kTileZ); j <= fdiv(z0 + 82, kTileZ); ++j) {
             if (!(kTileZ * j - 65 < z0 + 16 && kTileZ * j + kTileZ + 65 + 160 > z0)) continue;
+            if (init && gTileDisk.count(tkey(0, i, j))) continue; // already stored: no bake needed
             Tile& t = tileAt(0, i, j);
             t.content = true; t.stale = true; t.staleFrame = gFrame;
         }
@@ -2119,18 +2375,16 @@ void initTilesFromCache() {
     std::vector<std::pair<int, int>> cs;
     {
         std::lock_guard<std::mutex> lk(gMapMx);
-        for (auto const& [k, cd] : gCache) {
-            bool any = false;
-            for (int q = 0; q < 256; ++q) if (cd.color[q]) { any = true; break; }
-            if (any) cs.push_back({int(int32_t(uint32_t(k >> 32))), int(int32_t(uint32_t(k & 0xFFFFFFFFu)))});
-        }
+        cs.reserve(gKnown.size());
+        for (int64_t k : gKnown) cs.push_back({int(int32_t(uint32_t(uint64_t(k) >> 32))), int(int32_t(uint32_t(k & 0xFFFFFFFFu)))});
     }
-    for (auto const& c : cs) markTilesForChunk(c.first, c.second);
+    for (auto const& c : cs) markTilesForChunk(c.first, c.second, true);
     gTilesInit = true;
 }
 
 void contributeToParent(Tile const& c) {
     Tile& p = tileAt(c.l + 1, fdiv(c.i, 2), fdiv(c.j, 2));
+    ensureTilePx(p, true); // keep the other three quarters from the stored image
     if (p.px.empty()) p.px.assign(size_t(kTW) * size_t(kTexH), 0u);
     int qx = (c.i & 1) * (kTW / 2), qy = (c.j & 1) * (kTH / 2);
     for (int y = 0; y < kTH / 2; ++y)
@@ -2177,8 +2431,8 @@ void tileTick(float tx, float tz, bool bigOpen) {
         if (t.l < kLMax) { contributeToParent(t); --work; }
         t.propVer = t.pxVer;
     }
-    // schedule bakes: nearest to the view first
-    if (gFrame % 12 == 0) {
+    // schedule bakes: nearest to the view first. The chunk data a tile needs is loaded from disk first (a few regions at a time).
+    if (gFrame % 12 == 0 && gRegions.size() <= kRegionCap + 6) {
         size_t queued;
         { std::lock_guard<std::mutex> lk(gTileMx); queued = gTileQueue.size(); }
         if (queued < 3) {
@@ -2191,25 +2445,42 @@ void tileTick(float tx, float tz, bool bigOpen) {
                 cand.push_back({dx * dx + dz * dz, &t});
             }
             std::sort(cand.begin(), cand.end(), [](auto const& a, auto const& b) { return a.first < b.first; });
-            size_t take = std::min<size_t>(cand.size(), 3 - queued);
-            std::lock_guard<std::mutex> lk(gTileMx);
-            for (size_t k = 0; k < take; ++k) {
+            size_t              take = std::min<size_t>(cand.size(), 3 - queued);
+            std::vector<Tile*>  pick;
+            for (size_t k = 0; k < cand.size() && k < 8 && pick.size() < take; ++k) {
                 Tile* t = cand[k].second;
+                bool  ready = true;
+                for (int rx = (kTileX * t->i - 48) >> 9; rx <= (kTileX * t->i + 160) >> 9; ++rx)
+                    for (int rz = (kTileZ * t->j - 81) >> 9; rz <= (kTileZ * t->j + 480) >> 9; ++rz)
+                        if (!regionReady(rx, rz, true)) ready = false;
+                if (ready) pick.push_back(t);
+            }
+            std::lock_guard<std::mutex> lk(gTileMx);
+            for (Tile* t : pick) {
                 t->queued = true; t->stale = false;
                 gTileQueue.push_back({t->i, t->j, gEpoch.load()});
             }
-            if (take) gTileCv.notify_all();
+            if (!pick.empty()) gTileCv.notify_all();
+        }
+    }
+    // store finished tiles (one per pass): compressed images on disk, so they are never baked twice
+    if (gFrame % 20 == 0) {
+        for (auto& kv : gTiles) {
+            Tile& t = kv.second;
+            if (t.px.empty() || t.diskVer == t.pxVer || t.queued || gFrame - t.pxFrame < 90) continue;
+            if (writeTileFile(t.l, t.i, t.j, t.px)) { t.diskVer = t.pxVer; gTileDisk.insert(kv.first); }
+            break;
         }
     }
     // keep RAM bounded: level-0 pixel copies that are already on the GPU and propagated can be dropped
     if (gFrame % 60 == 0) {
         int cnt = 0;
-        for (auto& kv : gTiles) if (kv.second.l == 0 && !kv.second.px.empty()) ++cnt;
-        while (cnt > 64) {
+        for (auto& kv : gTiles) if (!kv.second.px.empty()) ++cnt;
+        while (cnt > 96) {
             Tile* old = nullptr;
             for (auto& kv : gTiles) {
                 Tile& t = kv.second;
-                if (t.l != 0 || t.px.empty() || !t.shown || t.upVer != t.pxVer || t.propVer != t.pxVer || t.tex.pending) continue;
+                if (t.px.empty() || !t.shown || t.upVer != t.pxVer || t.propVer != t.pxVer || t.diskVer != t.pxVer || t.tex.pending) continue;
                 if (!old || t.lastUse < old->lastUse) old = &t;
             }
             if (!old) break;
@@ -2249,12 +2520,14 @@ bool drawTileTex(::MinecraftUIRenderContext& ctx, Tex const& t, float x, float y
 void drawTileCell(::MinecraftUIRenderContext& ctx, ::IClientInstance& client, int l, int i, int j, float x, float y, float w, float h, int& uploads) {
     constexpr float kV = float(kTH) / float(kTexH);
     float ow = w + 0.75f, oh = h + 0.75f; // tiny overlap hides hairline seams between neighbours
-    if (Tile* t = findTile(l, i, j)) {
+    Tile* t = findTile(l, i, j);
+    if (!t) t = tileFromDisk(l, i, j); else ensureTilePx(*t);
+    if (t) {
         tileUpload(client, *t, uploads);
         if (tileShown(*t)) {
             if (drawTileTex(ctx, t->tex, x, y, ow, oh, 0.0f, 0.0f, 1.0f, kV)) { t->lastUse = gFrame; t->miss = 0; return; }
             if (++t->miss > 90) { // placeholder never went away: drop the texture and upload/bake again
-                t->miss = 0; t->shown = false; t->tex.pending = false;
+                t->miss = 0; t->shown = false; t->tex.pending = false; t->diskTried = false;
                 t->tex.created[0] = t->tex.created[1] = false;
                 if (!t->px.empty()) t->upVer = t->pxVer + 1;
                 else { t->baked = false; t->queued = false; t->content = true; t->stale = true; t->staleFrame = 0; }
@@ -2265,6 +2538,7 @@ void drawTileCell(::MinecraftUIRenderContext& ctx, ::IClientInstance& client, in
     for (int l2 = l + 1; l2 <= kLMax; ++l2) {
         int k = 1 << (l2 - l), ai = fdiv(i, k), aj = fdiv(j, k);
         Tile* a = findTile(l2, ai, aj);
+        if (!a) a = tileFromDisk(l2, ai, aj); else ensureTilePx(*a);
         if (!a) continue;
         tileUpload(client, *a, uploads);
         if (!tileShown(*a)) continue;
@@ -2539,26 +2813,20 @@ void fogBuildMask(FogJob& j, int G, float cx, float cz, float blocks, bool round
             int64_t kk = key(ccx, ccz);
             if (kk != lastKey) {
                 lastKey = kk; lk_ = 0.0f; ll_ = 1.0f;
-                auto it = gCache.find(kk);
-                if (it != gCache.end()) {
-                    ChunkData const& cd = it->second;
-                    bool hasData = cd.color[0] | cd.color[255] | cd.color[119] | cd.color[136];
+                if (gKnown.count(kk)) { // fog only over chunks without any map data
                     auto fi = chunks.find(kk);
-                    bool rdy = !gate || blocks > 600.0f || fogChunkReady(ccx, ccz); // far zoom shows coarse LOD tiles: no L0 wait
+                    bool rdy = !gate || blocks > 600.0f || fogChunkReady(ccx, ccz);
                     if (fi == chunks.end()) {
                         FogChunk fc;
-                        fc.mem = false;
-                        fc.k   = ((cd.scanned || hasData) && rdy && gFrame - gFogEpoch >= 600) ? 1.0f : 0.0f;
-                        fi     = chunks.emplace(kk, fc).first;
+                        fc.k = (rdy && gFrame - gFogEpoch >= 600) ? 1.0f : 0.0f;
+                        fi   = chunks.emplace(kk, fc).first;
                     }
                     FogChunk& fc = fi->second;
                     if (fc.stamp != gFogStamp) {
                         fc.stamp = gFogStamp;
-                        if (cd.scanned || hasData) { if (rdy) fc.k += (1.0f - fc.k) * ease; } // fog only over chunks with no map data at all
-                        else fc.k = 0.0f;
+                        if (rdy) fc.k += (1.0f - fc.k) * ease;
                     }
                     lk_ = fc.k;
-                    ll_ = 1.0f - (fc.mem ? 0.88f * (1.0f - fc.k) : 0.0f);
                 }
             }
             j.known[size_t(jy) * G + ix] = lk_;
@@ -2668,6 +2936,7 @@ void reset() {
         std::lock_guard<std::mutex> lk(gMapMx);
         gCache.clear();
     }
+    gKnown.clear(); gRegions.clear(); gDiskRegions.clear(); gLegacyPending.clear(); gTileDisk.clear();
     gMini = Baked{};
     gBig  = Baked{};
     gWorldKey.clear();
@@ -2709,7 +2978,8 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
     float       yaw = player->getRotation().y;
 
     updateCache(*region, px, pz);
-    if (!gDirtyRegions.empty() && gFrame - gLastSaveFrame >= 90) {
+    pumpRegions();
+    if (!gDirtyRegions.empty() && gFrame - gLastSaveFrame >= 240) {
         gLastSaveFrame = gFrame;
         int64_t k = *gDirtyRegions.begin();
         gDirtyRegions.erase(gDirtyRegions.begin());
@@ -2827,7 +3097,7 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
         ::mce::Color white{0.95f, 0.97f, 1.0f, 1.0f};
         drawPixText(ctx, "ПОВЕРХНОСТЬ", 12, 9, 2.0f, white);
         char info[96];
-        std::snprintf(info, sizeof(info), "%d, %d, %d   ЧАНКОВ: %d", px, int(pos.y), pz, int(gCache.size()));
+        std::snprintf(info, sizeof(info), "%d, %d, %d   ЧАНКОВ: %d", px, int(pos.y), pz, int(gKnown.size()));
         drawPixText(ctx, info, tabW + 20.0f, 9, 2.0f, white);
         // bottom hint
         rect(ctx, 0, sh - 22, sw, sh, ::mce::Color{0.02f, 0.03f, 0.05f, 1.0f}, 0.72f);
