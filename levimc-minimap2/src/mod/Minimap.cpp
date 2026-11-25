@@ -3,6 +3,7 @@
 // then drawn as merged horizontal colour runs with MinecraftUIRenderContext::fillRectangle.
 // Visual style follows Diorama (MIT, (c) Dara Adedeji): dark frame, relief shading, fog for unknown areas.
 
+#include "ll/api/service/ServerInfo.h"
 #include <climits>
 #include <unordered_map>
 #include "mod/VanillaColors.h"
@@ -661,7 +662,31 @@ void loadWorld() {
     ++gVersion;
 }
 
+// Stable key: remote server -> "host_port" (LeviLamina's world data root), local world -> its folder. The engine level id/seed are random or shared on servers.
+std::string stableWorldKey() {
+    try {
+        auto root = ll::getWorldDataRoot();
+        if (!root) return {};
+        std::filesystem::path p = *root;
+        std::string full = p.generic_string();
+        uint64_t h = 1469598103934665603ull;
+        for (char c : full) { h ^= uint8_t(c); h *= 1099511628211ull; }
+        std::string tail;
+        for (auto it = p.begin(); it != p.end(); ++it) {
+            std::string part = it->string();
+            if (part.find('_') != std::string::npos && std::isdigit(uint8_t(part.back()))) tail = part; // host_port
+        }
+        if (tail.empty()) tail = p.parent_path().filename().string();
+        std::string t;
+        for (char c : tail) if ((std::isalnum(uint8_t(c)) || c == '_' || c == '.') && t.size() < 40) t += c;
+        char hx[20];
+        std::snprintf(hx, sizeof(hx), "%08x", unsigned(h ^ (h >> 32)));
+        return "w" + std::string(hx) + "_" + t;
+    } catch (...) { return {}; }
+}
+
 std::string computeWorldKey(::Level& level) {
+    { std::string k = stableWorldKey(); if (!k.empty()) return k; }
     std::string id = level.getLevelId();
     std::string s;
     for (char c : id)
@@ -2379,7 +2404,7 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
     float       yaw = player->getRotation().y;
 
     updateCache(*region, px, pz);
-    if (!gDirtyRegions.empty() && gFrame - gLastSaveFrame >= 300) {
+    if (!gDirtyRegions.empty() && gFrame - gLastSaveFrame >= 90) {
         gLastSaveFrame = gFrame;
         int64_t k = *gDirtyRegions.begin();
         gDirtyRegions.erase(gDirtyRegions.begin());
