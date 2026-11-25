@@ -1953,6 +1953,7 @@ void tileWorkerMain() {
         }
         TileResult r; r.i = job.i; r.j = job.j; r.epoch = job.epoch;
         bool ok = false;
+        ULONGLONG t0 = GetTickCount64();
         try { ok = (gEpoch.load() == job.epoch) && bakeTilePixels(job.i, job.j, job.epoch, r.px); } catch (...) { ok = false; }
         {
             std::lock_guard<std::mutex> lk(gTileMx);
@@ -1960,6 +1961,9 @@ void tileWorkerMain() {
             if (ok && gEpoch.load() == job.epoch) gTileDone.push_back(std::move(r));
         }
         gTileIdleCv.notify_all();
+        // duty cycle: rest ~60% of the bake time so the big map never pins the CPU (game thread keeps its cores)
+        ULONGLONG el = GetTickCount64() - t0;
+        Sleep(DWORD(std::min<ULONGLONG>(el * 6 / 10 + 5, 250)));
     }
 }
 
@@ -1968,7 +1972,7 @@ void startTileWorker() {
     gTileStarted = true;
     gTileStop    = false;
     unsigned hc = std::thread::hardware_concurrency();
-    int      n  = std::clamp(int(hc) / 2, 2, 4); // parallel baking: tiles are independent
+    int      n  = std::clamp(int(hc) / 3, 1, 3); // parallel baking: tiles are independent
     for (int i = 0; i < n; ++i) gTileThreads.emplace_back(tileWorkerMain);
 }
 
@@ -2524,7 +2528,7 @@ void fogBuildMask(FogJob& j, int G, float cx, float cz, float blocks, bool round
     j.known.assign(N, 0.0f);
     j.lift.assign(N, 1.0f);
     float cellB = blocks / float(G);
-    float ease  = 1.0f - std::exp(-std::clamp(dt, 0.0f, 0.5f) / 0.9f);
+    float ease  = 1.0f - std::exp(-std::clamp(dt, 0.0f, 0.5f) / 0.45f);
     ++gFogStamp;
     std::lock_guard<std::mutex> lk(gMapMx);
     int64_t lastKey = INT64_MIN; float lk_ = 0.0f, ll_ = 1.0f;
@@ -2540,18 +2544,18 @@ void fogBuildMask(FogJob& j, int G, float cx, float cz, float blocks, bool round
                     ChunkData const& cd = it->second;
                     bool hasData = cd.color[0] | cd.color[255] | cd.color[119] | cd.color[136];
                     auto fi = chunks.find(kk);
-                    bool rdy = !gate || fogChunkReady(ccx, ccz);
+                    bool rdy = !gate || blocks > 600.0f || fogChunkReady(ccx, ccz); // far zoom shows coarse LOD tiles: no L0 wait
                     if (fi == chunks.end()) {
                         FogChunk fc;
-                        fc.mem = hasData && !cd.scanned;
-                        fc.k   = (cd.scanned && rdy && gFrame - gFogEpoch >= 600) ? 1.0f : 0.0f;
+                        fc.mem = false;
+                        fc.k   = ((cd.scanned || hasData) && rdy && gFrame - gFogEpoch >= 600) ? 1.0f : 0.0f;
                         fi     = chunks.emplace(kk, fc).first;
                     }
                     FogChunk& fc = fi->second;
                     if (fc.stamp != gFogStamp) {
                         fc.stamp = gFogStamp;
-                        if (cd.scanned) { if (rdy) fc.k += (1.0f - fc.k) * ease; }
-                        else { fc.k = 0.0f; if (hasData) fc.mem = true; }
+                        if (cd.scanned || hasData) { if (rdy) fc.k += (1.0f - fc.k) * ease; } // fog only over chunks with no map data at all
+                        else fc.k = 0.0f;
                     }
                     lk_ = fc.k;
                     ll_ = 1.0f - (fc.mem ? 0.88f * (1.0f - fc.k) : 0.0f);
