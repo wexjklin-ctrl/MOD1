@@ -697,7 +697,7 @@ std::string computeWorldKey(::Level& level) {
 }
 
 struct FogChunk { float k = 0.0f; bool mem = false; uint64_t stamp = 0; };
-std::unordered_map<int64_t, FogChunk> gFogChunks;
+std::unordered_map<int64_t, FogChunk> gFogChunks, gFogChunksBig; // minimap / big map (the big map waits for its tiles)
 uint64_t gFogEpoch = 0;
 
 void asyncQuiesce();
@@ -716,6 +716,7 @@ void switchWorld(std::string const& k) {
     gDirtyRegions.clear();
     gWorldKey = k;
     gFogChunks.clear();
+    gFogChunksBig.clear();
     gFogEpoch = gFrame;
     loadWorld();
 }
@@ -2202,6 +2203,12 @@ void tileTick(float tx, float tz, bool bigOpen) {
 
 bool tileShown(Tile const& t) { return t.shown && t.tex.created[t.tex.cur]; }
 
+// The big map shows this chunk's terrain: its level-0 tile is baked after the chunk's last change, uploaded and on screen.
+bool fogChunkReady(int cx, int cz) {
+    Tile* t = findTile(0, fdiv(cx * 16, kTileX), fdiv(cz * 16, kTileZ));
+    return t && t->baked && !t->stale && !t->queued && t->shown && t->tex.created[t->tex.cur] && !t->tex.pending && t->upVer == t->pxVer;
+}
+
 void tileUpload(::IClientInstance& client, Tile& t, int& uploads) {
     if (t.tex.pending && gFrame - t.tex.pendFrame >= 2) { t.tex.cur = 1 - t.tex.cur; t.tex.pending = false; t.shown = true; }
     if (!t.tex.pending && !t.px.empty() && t.upVer != t.pxVer && gFrame - t.pxFrame >= (t.l ? 10u : 1u) && uploads < 3) {
@@ -2476,7 +2483,8 @@ void fogWorkerMain() {
     }
 }
 
-void fogBuildMask(FogJob& j, int G, float cx, float cz, float blocks, bool round, float dt) {
+void fogBuildMask(FogJob& j, int G, float cx, float cz, float blocks, bool round, float dt, bool gate) {
+    auto& chunks = gate ? gFogChunksBig : gFogChunks;
     j.G = G; j.cx = cx; j.cz = cz; j.blocks = blocks; j.round = round;
     size_t N = size_t(G) * G;
     j.known.assign(N, 0.0f);
@@ -2497,17 +2505,18 @@ void fogBuildMask(FogJob& j, int G, float cx, float cz, float blocks, bool round
                 if (it != gCache.end()) {
                     ChunkData const& cd = it->second;
                     bool hasData = cd.color[0] | cd.color[255] | cd.color[119] | cd.color[136];
-                    auto fi = gFogChunks.find(kk);
-                    if (fi == gFogChunks.end()) {
+                    auto fi = chunks.find(kk);
+                    bool rdy = !gate || fogChunkReady(ccx, ccz);
+                    if (fi == chunks.end()) {
                         FogChunk fc;
                         fc.mem = hasData && !cd.scanned;
-                        fc.k   = cd.scanned ? ((gFrame - gFogEpoch < 600) ? 0.0f : 1.0f) : 0.0f;
-                        fi     = gFogChunks.emplace(kk, fc).first;
+                        fc.k   = (cd.scanned && rdy && gFrame - gFogEpoch >= 600) ? 1.0f : 0.0f;
+                        fi     = chunks.emplace(kk, fc).first;
                     }
                     FogChunk& fc = fi->second;
                     if (fc.stamp != gFogStamp) {
                         fc.stamp = gFogStamp;
-                        if (cd.scanned) fc.k += (1.0f - fc.k) * ease;
+                        if (cd.scanned) { if (rdy) fc.k += (1.0f - fc.k) * ease; }
                         else { fc.k = 0.0f; if (hasData) fc.mem = true; }
                     }
                     lk_ = fc.k;
@@ -2520,7 +2529,7 @@ void fogBuildMask(FogJob& j, int G, float cx, float cz, float blocks, bool round
 }
 
 // Uploads a finished fog image, swaps buffers and queues the next job. (cx,cz) = world point at the view centre.
-void fogTick(::IClientInstance& client, FogView& v, int G, float cx, float cz, float blocks, bool round, float dt) {
+void fogTick(::IClientInstance& client, FogView& v, int G, float cx, float cz, float blocks, bool round, float dt, bool gate) {
     if (!gFogStarted) { gFogStarted = true; gFogStop = false; gFogThread = std::thread(fogWorkerMain); }
     if (v.tex.pending && gFrame - v.tex.pendFrame >= 2) { v.tex.cur = 1 - v.tex.cur; v.tex.pending = false; v.shown = true; v.sCx = v.pCx; v.sCz = v.pCz; v.sBl = v.pBl; }
     if (!v.tex.pending) {
@@ -2539,7 +2548,7 @@ void fogTick(::IClientInstance& client, FogView& v, int G, float cx, float cz, f
         v.lastBuildTick = now;
         FogJob job;
         job.seconds = float(std::fmod(double(now) / 1000.0, 1200.0));
-        fogBuildMask(job, G, cx, cz, blocks, round, el);
+        fogBuildMask(job, G, cx, cz, blocks, round, el, gate);
         v.lastReq = gFrame;
         { std::lock_guard<std::mutex> lk(gFogMx); v.job = std::move(job); v.jobReady = true; }
         gFogCv.notify_one();
@@ -2740,7 +2749,7 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
             drawBaked(ctx, gBig, x - sc.u0 * float(nb) * k, y - sc.v0 * float(nb) * k, k * float(nb));
         }
         if (texOk) {
-            fogTick(client, gFogBig, 192, tx, tz, gZoom, false, dtf);
+            fogTick(client, gFogBig, 192, tx, tz, gZoom, false, dtf, true);
             fogDraw(ctx, gFogBig, sw * 0.5f, sh * 0.5f, size / gZoom, tx, tz, 0.0f, 0.0f, sw, sh);
         }
         // player marker: smoothed position relative to the same view window
@@ -2804,7 +2813,7 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
         }
         if (drawn) {
             constexpr float kFogBlocks = 80.0f; // a margin around the 64 visible blocks, so a slightly old image still covers the window
-            fogTick(client, gFogMini, 96, gSX, gSZ, kFogBlocks, gRound, dtf);
+            fogTick(client, gFogMini, 96, gSX, gSZ, kFogBlocks, gRound, dtf, false);
             fogDraw(ctx, gFogMini, x + SIZE * 0.5f, y + SIZE * 0.5f, SIZE / float(VIEW), gSX, gSZ, x, y, x + SIZE, y + SIZE);
         }
         compassLetter(ctx, 'N', x + SIZE / 2, y - 10, true);
