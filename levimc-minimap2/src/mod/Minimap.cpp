@@ -679,8 +679,8 @@ void putBytes(std::vector<uint8_t>& v, void const* p, size_t n) {
 
 // DBM7: header (magic, chunk count, raw size, compressed size) + one LZ4 block holding the DBM6 chunk records.
 // Next to it r.X.Z.idx: 1024-bit map of the chunks that have data, so the "known chunks" list loads without reading the region.
-void saveRegion(int rx, int rz) {
-    if (gWorldKey.empty()) return;
+bool writeRegion(int rx, int rz, std::function<ChunkData*(int, int)> const& get) {
+    if (gWorldKey.empty()) return false;
     std::error_code ec;
     std::filesystem::create_directories(worldDir(), ec);
     std::vector<uint8_t> raw;
@@ -689,9 +689,9 @@ void saveRegion(int rx, int rz) {
     for (int dz = 0; dz < 32; ++dz)
         for (int dx = 0; dx < 32; ++dx) {
             int  cx = rx * 32 + dx, cz = rz * 32 + dz;
-            auto it = gCache.find(key(cx, cz));
-            if (it == gCache.end()) continue;
-            ChunkData& cd = it->second;
+            ChunkData* cp = get(cx, cz);
+            if (!cp) continue;
+            ChunkData& cd = *cp;
             ++count;
             putBytes(raw, &cx, 4); putBytes(raw, &cz, 4);
             putBytes(raw, cd.color.data(), 256 * 4);
@@ -708,22 +708,26 @@ void saveRegion(int rx, int rz) {
     auto                 tmp  = path; tmp += ".tmp";
     {
         std::ofstream f(tmp, std::ios::binary | std::ios::trunc);
-        if (!f) return;
+        if (!f) return false;
         uint32_t rs = uint32_t(raw.size()), cs = uint32_t(comp.size());
         f.write("DBM7", 4);
         f.write(reinterpret_cast<char const*>(&count), 4);
         f.write(reinterpret_cast<char const*>(&rs), 4);
         f.write(reinterpret_cast<char const*>(&cs), 4);
         f.write(reinterpret_cast<char const*>(comp.data()), std::streamsize(comp.size()));
-        if (!f) return;
+        if (!f) return false;
     }
     std::filesystem::rename(tmp, path, ec);
-    if (ec) return;
+    if (ec) return false;
     {
         std::ofstream f(regionIdxFile(rx, rz), std::ios::binary | std::ios::trunc);
         if (f) f.write(reinterpret_cast<char const*>(idx), 128);
     }
-    gDiskRegions.insert(key(rx, rz));
+    return true;
+}
+
+void saveRegion(int rx, int rz) {
+    if (writeRegion(rx, rz, [](int cx, int cz) -> ChunkData* { auto it = gCache.find(key(cx, cz)); return it == gCache.end() ? nullptr : &it->second; })) gDiskRegions.insert(key(rx, rz));
 }
 
 void saveAll() {
@@ -734,7 +738,8 @@ void saveAll() {
     gDirtyRegions.clear();
 }
 
-void loadRegionStream(std::istream& f, char ver, uint32_t count) {
+using ChunkSink = std::unordered_map<int64_t, ChunkData>;
+void loadRegionStream(std::istream& f, char ver, uint32_t count, ChunkSink* sink = nullptr) {
     for (uint32_t i = 0; i < count && i < 1024; ++i) {
         int       cx = 0, cz = 0;
         ChunkData cd;
@@ -770,12 +775,13 @@ void loadRegionStream(std::istream& f, char ver, uint32_t count) {
         cd.scanned = false; // will be refreshed when the chunk is loaded again
         bool any = false;
         for (int q = 0; q < 256; ++q) if (cd.color[q]) { any = true; break; }
+        if (sink) { (*sink)[key(cx, cz)] = std::move(cd); continue; }
         std::lock_guard<std::mutex> lk(gMapMx);
         if (gCache.emplace(key(cx, cz), std::move(cd)).second && any) gKnown.insert(key(cx, cz));
     }
 }
 
-bool loadRegionFile(int rx, int rz) {
+bool loadRegionFile(int rx, int rz, ChunkSink* sink = nullptr) {
     std::ifstream f(regionFile(rx, rz), std::ios::binary);
     char          magic[4] = {};
     uint32_t      count    = 0;
@@ -788,9 +794,56 @@ bool loadRegionFile(int rx, int rz) {
         std::string raw(rs, '\0');
         if (!lz4Decompress(comp.data(), cs, reinterpret_cast<uint8_t*>(raw.data()), rs)) return false;
         std::istringstream is(std::move(raw), std::ios::binary);
-        loadRegionStream(is, '7', count);
-    } else loadRegionStream(f, magic[3], count);
+        loadRegionStream(is, '7', count, sink);
+    } else loadRegionStream(f, magic[3], count, sink);
     return true;
+}
+
+// Old-format regions (no .idx): converted by a background thread (read, parse, rewrite compressed + .idx), never on the render thread.
+struct MigState {
+    std::mutex              mx;
+    std::condition_variable cv;
+    bool                    have = false, stop = false;
+    int                     rx = 0, rz = 0;
+    std::vector<int64_t>    known;
+    std::thread             th;
+    bool                    started = false;
+};
+MigState                gMig;
+std::atomic<bool>       gMigBusy{false}, gMigDone{false};
+std::atomic<int64_t>    gMigKey{INT64_MIN};
+
+void migMain() {
+    for (;;) {
+        int rx, rz;
+        {
+            std::unique_lock<std::mutex> lk(gMig.mx);
+            gMig.cv.wait(lk, [] { return gMig.have || gMig.stop; });
+            if (gMig.stop) return;
+            rx = gMig.rx; rz = gMig.rz; gMig.have = false;
+        }
+        std::vector<int64_t> known;
+        try {
+            ChunkSink sink;
+            if (loadRegionFile(rx, rz, &sink) && !sink.empty()) {
+                for (auto& kv : sink) {
+                    bool any = false;
+                    for (int q = 0; q < 256; ++q) if (kv.second.color[q]) { any = true; break; }
+                    if (any) known.push_back(kv.first);
+                }
+                writeRegion(rx, rz, [&](int cx, int cz) -> ChunkData* { auto it = sink.find(key(cx, cz)); return it == sink.end() ? nullptr : &it->second; });
+            }
+        } catch (...) {}
+        { std::lock_guard<std::mutex> lk(gMig.mx); gMig.known = std::move(known); }
+        gMigDone = true;
+    }
+}
+
+void migQuiesce() { // wait for the background conversion and drop its result (the world is changing)
+    while (gMigBusy.load() && !gMigDone.load()) Sleep(5);
+    gMigDone = false; gMigBusy = false; gMigKey = INT64_MIN;
+    std::lock_guard<std::mutex> lk(gMig.mx);
+    gMig.known.clear();
 }
 
 // Lazy loading: a region is read into RAM only when something needs its chunks (scanning near the player, baking a tile).
@@ -798,7 +851,7 @@ bool regionReady(int rx, int rz, bool allowLoad) {
     int64_t k  = key(rx, rz);
     auto    it = gRegions.find(k);
     if (it != gRegions.end()) { it->second = gFrame; return true; }
-    if (!allowLoad) return false;
+    if (!allowLoad || k == gMigKey.load()) return false; // a region being converted in the background is not touched
     static uint64_t lastLoad = UINT64_MAX;
     if (lastLoad == gFrame) return false; // one region read per frame
     lastLoad = gFrame;
@@ -881,6 +934,7 @@ void resetSlots();
 void clearTiles();
 
 void switchWorld(std::string const& k) {
+    migQuiesce();
     saveAll();
     asyncQuiesce(); // the bake worker must not touch gCache while it is cleared
     resetSlots();
@@ -2217,9 +2271,22 @@ void tileQuiesce() {
 
 // Region housekeeping (main thread, every frame): finish legacy regions, drop the least recently used regions from RAM.
 void pumpRegions() {
-    if (!gLegacyPending.empty() && gFrame % 10 == 0) {
-        auto c = gLegacyPending.back();
-        if (regionReady(c.first, c.second, true)) { gLegacyPending.pop_back(); markDirty(c.first * 32, c.second * 32); } // rewritten compressed + .idx on save/evict
+    if (gMigDone.exchange(false)) {
+        std::vector<int64_t> kn;
+        { std::lock_guard<std::mutex> lk(gMig.mx); kn.swap(gMig.known); }
+        { std::lock_guard<std::mutex> lk(gMapMx); for (int64_t k : kn) gKnown.insert(k); }
+        gMigKey = INT64_MIN; gMigBusy = false; ++gVersion;
+    }
+    if (!gMigBusy.load() && !gLegacyPending.empty()) {
+        auto c = gLegacyPending.back(); gLegacyPending.pop_back();
+        int64_t k = key(c.first, c.second);
+        if (gRegions.count(k)) markDirty(c.first * 32, c.second * 32); // already loaded by the player: .idx is written when it is saved
+        else {
+            if (!gMig.started) { gMig.started = true; gMig.th = std::thread(migMain); gMig.th.detach(); }
+            gMigKey = k; gMigBusy = true;
+            { std::lock_guard<std::mutex> lk(gMig.mx); gMig.rx = c.first; gMig.rz = c.second; gMig.have = true; }
+            gMig.cv.notify_one();
+        }
     }
     if (gRegions.size() <= kRegionCap) return;
     {
@@ -3056,6 +3123,7 @@ void shutdown() {
 }
 
 void reset() {
+    migQuiesce();
     saveAll();
     asyncQuiesce();
     resetSlots();

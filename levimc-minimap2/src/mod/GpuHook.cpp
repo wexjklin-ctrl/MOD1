@@ -595,12 +595,14 @@ void STDMETHODCALLTYPE execDetour(ID3D12CommandQueue* q, UINT n, ID3D12CommandLi
 bool readCfg() {
     char  buf[MAX_PATH] = {};
     DWORD n = GetEnvironmentVariableA("APPDATA", buf, MAX_PATH);
-    if (!n || n >= MAX_PATH) return false;
+    gFogOn = true;
+    if (!n || n >= MAX_PATH) return true;
     std::ifstream f(std::filesystem::path(std::string(buf, n)) / "minimap2" / "gpu.txt");
     std::string   line;
+    gFogOn = true; // on by default; "fog=0" in gpu.txt turns the GPU fog off
     while (std::getline(f, line)) {
         if (line.find("test=1") != std::string::npos) gTestSquare = true;
-        if (line.find("fog=1") != std::string::npos) gFogOn = true;
+        if (line.find("fog=0") != std::string::npos) gFogOn = false;
     }
     return gTestSquare || gFogOn;
 }

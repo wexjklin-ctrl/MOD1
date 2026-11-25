@@ -39,10 +39,11 @@ void readCfg() {
     gCfgRead = true;
     char  buf[MAX_PATH] = {};
     DWORD n = GetEnvironmentVariableA("APPDATA", buf, MAX_PATH);
+    gOn = true; // on by default; "tilebake=0" in gpu.txt turns it off
     if (!n || n >= MAX_PATH) return;
     std::ifstream f(std::filesystem::path(std::string(buf, n)) / "minimap2" / "gpu.txt");
     std::string   line;
-    while (std::getline(f, line)) if (line.find("tilebake=1") != std::string::npos) gOn = true;
+    while (std::getline(f, line)) if (line.find("tilebake=0") != std::string::npos) gOn = false;
 }
 
 const char* kHlsl = R"HLSL(
