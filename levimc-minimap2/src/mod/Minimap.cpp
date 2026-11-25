@@ -1299,15 +1299,18 @@ void buildHField(HField& g, Baked const& b) {
     // sky visibility per cell (a few short rays over the height field instead of Java's 13 voxel rays)
     static constexpr float dirs[8][2] = {{1, 0}, {0.7071f, 0.7071f}, {0, 1}, {-0.7071f, 0.7071f}, {-1, 0}, {-0.7071f, -0.7071f}, {0, -1}, {0.7071f, -0.7071f}};
     static constexpr float dists[7] = {1, 2, 3, 4, 6, 9, 12};
+    int skyOff[8][7][2];
+    for (int di = 0; di < 8; ++di)
+        for (int dj = 0; dj < 7; ++dj) { skyOff[di][dj][0] = int(std::lround(dirs[di][0] * dists[dj] / float(g.step))); skyOff[di][dj][1] = int(std::lround(dirs[di][1] * dists[dj] / float(g.step))); }
     for (int gi = 0; gi < g.gn; ++gi)
         for (int r = 0; r < g.m; ++r) {
             size_t k = g.id(gi, r);
             if (!g.col[k]) continue;
             float y0 = float(g.h[k]) + 1.0f; int blocked = 0;
-            for (auto const& d : dirs) {
-                for (float dist : dists) {
-                    int hn = g.hAt(gi + int(std::lround(d[0] * dist / float(g.step))), r + int(std::lround(d[1] * dist / float(g.step))));
-                    if (hn != INT_MIN && float(hn) + 1.0f > y0 + dist * 0.7f + 0.2f) { ++blocked; break; }
+            for (int di = 0; di < 8; ++di) {
+                for (int dj = 0; dj < 7; ++dj) {
+                    int hn = g.hAt(gi + skyOff[di][dj][0], r + skyOff[di][dj][1]);
+                    if (hn != INT_MIN && float(hn) + 1.0f > y0 + dists[dj] * 0.7f + 0.2f) { ++blocked; break; }
                 }
             }
             g.sky[k] = 1.0f - 0.9f * float(blocked) / 8.0f;
@@ -1398,6 +1401,17 @@ void paintHeightfield(Baked const& b, int W, std::vector<uint32_t>& px, std::vec
     std::vector<int16_t> hsum(NP, 0);
     float KYv = KY, HSs = HS / float(b.step);
     float halfN = float(b.n) * 0.5f;
+    std::vector<uint32_t> runOff(g.col.size(), 0u);
+    std::vector<uint8_t>  runN(g.col.size(), 0);
+    std::vector<VRun>     runPool;
+    runPool.reserve(g.col.size() + g.col.size() / 4);
+    for (size_t k = 0; k < g.col.size(); ++k) {
+        if (!g.col[k]) continue;
+        VRun tmp[kMaxRuns];
+        int  n = buildRuns(g.wp[k], g.h[k], tmp);
+        runOff[k] = uint32_t(runPool.size()); runN[k] = uint8_t(n);
+        runPool.insert(runPool.end(), tmp, tmp + n);
+    }
     for (int s = 0; s < 4; ++s) {
         if (epoch && gEpoch.load() != epoch) return;
         for (auto& r : rec) r.cell = -1;
@@ -1415,7 +1429,7 @@ void paintHeightfield(Baked const& b, int W, std::vector<uint32_t>& px, std::vec
                 int   j  = r - g.rowsHalf;
                 int   hh = g.h[k];
                 WRef wp = g.wp[k];
-                VRun runs[kMaxRuns]; int nr = buildRuns(wp, hh, runs);
+                VRun const* runs = &runPool[runOff[k]]; int nr = runN[k];
                 int hn = g.known(gi, r + 1) ? int(g.h[g.id(gi, r + 1)]) : hh - 2;
                 for (int q = 0; q + 1 < nr; ++q) { // narrow air gaps (1-3 blocks: windows, floors) get a darkened wall colour; wide gaps stay open (canopies, arches)
                     float gTop = float(runs[q + 1].yt) + 1.0f, gBot = float(runs[q].yb); // gap spans Y in [gTop, gBot]
@@ -2160,6 +2174,11 @@ void tileWorkerMain() {
         bool ok = false;
         ULONGLONG t0 = GetTickCount64();
         try { ok = (gEpoch.load() == job.epoch) && bakeTilePixels(job.i, job.j, job.epoch, r.px); } catch (...) { ok = false; }
+        if (ok) {
+            static std::atomic<uint64_t> sumMs{0}; static std::atomic<int> nBake{0};
+            sumMs += uint64_t(GetTickCount64() - t0);
+            if (++nBake % 25 == 0) { gpu::bakeLog("perf: tile bake avg " + std::to_string(sumMs.load() / 25) + " ms over 25 tiles (gpu shading " + (gpu::bakeAvailable() ? "on" : "off") + ")"); sumMs = 0; }
+        }
         {
             std::lock_guard<std::mutex> lk(gTileMx);
             --gTileBusyN;
