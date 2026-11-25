@@ -139,3 +139,14 @@ GPU: перенос растеризации на видеокарту НЕ сд
 Файлы: src/mod/GpuHook.{h,cpp}, вызов в DioramaMod::enable/disable, syslinks d3d12 dxgi. По умолчанию ВЫКЛЮЧЕНО: включается файлом %APPDATA%\minimap2\gpu.txt со строкой `test=1`.
 Что делает: из временного окна/устройства/свопчейна читает vtable (Present=8, Present1=22, ExecuteCommandLists=10), ставит `ll::memory::hook` на них; ExecuteCommandLists запоминает последнюю DIRECT-очередь игры; в Present рисует маджентовый квадрат 64x64 в (20,20) через ClearRenderTargetView на очереди игры (барьеры PRESENT<->RENDER_TARGET, 4 аллокатора + fence).
 Лог: «GPU test: first Present, back buffer WxH format N», «hooks installed», либо причина отключения. Если квадрат виден — шаг 2: HLSL (D3DCompile из d3dcompiler_47.dll через LoadLibrary), тайловое запекание и туман на GPU, вывод карты текстурой. Если нет — смотреть лог (игра может рисовать не через D3D12 / другая очередь).
+
+## Сессия 39: GPU-туман (пиксельный шейдер HLSL в кадре игры) (в игре НЕ проверено)
+Контекст: в сессии 38 перехват D3D12 Present подтверждён владельцем (маджентовый квадрат виден, даже в меню). Код «туман на GPU» из прошлого захода не был запушен и потерялся, написан заново.
+Что сделано:
+- `GpuHook.cpp`: конфиг `%APPDATA%\minimap2\gpu.txt`: строки `fog=1` (туман на GPU) и/или `test=1` (квадрат). Конвейер D3D12: D3DCompile (LoadLibrary d3dcompiler_47) -> root signature (20 root-констант + таблица из 2 SRV + 2 static sampler) -> PSO с альфа-смешиванием, fullscreen-треугольник, scissor = рамка вида. Текстуры: маска RGBA16F GxG на вид (r=soft, g=known, b=lift; грузится через upload-буфер, ~10 Гц), шум RGBA8 256x256 (один раз).
+- Шейдер = построчный порт `fogCompute` из Minimap.cpp (8 слоёв, тень от солнца, дрейф шума по времени из GetTickCount64, т.е. анимация плавная каждый кадр). Считается в разрешении экрана, а не GxG.
+- Запрос рисования: `gpu::fogRequest` из `fogDraw` каждый кадр (ttl 2 Present). Нет запроса (карта закрыта, меню) -> ничего не рисуется.
+- Minimap.cpp: `fogActive()` (true после первого успешного кадра) -> `fogTick` делает в потоке только `fogMasks` (размытия маски), `fogDraw` шлёт запрос; иначе прежний CPU-путь. При любой ошибке GPU (`gFogBroken`) автоматический откат на CPU-туман.
+- Проверка синтаксиса GpuHook.cpp: `x86_64-w64-mingw32-g++ -std=c++20 -fsyntax-only -I/tmp/stub -I. mod/GpuHook.cpp` (apt install mingw-w64; заглушка ll/api/memory/Hook.h). HLSL локально НЕ компилировался: ошибки шейдера смотреть в latest.log («GPU fog: PS compile failed ...»).
+Ограничения: туман рисуется поверх всего кадра в Present, поэтому на большой карте он ложится и на панели/подсказки; на миникарте обрезается по квадрату вида (круг: по радиусу). Формат backbuffer предполагается UNORM (не sRGB).
+Следующие шаги: (1) проверка владельцем (fog=1); (2) тайлы карты на GPU (HLSL-порт painter/heightfield: нужны данные колонок в текстурах), (3) пул потоков для tileWorker, секции подчанков вместо getBlock по Y.

@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include "mod/VanillaColors.h"
 #include <set>
+#include "mod/GpuHook.h"
 #include "mod/Minimap.h"
 #include "mod/DioramaMod.h"
 
@@ -2341,10 +2342,24 @@ void fogBoxBlur(std::vector<float>& a, int G, int r) {
 struct FogJob {
     int                G = 0;
     float              cx = 0, cz = 0, blocks = 64;
-    bool               round = false;
+    bool               round = false, gpu = false;
     float              seconds = 0;
     std::vector<float> known, lift;
 };
+
+// GPU fog path: the CPU only prepares the blurred masks (soft, known, lift per cell); the pixel shader does the rest.
+void fogMasks(FogJob const& j, std::vector<float>& m) {
+    const int    G = j.G;
+    const size_t N = size_t(G) * G;
+    const float  cellB = j.blocks / float(G);
+    const float  stepsF = std::max(0.0f, std::log2(j.blocks / 320.0f)), fogScale = std::exp2(stepsF);
+    std::vector<float> nearK = j.known, wideK = j.known, lift = j.lift;
+    fogBoxBlur(nearK, G, std::clamp(int(std::lround(7.0f * fogScale / cellB)), 1, 24));
+    fogBoxBlur(wideK, G, std::clamp(int(std::lround(18.0f * fogScale / cellB)), 2, 48));
+    fogBoxBlur(lift, G, 1);
+    m.resize(N * 3);
+    for (size_t i = 0; i < N; ++i) { m[i * 3] = 0.5f * (nearK[i] + wideK[i]); m[i * 3 + 1] = j.known[i]; m[i * 3 + 2] = lift[i]; }
+}
 
 void fogCompute(FogJob const& j, std::vector<uint32_t>& out) {
     fogInitNoise();
@@ -2447,6 +2462,8 @@ struct FogView {
     bool                  jobReady = false, running = false, resultReady = false, shown = false;
     FogJob                job;
     std::vector<uint32_t> out;
+    std::vector<float>    maskOut;
+    bool                  resultGpu = false;
     int                   G = 0;
     float                 rCx = 0, rCz = 0, rBl = 64;    // params of the finished result
     float                 pCx = 0, pCz = 0, pBl = 64;    // of the upload in flight
@@ -2474,10 +2491,14 @@ void fogWorkerMain() {
             v->running  = true;
         }
         std::vector<uint32_t> out;
-        try { fogCompute(job, out); } catch (...) { out.clear(); }
+        std::vector<float>    masks;
+        try { if (job.gpu) fogMasks(job, masks); else fogCompute(job, out); } catch (...) { out.clear(); masks.clear(); }
         {
             std::lock_guard<std::mutex> lk(gFogMx);
-            if (!out.empty()) { v->out = std::move(out); v->G = job.G; v->rCx = job.cx; v->rCz = job.cz; v->rBl = job.blocks; v->resultReady = true; }
+            if (!out.empty() || !masks.empty()) {
+                v->out = std::move(out); v->maskOut = std::move(masks); v->resultGpu = job.gpu;
+                v->G = job.G; v->rCx = job.cx; v->rCz = job.cz; v->rBl = job.blocks; v->resultReady = true;
+            }
             v->running = false;
         }
     }
@@ -2531,14 +2552,20 @@ void fogBuildMask(FogJob& j, int G, float cx, float cz, float blocks, bool round
 // Uploads a finished fog image, swaps buffers and queues the next job. (cx,cz) = world point at the view centre.
 void fogTick(::IClientInstance& client, FogView& v, int G, float cx, float cz, float blocks, bool round, float dt, bool gate) {
     if (!gFogStarted) { gFogStarted = true; gFogStop = false; gFogThread = std::thread(fogWorkerMain); }
+    static bool noiseSent = false;
+    if (!noiseSent) { noiseSent = true; fogInitNoise(); gpu::fogSetNoise(gFogNoise.data(), kFogNT); }
+    const bool gpuMode = gpu::fogActive();
+    const int  viewIdx = (&v == &gFogBig) ? 1 : 0;
     if (v.tex.pending && gFrame - v.tex.pendFrame >= 2) { v.tex.cur = 1 - v.tex.cur; v.tex.pending = false; v.shown = true; v.sCx = v.pCx; v.sCz = v.pCz; v.sBl = v.pBl; }
     if (!v.tex.pending) {
-        std::vector<uint32_t> img; float rcx = 0, rcz = 0, rbl = 64; int rg = 0;
+        std::vector<uint32_t> img; std::vector<float> msk; float rcx = 0, rcz = 0, rbl = 64; int rg = 0; bool resGpu = false;
         {
             std::lock_guard<std::mutex> lk(gFogMx);
-            if (v.resultReady) { img = std::move(v.out); rg = v.G; rcx = v.rCx; rcz = v.rCz; rbl = v.rBl; v.resultReady = false; }
+            if (v.resultReady) { img = std::move(v.out); msk = std::move(v.maskOut); resGpu = v.resultGpu; rg = v.G; rcx = v.rCx; rcz = v.rCz; rbl = v.rBl; v.resultReady = false; }
         }
-        if (!img.empty() && uploadImage(client, v.tex, img, rg)) { v.tex.pending = true; v.tex.pendFrame = gFrame; v.pCx = rcx; v.pCz = rcz; v.pBl = rbl; }
+        if (resGpu) {
+            if (gpuMode && !msk.empty()) { gpu::fogSetMask(viewIdx, rg, rcx, rcz, rbl, msk.data()); v.shown = true; v.sCx = rcx; v.sCz = rcz; v.sBl = rbl; }
+        } else if (!gpuMode && !img.empty() && uploadImage(client, v.tex, img, rg)) { v.tex.pending = true; v.tex.pendFrame = gFrame; v.pCx = rcx; v.pCz = rcz; v.pBl = rbl; }
     }
     bool busy;
     { std::lock_guard<std::mutex> lk(gFogMx); busy = v.jobReady || v.running; }
@@ -2548,6 +2575,7 @@ void fogTick(::IClientInstance& client, FogView& v, int G, float cx, float cz, f
         v.lastBuildTick = now;
         FogJob job;
         job.seconds = float(std::fmod(double(now) / 1000.0, 1200.0));
+        job.gpu = gpuMode;
         fogBuildMask(job, G, cx, cz, blocks, round, el, gate);
         v.lastReq = gFrame;
         { std::lock_guard<std::mutex> lk(gFogMx); v.job = std::move(job); v.jobReady = true; }
@@ -2557,7 +2585,19 @@ void fogTick(::IClientInstance& client, FogView& v, int G, float cx, float cz, f
 
 // Draws the displayed fog texture where its world area lies now (it may be a few frames old), cropped to (cx0,cy0,cx1,cy1).
 void fogDraw(::MinecraftUIRenderContext& ctx, FogView& v, float scrCx, float scrCy, float pxPerBlock, float curCx, float curCz,
-             float cx0, float cy0, float cx1, float cy1) {
+             float cx0, float cy0, float cx1, float cy1, float guiW, float guiH, bool round) {
+    if (gpu::fogActive()) {
+        // the pixel shader draws the fog in this frame's Present, at full screen resolution
+        if (!v.shown) return;
+        gpu::FogDraw d;
+        d.view = (&v == &gFogBig) ? 1 : 0;
+        d.guiW = guiW; d.guiH = guiH; d.scrCx = scrCx; d.scrCy = scrCy; d.pxPerBlock = pxPerBlock; d.curCx = curCx; d.curCz = curCz;
+        d.clipX0 = cx0; d.clipY0 = cy0; d.clipX1 = cx1; d.clipY1 = cy1;
+        d.round = round; d.roundCx = (cx0 + cx1) * 0.5f; d.roundCy = (cy0 + cy1) * 0.5f; d.roundR = (cx1 - cx0) * 0.5f - 1.0f;
+        d.ky = KY; d.hs = HS;
+        gpu::fogRequest(d);
+        return;
+    }
     if (!v.shown || !v.tex.created[v.tex.cur]) return;
     float sz = v.sBl * pxPerBlock;
     float x0 = scrCx + (v.sCx - curCx) * pxPerBlock - sz * 0.5f, y0 = scrCy + (v.sCz - curCz) * KY * pxPerBlock - sz * 0.5f;
@@ -2750,7 +2790,7 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
         }
         if (texOk) {
             fogTick(client, gFogBig, 192, tx, tz, gZoom, false, dtf, true);
-            fogDraw(ctx, gFogBig, sw * 0.5f, sh * 0.5f, size / gZoom, tx, tz, 0.0f, 0.0f, sw, sh);
+            fogDraw(ctx, gFogBig, sw * 0.5f, sh * 0.5f, size / gZoom, tx, tz, 0.0f, 0.0f, sw, sh, sw, sh, false);
         }
         // player marker: smoothed position relative to the same view window
         if (sc.ready) {
@@ -2814,7 +2854,7 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
         if (drawn) {
             constexpr float kFogBlocks = 80.0f; // a margin around the 64 visible blocks, so a slightly old image still covers the window
             fogTick(client, gFogMini, 96, gSX, gSZ, kFogBlocks, gRound, dtf, false);
-            fogDraw(ctx, gFogMini, x + SIZE * 0.5f, y + SIZE * 0.5f, SIZE / float(VIEW), gSX, gSZ, x, y, x + SIZE, y + SIZE);
+            fogDraw(ctx, gFogMini, x + SIZE * 0.5f, y + SIZE * 0.5f, SIZE / float(VIEW), gSX, gSZ, x, y, x + SIZE, y + SIZE, sw, sh, gRound);
         }
         compassLetter(ctx, 'N', x + SIZE / 2, y - 10, true);
         compassLetter(ctx, 'S', x + SIZE / 2, y + SIZE + 10, false);
