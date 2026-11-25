@@ -816,7 +816,7 @@ void loadWorld() {
                 if (idx[bit >> 3] & (1u << (bit & 7))) gKnown.insert(key(rx * 32 + (bit & 31), rz * 32 + (bit >> 5)));
         } else gLegacyPending.push_back({rx, rz});
     }
-    for (auto const& e : std::filesystem::directory_iterator(worldDir() / "tiles", ec)) {
+    for (auto const& e : std::filesystem::directory_iterator(worldDir() / "tiles2", ec)) {
         if (ec) break;
         std::string name = e.path().filename().string();
         int         l = 0, i = 0, j = 0; char tail[8] = {};
@@ -1757,21 +1757,7 @@ bool drawTexAsync(::MinecraftUIRenderContext& ctx, Tex const& t, float x, float 
 
 // Dark frame with light bevel, drop shadow, corner studs (Diorama-like).
 void frame(::MinecraftUIRenderContext& ctx, float x, float y, float size) {
-    ::mce::Color dark{0.04f, 0.04f, 0.05f, 1.0f};
-    ::mce::Color edge{0.78f, 0.80f, 0.86f, 1.0f};
-    ::mce::Color mid{0.30f, 0.31f, 0.36f, 1.0f};
-    rect(ctx, x - 2, y - 2, x + size + 8, y + size + 8, ::mce::Color{0, 0, 0, 1}, 0.30f);
-    rect(ctx, x - 6, y - 6, x + size + 6, y + size + 6, dark);
-    rect(ctx, x - 5, y - 5, x + size + 5, y + size + 5, mid);
-    rect(ctx, x - 4, y - 4, x + size + 4, y + size + 4, dark);
-    rect(ctx, x - 6, y - 6, x + size + 6, y - 5, edge, 0.9f);
-    rect(ctx, x - 6, y + size + 5, x + size + 6, y + size + 6, edge, 0.9f);
-    rect(ctx, x - 6, y - 6, x - 5, y + size + 6, edge, 0.9f);
-    rect(ctx, x + size + 5, y - 6, x + size + 6, y + size + 6, edge, 0.9f);
-    // unexplored background: deep blue-grey like Diorama's fog
-    rect(ctx, x, y, x + size, y + size, toColor(FOG));
-    for (float cxp : {x - 6, x + size + 3})
-        for (float cyp : {y - 6, y + size + 3}) rect(ctx, cxp, cyp, cxp + 3, cyp + 3, edge);
+    rect(ctx, x, y, x + size, y + size, toColor(FOG)); // unexplored background only (no frame)
 }
 
 void vignette(::MinecraftUIRenderContext& ctx, float x, float y, float size) {
@@ -1848,16 +1834,10 @@ bool drawTexRound(::MinecraftUIRenderContext& ctx, Tex const& t, float x, float 
 }
 
 void frameRound(::MinecraftUIRenderContext& ctx, float x, float y, float size) {
-    ::mce::Color dark{0.04f, 0.04f, 0.05f, 1.0f}, edge{0.78f, 0.80f, 0.86f, 1.0f}, mid{0.30f, 0.31f, 0.36f, 1.0f};
     float r = size * 0.5f, cx = x + r, cy = y + r;
-    auto  chord = [&](float rad, float yc) { float d = yc - cy; return std::sqrt(std::max(0.0f, rad * rad - d * d)); };
-    for (float ys = y - 7.0f; ys < y + size + 7.0f; ys += 1.0f) {
-        float yc = ys + 0.5f;
-        float w1 = chord(r + 6.0f, yc), w2 = chord(r + 5.0f, yc), w3 = chord(r + 4.0f, yc), wi = chord(r, yc);
-        if (w1 > 0) rect(ctx, cx - w1, ys, cx + w1, ys + 1.0f, edge, 0.9f);
-        if (w2 > 0) rect(ctx, cx - w2, ys, cx + w2, ys + 1.0f, dark);
-        if (w3 > 0) rect(ctx, cx - w3, ys, cx + w3, ys + 1.0f, mid);
-        if (wi > 0) rect(ctx, cx - wi, ys, cx + wi, ys + 1.0f, toColor(FOG));
+    for (float ys = y; ys < y + size; ys += 1.0f) {
+        float d = ys + 0.5f - cy, w = std::sqrt(std::max(0.0f, r * r - d * d));
+        if (w > 0) rect(ctx, cx - w, ys, cx + w, ys + 1.0f, toColor(FOG));
     }
 }
 
@@ -2326,7 +2306,7 @@ Tile* findTile(int l, int i, int j) {
 constexpr uint32_t kTileFmt = 1; // bump whenever the painter output changes: older images are then ignored and baked again
 
 std::filesystem::path tileFile(int l, int i, int j) {
-    return worldDir() / "tiles" / ("t" + std::to_string(l) + "." + std::to_string(i) + "." + std::to_string(j) + ".dtl");
+    return worldDir() / "tiles2" / ("t" + std::to_string(l) + "." + std::to_string(i) + "." + std::to_string(j) + ".dtl");
 }
 
 bool writeTileFile(int l, int i, int j, std::vector<uint32_t> const& px) {
@@ -2495,8 +2475,8 @@ void tileTick(float tx, float tz, bool bigOpen) {
             for (size_t k = 0; k < cand.size() && k < 8 && pick.size() < take; ++k) {
                 Tile* t = cand[k].second;
                 bool  ready = true;
-                for (int rx = (kTileX * t->i - 48) >> 9; rx <= (kTileX * t->i + 160) >> 9; ++rx)
-                    for (int rz = (kTileZ * t->j - 81) >> 9; rz <= (kTileZ * t->j + 480) >> 9; ++rz)
+                for (int rx = (kTileX * t->i - 72) >> 9; rx <= (kTileX * t->i + 164) >> 9; ++rx)
+                    for (int rz = (kTileZ * t->j - 232) >> 9; rz <= (kTileZ * t->j + 484) >> 9; ++rz)
                         if (!regionReady(rx, rz, true)) ready = false;
                 if (ready) pick.push_back(t);
             }
@@ -3109,7 +3089,8 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
         float tx    = gSX + gPanX, tz = gSZ + gPanZ;
         float sH    = gSY - 1.6f; // eye -> feet
         {
-            int g = groundHeight(int(std::floor(tx)), int(std::floor(tz)), gH0Big);
+            bool panned = std::fabs(gPanX) > 0.01f || std::fabs(gPanZ) > 0.01f;
+            int g = panned ? groundPlayer : groundHeight(int(std::floor(tx)), int(std::floor(tz)), gH0Big);
             gH0Big = g;
             if (gBigSH < -1000.0f || gap) gBigSH = float(g);
             { float dH = (float(g) - gBigSH) * (1.0f - std::exp(-dtf / 0.9f)); float mx = 8.0f * dtf; gBigSH += std::clamp(dH, -mx, mx); }
@@ -3118,8 +3099,7 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
         if (!gCfgRead) readConfig();
         Scroll sc{};
         bool   texOk = false;
-        client.releaseMouse(); // free cursor for dragging
-        gMouseReleased = true;
+        if (!gMouseReleased || gFrame % 600 == 0) { client.releaseMouse(); gMouseReleased = true; } // free the cursor once (a call every frame made it creep)
         rect(ctx, 0, 0, sw, sh, toColor(FOG), 1.0f);
         if (gTexEnabled && !gTexFailed) {
             tileTick(tx, tz, true);
@@ -3149,19 +3129,19 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
             if (mx > 0 && mx < sw && my > 0 && my < sh) marker(ctx, mx, my, std::clamp(3.5f * std::pow(256.0f / gZoom, 0.5f), 1.1f, 4.0f), yaw);
         }
         // top bar
-        float bar = 30.0f;
-        rect(ctx, 0, 0, sw, bar, ::mce::Color{0.02f, 0.03f, 0.05f, 1.0f}, 0.72f);
-        float tabW = textWidth("ПОВЕРХНОСТЬ", 2.0f) + 12.0f;
+        float bar = 26.0f;
+        rect(ctx, 0, 0, sw, bar, ::mce::Color{0.02f, 0.03f, 0.05f, 1.0f}, 0.72f); // top bar
+        float tabW = textWidth("ПОВЕРХНОСТЬ", 1.5f) + 12.0f;
         rect(ctx, 6, 5, 6 + tabW, 25, ::mce::Color{0.05f, 0.07f, 0.10f, 1.0f}, 0.95f);
         rect(ctx, 6, 24, 6 + tabW, 26, ::mce::Color{0.95f, 0.97f, 1.0f, 1.0f}, 1.0f);
         ::mce::Color white{0.95f, 0.97f, 1.0f, 1.0f};
-        drawPixText(ctx, "ПОВЕРХНОСТЬ", 12, 9, 2.0f, white);
+        drawPixText(ctx, "ПОВЕРХНОСТЬ", 12, 9, 1.5f, white);
         char info[96];
         std::snprintf(info, sizeof(info), "%d, %d, %d   ЧАНКОВ: %d", px, int(pos.y), pz, int(gKnown.size()));
-        drawPixText(ctx, info, tabW + 20.0f, 9, 2.0f, white);
+        drawPixText(ctx, info, tabW + 20.0f, 9, 1.5f, white);
         // bottom hint
         rect(ctx, 0, sh - 22, sw, sh, ::mce::Color{0.02f, 0.03f, 0.05f, 1.0f}, 0.72f);
-        drawPixText(ctx, "КОЛЕСО - МАСШТАБ   ЛКМ - ПЕРЕТАСКИВАНИЕ   HOME - В ЦЕНТР   M - ЗАКРЫТЬ", 8, sh - 16, 2.0f, white);
+        drawPixText(ctx, "КОЛЕСО - МАСШТАБ   ЛКМ - ПЕРЕТАСКИВАНИЕ   HOME - В ЦЕНТР   M - ЗАКРЫТЬ", 8, sh - 16, 1.5f, white);
     } else {
         constexpr float SIZE   = 76.0f;
         constexpr int   VIEW   = 64;          // blocks visible
@@ -3204,10 +3184,6 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
             fogTick(client, gFogMini, 96, gSX, gSZ, kFogBlocks, gRound, dtf, false);
             fogDraw(ctx, gFogMini, x + SIZE * 0.5f, y + SIZE * 0.5f, SIZE / float(VIEW), gSX, gSZ, x, y, x + SIZE, y + SIZE, sw, sh, gRound);
         }
-        compassLetter(ctx, 'N', x + SIZE / 2, y - 10, true);
-        compassLetter(ctx, 'S', x + SIZE / 2, y + SIZE + 10, false);
-        compassLetter(ctx, 'W', x - 10, y + SIZE / 2, false);
-        compassLetter(ctx, 'E', x + SIZE + 10, y + SIZE / 2, false);
     }
 }
 
