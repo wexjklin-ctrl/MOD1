@@ -343,6 +343,14 @@ uint32_t colorOfBlock(::BlockSource& region, ::BlockPos const& pos, ::Block cons
         col = 0xFF000000u | rgb;
         logBlockColor(name, col);
     } else {
+        uint32_t kw = 0;
+        {
+            auto has = [&](char const* t) { return name.find(t) != std::string::npos; };
+            if (has("nether_brick")) kw = 0x2C151A; else if (has("brick")) kw = 0x96513F; else if (has("cobble")) kw = 0x7A7A7A;
+            else if (has("stone_brick") || has("stonebrick")) kw = 0x7B7B7B; else if (has("sandstone")) kw = 0xDBCF9D; else if (has("fence") || has("planks")) kw = 0x9C7F4E;
+            else if (has("_wall") && !has("wall_")) kw = 0x7A7A7A;
+        }
+        if (kw) { gBlockCol[&block] = 0xFF000000u | kw; logUnmapped(name, 0xFF000000u | kw); return 0xFF000000u | kw; }
         ::mce::Color mc = block.getBlockType().getMapColor(region, pos, block);
         float r = mc.r, g = mc.g, b = mc.b;
         if (mc.a < 0.02f || std::max({r, g, b}) < 0.02f) {
@@ -416,7 +424,7 @@ bool scanColumn(::BlockSource& region, int x, int z, uint32_t& col, int16_t& h, 
             uint32_t prev = wall[0];
             for (int k = 1; k < NW; ++k) {
                 int yy = y - k;
-                if (k > need || yy < minH) { wall[k] = prev; continue; }
+                if (k > need || yy < minH) { wall[k] = 0u; continue; }
                 ::BlockPos p2{x, yy, z};
                 ::Block const& b2 = region.getBlock(p2);
                 if (b2.isAir() || isWater(b2.getTypeName()) || isSmallPlant(b2.getTypeName())) {
@@ -446,6 +454,8 @@ bool scanChunk(::BlockSource& region, int cx, int cz, ChunkData& cd) {
             int idx = lz * 16 + lx;
             ok[idx] = scanColumn(region, cx * 16 + lx, cz * 16 + lz, cols[idx], hs[idx], nullptr, -1);
         }
+    int chunkMinH = INT_MAX;
+    for (int q = 0; q < 256; ++q) if (ok[q]) chunkMinH = std::min(chunkMinH, int(hs[q]));
     // pass 2: wall profile, only as deep as the wall below the column can be seen (height difference to the southern neighbour)
     for (int lz = 0; lz < 16; ++lz) {
         for (int lx = 0; lx < 16; ++lx) {
@@ -458,6 +468,8 @@ bool scanChunk(::BlockSource& region, int cx, int cz, ChunkData& cd) {
                 hSouth = t > minH ? t : int(hs[idx]) - 24;
             }
             int need = std::clamp(int(hs[idx]) - hSouth + 3, 2, NW - 1);
+            if (int(hs[idx]) - hSouth >= 3 || int(hs[idx]) - chunkMinH >= 6) need = NW - 1; // facades, cliffs, trees: full depth (balconies hide gaps below the south neighbour's top)
+            else need = std::max(need, 24);
             uint32_t col = 0; int16_t h = 0;
             uint32_t w[NW];
             if (!scanColumn(region, cx * 16 + lx, cz * 16 + lz, col, h, w, need)) continue;
@@ -1014,6 +1026,7 @@ struct HField {
     std::vector<int16_t>                h;
     std::vector<WRef>                   wp;
     std::vector<float>                  sky;
+    std::vector<uint8_t>                ov; // 1 = column has an air gap between solid blocks (overhang/balcony/canopy)
     size_t id(int gi, int r) const { return size_t(r) * size_t(gn) + size_t(gi); }
     bool   inside(int gi, int r) const { return gi >= 0 && gi < gn && r >= 0 && r < m; }
     bool   known(int gi, int r) const { return inside(gi, r) && col[id(gi, r)] != 0; }
@@ -1038,7 +1051,7 @@ void buildHField(HField& g, Baked const& b) {
     g.gn       = g.n + g.mx;
     g.x0       = b.cx - (b.n / 2) * b.step;
     size_t N   = size_t(g.gn) * size_t(g.m);
-    g.col.assign(N, 0u); g.h.assign(N, 0); g.wp.assign(N, WRef{}); g.sky.assign(N, 1.0f);
+    g.col.assign(N, 0u); g.h.assign(N, 0); g.wp.assign(N, WRef{}); g.sky.assign(N, 1.0f); g.ov.assign(N, 0);
     Sampler s;
     for (int gi = 0; gi < g.gn; ++gi) {
         int X = g.x0 + (gi - g.mx) * g.step;
@@ -1048,6 +1061,13 @@ void buildHField(HField& g, Baked const& b) {
             if (sampleCell(s, X, Z, g.step, c, hh, &w)) {
                 size_t k = g.id(gi, r);
                 g.col[k] = c | 0xFF000000u; g.h[k] = int16_t(hh); g.wp[k] = w;
+                if (w) {
+                    bool seenSolid = false, airAfter = false;
+                    for (int q = 0; q < NW; ++q) {
+                        if (w[q] >> 24) { if (airAfter) { g.ov[k] = 1; break; } seenSolid = true; }
+                        else if (seenSolid) airAfter = true;
+                    }
+                }
                 g.maxH = std::max(g.maxH, hh);
             }
         }
@@ -1197,7 +1217,8 @@ void paintHeightfield(Baked const& b, int W, std::vector<uint32_t>& px, std::vec
                         Rec& R = rec[size_t(y) * W + x];
                         R.cell = int32_t(k); R.type = 1; R.a = fx; R.b = std::clamp((vS - vTop0) / KYv, 0.0f, 0.9999f); R.y = Ytop; R.col = topCol;
                     }
-                    float lowY = std::max(float(R0.yb), float(hn + 1));
+                    bool  sOv  = g.known(gi, r + 1) && g.ov[g.id(gi, r + 1)];
+                    float lowY = sOv ? float(R0.yb) : std::max(float(R0.yb), float(hn + 1)); // under an overhang of the south column the facade continues
                     float wallH = std::min(Ytop - lowY, 96.0f);
                     if (wallH <= 0.0f) continue;
                     float vW1 = vTop1 + wallH * HSs;
