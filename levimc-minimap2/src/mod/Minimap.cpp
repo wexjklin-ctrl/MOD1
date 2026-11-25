@@ -767,21 +767,22 @@ void loadRegionStream(std::istream& f, char ver, uint32_t count) {
     }
 }
 
-void loadRegionFile(int rx, int rz) {
+bool loadRegionFile(int rx, int rz) {
     std::ifstream f(regionFile(rx, rz), std::ios::binary);
     char          magic[4] = {};
     uint32_t      count    = 0;
-    if (!f.read(magic, 4) || std::string(magic, 3) != "DBM" || magic[3] < '2' || magic[3] > '7' || !f.read(reinterpret_cast<char*>(&count), 4)) return;
+    if (!f.read(magic, 4) || std::string(magic, 3) != "DBM" || magic[3] < '2' || magic[3] > '7' || !f.read(reinterpret_cast<char*>(&count), 4)) return false;
     if (magic[3] == '7') {
         uint32_t rs = 0, cs = 0;
-        if (!f.read(reinterpret_cast<char*>(&rs), 4) || !f.read(reinterpret_cast<char*>(&cs), 4) || rs > (1u << 28) || cs > (1u << 28)) return;
+        if (!f.read(reinterpret_cast<char*>(&rs), 4) || !f.read(reinterpret_cast<char*>(&cs), 4) || rs > (1u << 28) || cs > (1u << 28)) return false;
         std::vector<uint8_t> comp(cs);
-        if (!f.read(reinterpret_cast<char*>(comp.data()), std::streamsize(cs))) return;
+        if (!f.read(reinterpret_cast<char*>(comp.data()), std::streamsize(cs))) return false;
         std::string raw(rs, '\0');
-        if (!lz4Decompress(comp.data(), cs, reinterpret_cast<uint8_t*>(raw.data()), rs)) return;
+        if (!lz4Decompress(comp.data(), cs, reinterpret_cast<uint8_t*>(raw.data()), rs)) return false;
         std::istringstream is(std::move(raw), std::ios::binary);
         loadRegionStream(is, '7', count);
     } else loadRegionStream(f, magic[3], count);
+    return true;
 }
 
 // Lazy loading: a region is read into RAM only when something needs its chunks (scanning near the player, baking a tile).
@@ -793,7 +794,11 @@ bool regionReady(int rx, int rz, bool allowLoad) {
     static uint64_t lastLoad = UINT64_MAX;
     if (lastLoad == gFrame) return false; // one region read per frame
     lastLoad = gFrame;
-    if (gDiskRegions.count(k)) loadRegionFile(rx, rz);
+    if (gDiskRegions.count(k) && !loadRegionFile(rx, rz)) { // unreadable: keep the file as .bad and start the region empty, never overwrite silently
+        std::error_code ec;
+        std::filesystem::rename(regionFile(rx, rz), regionFile(rx, rz).string() + ".bad", ec);
+        gDiskRegions.erase(k);
+    }
     gRegions[k] = gFrame;
     return true;
 }
@@ -816,7 +821,7 @@ void loadWorld() {
                 if (idx[bit >> 3] & (1u << (bit & 7))) gKnown.insert(key(rx * 32 + (bit & 31), rz * 32 + (bit >> 5)));
         } else gLegacyPending.push_back({rx, rz});
     }
-    for (auto const& e : std::filesystem::directory_iterator(worldDir() / "tiles2", ec)) {
+    for (auto const& e : std::filesystem::directory_iterator(worldDir() / "tiles3", ec)) {
         if (ec) break;
         std::string name = e.path().filename().string();
         int         l = 0, i = 0, j = 0; char tail[8] = {};
@@ -1760,6 +1765,28 @@ void frame(::MinecraftUIRenderContext& ctx, float x, float y, float size) {
     rect(ctx, x, y, x + size, y + size, toColor(FOG)); // unexplored background only (no frame)
 }
 
+// thin stone border: 2 px ring of grey blocks with a little noise
+void stoneBorder(::MinecraftUIRenderContext& ctx, float x, float y, float size) {
+    auto shade = [](int a, int b) { uint32_t h = uint32_t(a) * 73856093u ^ uint32_t(b) * 19349663u; h = (h ^ (h >> 13)) * 1274126177u; return 0.30f + 0.26f * float((h >> 8) & 255) / 255.0f; };
+    for (int ring = 0; ring < 2; ++ring) {
+        float o = float(ring + 1);
+        float x0 = x - o, y0 = y - o, x1 = x + size + o, y1 = y + size + o;
+        int   k = 0;
+        for (float px = x0; px < x1; px += 3.0f, ++k) {
+            float w = std::min(3.0f, x1 - px), v = shade(k, ring);
+            rect(ctx, px, y0, px + w, y0 + 1.0f, ::mce::Color{v, v, v * 1.04f, 1.0f});
+            v = shade(k + 50, ring);
+            rect(ctx, px, y1 - 1.0f, px + w, y1, ::mce::Color{v, v, v * 1.04f, 1.0f});
+        }
+        for (float py = y0 + 1.0f; py < y1 - 1.0f; py += 3.0f, ++k) {
+            float h2 = std::min(3.0f, y1 - 1.0f - py), v = shade(k + 100, ring);
+            rect(ctx, x0, py, x0 + 1.0f, py + h2, ::mce::Color{v, v, v * 1.04f, 1.0f});
+            v = shade(k + 150, ring);
+            rect(ctx, x1 - 1.0f, py, x1, py + h2, ::mce::Color{v, v, v * 1.04f, 1.0f});
+        }
+    }
+}
+
 void vignette(::MinecraftUIRenderContext& ctx, float x, float y, float size) {
     ::mce::Color k{0, 0, 0, 1};
     for (int i = 0; i < 3; ++i) {
@@ -2289,6 +2316,7 @@ struct Tile {
     int                   miss = 0;
     uint64_t              diskVer = 0; // pxVer that is stored on disk
     bool                  diskTried = false;
+    bool                  freed = false; // pixels dropped from RAM after they were stored (texture stays)
 };
 std::unordered_map<int64_t, Tile> gTiles;
 
@@ -2306,7 +2334,7 @@ Tile* findTile(int l, int i, int j) {
 constexpr uint32_t kTileFmt = 1; // bump whenever the painter output changes: older images are then ignored and baked again
 
 std::filesystem::path tileFile(int l, int i, int j) {
-    return worldDir() / "tiles2" / ("t" + std::to_string(l) + "." + std::to_string(i) + "." + std::to_string(j) + ".dtl");
+    return worldDir() / "tiles3" / ("t" + std::to_string(l) + "." + std::to_string(i) + "." + std::to_string(j) + ".dtl");
 }
 
 bool writeTileFile(int l, int i, int j, std::vector<uint32_t> const& px) {
@@ -2368,12 +2396,13 @@ Tile* tileFromDisk(int l, int i, int j) {
 
 // Existing in-RAM entry without pixels (created by a chunk change, or its pixels were freed): bring the stored image back.
 void ensureTilePx(Tile& t, bool force = false) {
-    if (!t.px.empty() || t.diskTried || !gTileDisk.count(tkey(t.l, t.i, t.j))) return;
+    if (!t.px.empty() || !gTileDisk.count(tkey(t.l, t.i, t.j))) return;
+    if (!force && (t.diskTried || t.freed)) return;
     if (!force && !tileLoadBudget()) return;
     t.diskTried = true;
     std::vector<uint32_t> px;
     if (!readTileFile(t.l, t.i, t.j, px)) return;
-    t.px = std::move(px); t.pxVer += 1; t.propVer = t.pxVer; t.diskVer = t.pxVer; t.pxFrame = gFrame;
+    t.px = std::move(px); t.pxVer += 1; t.propVer = t.pxVer; t.diskVer = t.pxVer; t.pxFrame = gFrame; t.freed = false;
 }
 
 void clearTiles() {
@@ -2509,7 +2538,7 @@ void tileTick(float tx, float tz, bool bigOpen) {
                 if (!old || t.lastUse < old->lastUse) old = &t;
             }
             if (!old) break;
-            old->px.clear(); old->px.shrink_to_fit();
+            old->px.clear(); old->freed = true; old->px.shrink_to_fit();
             --cnt;
         }
     }
@@ -2566,7 +2595,7 @@ void drawTileCell(::MinecraftUIRenderContext& ctx, ::IClientInstance& client, in
         if (tileShown(*t)) {
             if (drawTileTex(ctx, t->tex, x, y, ow, oh, 0.0f, 0.0f, 1.0f, kV)) { t->lastUse = gFrame; t->miss = 0; return; }
             if (++t->miss > 90) { // placeholder never went away: drop the texture and upload/bake again
-                t->miss = 0; t->shown = false; t->tex.pending = false; t->diskTried = false;
+                t->miss = 0; t->shown = false; t->tex.pending = false; t->diskTried = false; t->freed = false;
                 t->tex.created[0] = t->tex.created[1] = false;
                 if (!t->px.empty()) t->upVer = t->pxVer + 1;
                 else { t->baked = false; t->queued = false; t->content = true; t->stale = true; t->staleFrame = 0; }
@@ -3099,7 +3128,7 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
         if (!gCfgRead) readConfig();
         Scroll sc{};
         bool   texOk = false;
-        if (!gMouseReleased || gFrame % 600 == 0) { client.releaseMouse(); gMouseReleased = true; } // free the cursor once (a call every frame made it creep)
+        if (!gMouseReleased || gDragging || down(VK_LBUTTON) || gFrame % 600 == 0) { client.releaseMouse(); gMouseReleased = true; } // free the cursor once (a call every frame made it creep)
         rect(ctx, 0, 0, sw, sh, toColor(FOG), 1.0f);
         if (gTexEnabled && !gTexFailed) {
             tileTick(tx, tz, true);
@@ -3146,8 +3175,8 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
         constexpr float SIZE   = 76.0f;
         constexpr int   VIEW   = 64;          // blocks visible
         constexpr int   NB     = 84;          // blocks baked (10 block margin each side: rare re-bakes)
-        float           x      = sw - SIZE - 20.0f;
-        float           y      = 22.0f;
+        float           x      = sw - SIZE - 8.0f;
+        float           y      = 10.0f;
         if (gap || gSmoothH < -1000.0f) gSmoothH = float(groundPlayer);
         { float dH = (float(groundPlayer) - gSmoothH) * (1.0f - std::exp(-dtf / 0.9f)); float mx = 5.0f * dtf; gSmoothH += std::clamp(dH, -mx, mx); }
         if (!gCfgRead) readConfig();
@@ -3184,6 +3213,7 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
             fogTick(client, gFogMini, 96, gSX, gSZ, kFogBlocks, gRound, dtf, false);
             fogDraw(ctx, gFogMini, x + SIZE * 0.5f, y + SIZE * 0.5f, SIZE / float(VIEW), gSX, gSZ, x, y, x + SIZE, y + SIZE, sw, sh, gRound);
         }
+        if (!gRound) stoneBorder(ctx, x, y, SIZE);
     }
 }
 
