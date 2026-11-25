@@ -534,9 +534,19 @@ std::vector<std::pair<int, int>> const& chunkOffsets() {
 
 void updateCache(::BlockSource& region, int px, int pz) {
     int pcx = floorDiv16(px), pcz = floorDiv16(pz);
-    int budget = 3; // chunks scanned per frame
+    // time budget instead of a fixed chunk count: new chunks appear much faster when scanning is cheap, frames stay short when it is not
+    LARGE_INTEGER qf, q0;
+    QueryPerformanceFrequency(&qf);
+    QueryPerformanceCounter(&q0);
+    constexpr double kBudgetMs = 3.0;
+    int              budget    = 24;
     for (auto const& [dx, dz] : chunkOffsets()) {
         if (budget <= 0) break;
+        {
+            LARGE_INTEGER qn;
+            QueryPerformanceCounter(&qn);
+            if (double(qn.QuadPart - q0.QuadPart) * 1000.0 / double(qf.QuadPart) > kBudgetMs) break;
+        }
         int  cx = pcx + dx, cz = pcz + dz;
         ChunkData* cdp;
         {
@@ -544,7 +554,7 @@ void updateCache(::BlockSource& region, int px, int pz) {
             cdp = &gCache[key(cx, cz)];
         }
         auto& cd = *cdp;
-        bool need = cd.scanned ? (gFrame - cd.lastScan >= 900) : (gFrame - cd.lastTry >= 60 || cd.lastTry == 0);
+        bool need = cd.scanned ? (gFrame - cd.lastScan >= (dx * dx + dz * dz <= 36 ? 600u : 3600u)) : (gFrame - cd.lastTry >= 60 || cd.lastTry == 0);
         if (!need) continue;
         cd.lastTry = gFrame;
         if (scanChunk(region, cx, cz, cd)) --budget;
@@ -1910,8 +1920,9 @@ std::mutex               gTileMx;
 std::condition_variable  gTileCv, gTileIdleCv;
 std::vector<TileJob>     gTileQueue;
 std::vector<TileResult>  gTileDone;
-std::thread              gTileThread;
-bool                     gTileStop = false, gTileStarted = false, gTileBusy = false;
+std::vector<std::thread> gTileThreads;
+int                      gTileBusyN = 0;
+bool                     gTileStop = false, gTileStarted = false;
 
 bool bakeTilePixels(int ti, int tj, uint64_t epoch, std::vector<uint32_t>& out) {
     Baked b;
@@ -1938,14 +1949,14 @@ void tileWorkerMain() {
             if (gTileStop) return;
             job = gTileQueue.front();
             gTileQueue.erase(gTileQueue.begin());
-            gTileBusy = true;
+            ++gTileBusyN;
         }
         TileResult r; r.i = job.i; r.j = job.j; r.epoch = job.epoch;
         bool ok = false;
         try { ok = (gEpoch.load() == job.epoch) && bakeTilePixels(job.i, job.j, job.epoch, r.px); } catch (...) { ok = false; }
         {
             std::lock_guard<std::mutex> lk(gTileMx);
-            gTileBusy = false;
+            --gTileBusyN;
             if (ok && gEpoch.load() == job.epoch) gTileDone.push_back(std::move(r));
         }
         gTileIdleCv.notify_all();
@@ -1956,14 +1967,16 @@ void startTileWorker() {
     if (gTileStarted) return;
     gTileStarted = true;
     gTileStop    = false;
-    gTileThread  = std::thread(tileWorkerMain);
+    unsigned hc = std::thread::hardware_concurrency();
+    int      n  = std::clamp(int(hc) / 2, 2, 4); // parallel baking: tiles are independent
+    for (int i = 0; i < n; ++i) gTileThreads.emplace_back(tileWorkerMain);
 }
 
 void tileQuiesce() {
     std::unique_lock<std::mutex> lk(gTileMx);
     gTileQueue.clear();
     gTileDone.clear();
-    gTileIdleCv.wait(lk, [] { return !gTileBusy; });
+    gTileIdleCv.wait(lk, [] { return gTileBusyN == 0; });
 }
 
 void asyncQuiesce() {
@@ -2627,7 +2640,8 @@ void shutdown() {
         gTileStop = true;
     }
     gTileCv.notify_all();
-    if (gTileThread.joinable()) gTileThread.join();
+    for (auto& th : gTileThreads) if (th.joinable()) th.join();
+    gTileThreads.clear();
     gTileStarted = false;
     gTileStop    = false;
     {
