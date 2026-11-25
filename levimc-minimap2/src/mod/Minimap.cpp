@@ -2116,7 +2116,7 @@ void tileWorkerMain() {
         gTileIdleCv.notify_all();
         // duty cycle: rest ~60% of the bake time so the big map never pins the CPU (game thread keeps its cores)
         ULONGLONG el = GetTickCount64() - t0;
-        Sleep(DWORD(std::min<ULONGLONG>(el * 6 / 10 + 5, 250)));
+        Sleep(DWORD(std::min<ULONGLONG>(el * 3 / 10 + 2, 120)));
     }
 }
 
@@ -2125,7 +2125,7 @@ void startTileWorker() {
     gTileStarted = true;
     gTileStop    = false;
     unsigned hc = std::thread::hardware_concurrency();
-    int      n  = std::clamp(int(hc) / 3, 1, 3); // parallel baking: tiles are independent
+    int      n  = std::clamp(int(hc) / 2, 2, 4); // parallel baking: tiles are independent
     for (int i = 0; i < n; ++i) gTileThreads.emplace_back(tileWorkerMain);
 }
 
@@ -2490,12 +2490,26 @@ void tileTick(float tx, float tz, bool bigOpen) {
     }
 }
 
+int gDrawL = 0; // tile level the big map is drawn with right now
+
 bool tileShown(Tile const& t) { return t.shown && t.tex.created[t.tex.cur]; }
 
 // The big map shows this chunk's terrain: its level-0 tile is baked after the chunk's last change, uploaded and on screen.
 bool fogChunkReady(int cx, int cz) {
-    Tile* t = findTile(0, fdiv(cx * 16, kTileX), fdiv(cz * 16, kTileZ));
-    return t && t->baked && !t->stale && !t->queued && t->shown && t->tex.created[t->tex.cur] && !t->tex.pending && t->upVer == t->pxVer;
+    // the area is on screen when a tile of the drawn level (or a coarser stand-in) covers it and is shown
+    for (int l = gDrawL; l <= kLMax; ++l) {
+        Tile* t = findTile(l, fdiv(cx * 16, kTileX << l), fdiv(cz * 16, kTileZ << l));
+        if (!t || !t->shown || !t->tex.created[t->tex.cur] || t->tex.pending) continue;
+        if (l == 0 && (!t->baked || t->stale || t->queued || t->upVer != t->pxVer)) continue;
+        if (l > 0) { // a coarse tile only holds what its children have contributed so far
+            int   i0 = fdiv(cx * 16, kTileX), j0 = fdiv(cz * 16, kTileZ);
+            Tile* t0 = findTile(0, i0, j0);
+            bool  ok = (t0 && t0->baked && !t0->stale && t0->propVer == t0->pxVer) || gTileDisk.count(tkey(0, i0, j0));
+            if (!ok) continue;
+        }
+        return true;
+    }
+    return false;
 }
 
 void tileUpload(::IClientInstance& client, Tile& t, int& uploads) {
@@ -2554,6 +2568,7 @@ void drawTileMap(::MinecraftUIRenderContext& ctx, ::IClientInstance& client, flo
     float halfW = sw * 0.5f / s, halfH = sh * 0.5f / s;
     float dens  = size / gZoom * 2.2f;                // ~ physical pixels per block
     int   L     = std::clamp(int(std::floor(std::log2(float(PPC) / std::max(dens, 0.01f)))), 0, kLMax);
+    gDrawL = L;
     float tw = float(kTW << L), th = float(kTH << L);
     int   i0 = int(std::floor((pcx - halfW) / tw)), i1 = int(std::floor((pcx + halfW) / tw));
     int   j0 = int(std::floor((pcy - halfH) / th)), j1 = int(std::floor((pcy + halfH) / th));
@@ -2815,7 +2830,7 @@ void fogBuildMask(FogJob& j, int G, float cx, float cz, float blocks, bool round
                 lastKey = kk; lk_ = 0.0f; ll_ = 1.0f;
                 if (gKnown.count(kk)) { // fog only over chunks without any map data
                     auto fi = chunks.find(kk);
-                    bool rdy = !gate || blocks > 600.0f || fogChunkReady(ccx, ccz);
+                    bool rdy = !gate || fogChunkReady(ccx, ccz);
                     if (fi == chunks.end()) {
                         FogChunk fc;
                         fc.k = (rdy && gFrame - gFogEpoch >= 600) ? 1.0f : 0.0f;
