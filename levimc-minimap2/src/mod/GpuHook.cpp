@@ -4,7 +4,14 @@
 // If the square appears (top-left, magenta), the real tile/fog shaders can be moved here (step 2).
 #include "mod/GpuHook.h"
 
+// LeviLamina's predefine header declares empty stand-ins for a few d3d12.h types; rename them while it is included.
+#define D3D12_FEATURE_DATA_D3D12_OPTIONS LL_Stub_D3D12_FEATURE_DATA_D3D12_OPTIONS
+#define D3D12_FEATURE_DATA_ARCHITECTURE LL_Stub_D3D12_FEATURE_DATA_ARCHITECTURE
+#define D3D12_RAYTRACING_GEOMETRY_DESC LL_Stub_D3D12_RAYTRACING_GEOMETRY_DESC
 #include "ll/api/memory/Hook.h"
+#undef D3D12_FEATURE_DATA_D3D12_OPTIONS
+#undef D3D12_FEATURE_DATA_ARCHITECTURE
+#undef D3D12_RAYTRACING_GEOMETRY_DESC
 
 #include <windows.h>
 
