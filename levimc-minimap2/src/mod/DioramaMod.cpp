@@ -26,7 +26,7 @@ bool DioramaMod::enable() {
     } else {
         getSelf().getLogger().error("Could not install HUD hook.");
     }
-    gpu::install();
+    gpu::install([](std::string const& m) { DioramaMod::getInstance().getSelf().getLogger().info(m); });
     return true;
 }
 

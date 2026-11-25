@@ -4,8 +4,6 @@
 // If the square appears (top-left, magenta), the real tile/fog shaders can be moved here (step 2).
 #include "mod/GpuHook.h"
 
-#include "mod/DioramaMod.h"
-
 #include "ll/api/memory/Hook.h"
 
 #include <windows.h>
@@ -52,9 +50,8 @@ struct Ctx {
     bool                       ok = false;
 } gC;
 
-void log(std::string const& m) {
-    try { DioramaMod::getInstance().getSelf().getLogger().info(m); } catch (...) {}
-}
+LogFn gLog = nullptr;
+void log(std::string const& m) { if (gLog) gLog(m); }
 
 bool initCtx(ID3D12Device* dev, ID3D12CommandQueue*) {
     gC.dev = dev;
@@ -163,7 +160,8 @@ bool testEnabled() {
 
 } // namespace
 
-bool install() {
+bool install(LogFn logFn) {
+    gLog = logFn;
     if (gInstalled) return true;
     if (!testEnabled()) { log("GPU path off (create %APPDATA%\\minimap2\\gpu.txt with the line test=1 to try the Direct3D 12 experiment)."); return false; }
     HWND hw = CreateWindowExA(0, "STATIC", "dx12dummy", WS_OVERLAPPED, 0, 0, 100, 100, nullptr, nullptr, GetModuleHandleA(nullptr), nullptr);
