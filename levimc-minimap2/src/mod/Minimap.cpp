@@ -86,6 +86,8 @@ struct ChunkData {
     uint64_t                  lastTry  = 0;
 };
 
+inline bool colsKnown(uint32_t const* c) { int n = 0; for (int q = 0; q < 256; ++q) n += c[q] != 0; return n >= 200; }
+
 struct WRef { // view of one column's wall profile
     uint8_t const*  id  = nullptr;
     uint32_t const* pal = nullptr;
@@ -530,7 +532,7 @@ bool scanChunk(::BlockSource& region, int cx, int cz, ChunkData& cd) {
     cd.lastScan = gFrame;
     {
         bool any = false;
-        for (int q = 0; q < 256; ++q) if (cd.color[q]) { any = true; break; }
+        any = colsKnown(cd.color.data());
         if (any) { std::lock_guard<std::mutex> lk(gMapMx); if (gKnown.insert(key(cx, cz)).second) markDirty(cx, cz); }
     }
     if (changed) {
@@ -703,7 +705,7 @@ void buildRegionRaw(int rx, int rz, std::function<ChunkData*(int, int)> const& g
             putBytes(out.raw, cd.pal.data(), size_t(pn) * 4);
             putBytes(out.raw, cd.wallId.data(), 256 * NW);
             cd.dirty = false;
-            for (int q = 0; q < 256; ++q) if (cd.color[q]) { int bit = dz * 32 + dx; out.idx[bit >> 3] |= uint8_t(1u << (bit & 7)); break; }
+            if (colsKnown(cd.color.data())) { int bit = dz * 32 + dx; out.idx[bit >> 3] |= uint8_t(1u << (bit & 7)); }
         }
 }
 
@@ -840,7 +842,7 @@ void loadRegionStream(std::istream& f, char ver, uint32_t count, ChunkSink* sink
         }
         cd.scanned = false; // will be refreshed when the chunk is loaded again
         bool any = false;
-        for (int q = 0; q < 256; ++q) if (cd.color[q]) { any = true; break; }
+        any = colsKnown(cd.color.data());
         if (sink) { (*sink)[key(cx, cz)] = std::move(cd); continue; }
         std::lock_guard<std::mutex> lk(gMapMx);
         if (gCache.emplace(key(cx, cz), std::move(cd)).second && any) gKnown.insert(key(cx, cz));
@@ -894,7 +896,7 @@ void migMain() {
             if (loadRegionFile(rx, rz, &sink) && !sink.empty()) {
                 for (auto& kv : sink) {
                     bool any = false;
-                    for (int q = 0; q < 256; ++q) if (kv.second.color[q]) { any = true; break; }
+                    any = colsKnown(kv.second.color.data());
                     if (any) known.push_back(kv.first);
                 }
                 writeRegion(rx, rz, [&](int cx, int cz) -> ChunkData* { auto it = sink.find(key(cx, cz)); return it == sink.end() ? nullptr : &it->second; });
@@ -999,11 +1001,12 @@ void pumpLoads() {
         while (!gMerge.sink.empty() && n < 300) {
             auto nh  = gMerge.sink.extract(gMerge.sink.begin()); // moves the node: no copy of the 27 KB chunk
             bool any = false;
-            for (int q = 0; q < 256; ++q) if (nh.mapped().color[q]) { any = true; break; }
+            any = colsKnown(nh.mapped().color.data());
             nh.mapped().scanned = false;
             int64_t kk = nh.key();
             auto    ir = gCache.insert(std::move(nh));
             if (ir.inserted && any && gKnown.insert(kk).second) added.push_back(kk);
+            else if (ir.inserted && !any) gKnown.erase(kk); // partial chunk from an older index: not known yet
             ++n;
         }
         lk.unlock();
@@ -2604,6 +2607,7 @@ struct Tile {
     uint64_t              diskVer = 0; // pxVer that is stored on disk
     bool                  diskTried = false;
     bool                  freed = false; // pixels dropped from RAM after they were stored (texture stays)
+    int                   hole = 0;      // consecutive observations: nothing drawn over known terrain
 };
 std::unordered_map<int64_t, Tile> gTiles;
 
@@ -2904,6 +2908,32 @@ bool drawTileTex(::MinecraftUIRenderContext& ctx, Tex const& t, float x, float y
     return true;
 }
 
+// does this tile cover terrain the map knows? (a few sample points)
+bool tileKnownArea(int l, int i, int j) {
+    float x0 = float(i * (kTileX << l)), z0 = float(j * (kTileZ << l)), w = float(kTileX << l), h = float(kTileZ << l);
+    std::lock_guard<std::mutex> lk(gMapMx);
+    for (int a = 0; a < 3; ++a)
+        for (int b = 0; b < 3; ++b)
+            if (gKnown.count(key(floorDiv16(int(std::floor(x0 + w * (0.2f + 0.3f * float(a))))), floorDiv16(int(std::floor(z0 + h * (0.2f + 0.3f * float(b)))))))) return true;
+    return false;
+}
+
+// a blank hole over known terrain: reset the tile so it is loaded/uploaded/baked again
+void healTile(Tile& h) {
+    h.diskTried = false; h.freed = false; h.shown = false; h.tex.pending = false;
+    h.tex.created[0] = h.tex.created[1] = false;
+    if (!h.px.empty()) { h.upVer = h.pxVer + 1; return; }
+    if (gTileDisk.count(tkey(h.l, h.i, h.j))) return; // the draw path reloads it
+    if (h.l == 0) { h.content = true; h.baked = false; h.stale = true; h.staleFrame = 0; return; }
+    int k = 1 << h.l; // rebuild from the detailed tiles underneath
+    for (int jj = h.j * k; jj < (h.j + 1) * k; ++jj)
+        for (int ii = h.i * k; ii < (h.i + 1) * k; ++ii) {
+            Tile* c = findTile(0, ii, jj);
+            if (!c) { if (!tileKnownArea(0, ii, jj)) continue; c = &tileAt(0, ii, jj); }
+            c->content = true; c->baked = false; c->stale = true; c->staleFrame = 0;
+        }
+}
+
 void drawTileCell(::MinecraftUIRenderContext& ctx, ::IClientInstance& client, int l, int i, int j, float x, float y, float w, float h, int& uploads) {
     constexpr float kV = float(kTH) / float(kTexH);
     float ow = w + 0.75f, oh = h + 0.75f; // tiny overlap hides hairline seams between neighbours
@@ -2912,7 +2942,7 @@ void drawTileCell(::MinecraftUIRenderContext& ctx, ::IClientInstance& client, in
     if (t) {
         tileUpload(client, *t, uploads);
         if (tileShown(*t)) {
-            if (drawTileTex(ctx, t->tex, x, y, ow, oh, 0.0f, 0.0f, 1.0f, kV)) { t->lastUse = gFrame; t->miss = 0; return; }
+            if (drawTileTex(ctx, t->tex, x, y, ow, oh, 0.0f, 0.0f, 1.0f, kV)) { t->lastUse = gFrame; t->miss = 0; t->hole = 0; return; }
             if (++t->miss > 90) { // placeholder never went away: drop the texture and upload/bake again
                 t->miss = 0; t->shown = false; t->tex.pending = false; t->diskTried = false; t->freed = false;
                 t->tex.created[0] = t->tex.created[1] = false;
@@ -2931,6 +2961,11 @@ void drawTileCell(::MinecraftUIRenderContext& ctx, ::IClientInstance& client, in
         if (!tileShown(*a)) continue;
         float ox = float(i - ai * k) / float(k), oy = float(j - aj * k) / float(k);
         if (drawTileTex(ctx, a->tex, x, y, ow, oh, ox, oy * kV, 1.0f / float(k), kV / float(k))) { a->lastUse = gFrame; return; }
+    }
+    // nothing could be drawn: if the area is known terrain this is a hole; heal it after it persisted for a while
+    if ((gFrame + uint64_t(i * 7 + j * 13 + l)) % 45 == 0 && tileKnownArea(l, i, j)) {
+        Tile& hl = tileAt(l, i, j);
+        if (++hl.hole > 3) { hl.hole = 0; healTile(hl); }
     }
 }
 
@@ -3046,6 +3081,13 @@ Proj makeProj(float sw, float sh, float size, float tx, float tz, float cH) {
     p.s = size / (gZoom * float(PPC)); p.pcx = tx * float(PPC); p.pcy = tz * KY * float(PPC) - (cH - float(kHRef)) * kLiftPx;
     return p;
 }
+constexpr int kOvW = 1024;
+Tex                   gOvTex;
+std::vector<uint32_t> gOvBuf;
+uint64_t              gOvHash = 0;
+bool                  gOvHas  = false;
+Proj                  gOvP{0, 0, 0, 0, 0}, gOvPendP{0, 0, 0, 0, 0}; // view of the shown / pending overlay raster
+
 void projWorld(Proj const& p, float X, float Z, float h, float& sx, float& sy) {
     sx = p.sw * 0.5f + (X * float(PPC) - p.pcx) * p.s;
     sy = p.sh * 0.5f + (Z * KY * float(PPC) - (h - float(kHRef)) * kLiftPx - p.pcy) * p.s;
@@ -3159,53 +3201,93 @@ void drawIcon(::MinecraftUIRenderContext& ctx, char const* const* ico, BtnR cons
             if (ico[r][q] == '#') rect(ctx, x0 + float(q) * px, y0 + float(r) * px, x0 + float(q + 1) * px, y0 + float(r + 1) * px, c, 1.0f);
 }
 
-void bigMapOverlayDraw(::MinecraftUIRenderContext& ctx, float sw, float sh, float size, float tx, float tz, float cH, float mx, float my, bool mv) {
+void bigMapOverlayDraw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client, float sw, float sh, float size, float tx, float tz, float cH, float mx, float my, bool mv) {
     Proj pr = makeProj(sw, sh, size, tx, tz, cH);
-    // strokes
-    for (auto const& st : gOvStrokes) {
-        ::mce::Color c{kDrawCol[st.col % kDrawCols][0], kDrawCol[st.col % kDrawCols][1], kDrawCol[st.col % kDrawCols][2], 1.0f};
-        float px0 = 0, py0 = 0; bool have = false;
-        for (auto const& q : st.pts) {
-            float sx, sy; projWorld(pr, q[0], q[1], q[2], sx, sy);
-            if (have) {
-                bool off = (sx < -20 && px0 < -20) || (sx > sw + 20 && px0 > sw + 20) || (sy < -20 && py0 < -20) || (sy > sh + 20 && py0 > sh + 20);
-                if (!off) {
-                    float d = std::sqrt((sx - px0) * (sx - px0) + (sy - py0) * (sy - py0));
-                    int   n = std::clamp(int(d / 1.0f) + 1, 1, 400);
-                    for (int k = 0; k <= n; ++k) {
-                        float t = float(k) / float(n), cx = px0 + (sx - px0) * t, cy = py0 + (sy - py0) * t;
-                        rect(ctx, cx - 1.0f, cy - 1.0f, cx + 1.0f, cy + 1.0f, c, 0.95f);
+    // strokes, route line/flag and markers: rasterised into ONE texture (a few hundred rect calls per frame made the map crawl).
+    // The texture is re-made only when the data changes or the view moved far from it; in between it is reprojected (affine) onto the current view.
+    bool anyOv = !gOvStrokes.empty() || !gOvMarkers.empty() || gOvRoute;
+    if (anyOv) {
+        constexpr float kM = 0.25f;
+        float           u0 = -kM * sw, v0 = -kM * sh, Wu = (1.0f + 2.0f * kM) * sw, Hu = (1.0f + 2.0f * kM) * sh;
+        uint64_t        hsh = 1469598103934665603ull;
+        auto            mix = [&](uint32_t v) { hsh = (hsh ^ v) * 1099511628211ull; };
+        auto            fb  = [](float f) { uint32_t u; std::memcpy(&u, &f, 4); return u; };
+        mix(uint32_t(gOvStrokes.size())); mix(uint32_t(gOvMarkers.size())); mix(gOvRoute ? 1u : 0u);
+        for (auto const& st : gOvStrokes) { mix(uint32_t(st.pts.size())); mix(uint32_t(st.col)); if (!st.pts.empty()) { mix(fb(st.pts.back()[0])); mix(fb(st.pts.back()[1])); } }
+        for (auto const& m : gOvMarkers) { mix(uint32_t(m.type)); mix(fb(m.x)); mix(fb(m.z)); }
+        if (gOvRoute) { mix(fb(gOvRX)); mix(fb(gOvRZ)); mix(fb(gSX)); mix(fb(gSZ)); }
+        float r1 = pr.s / (gOvP.s > 0 ? gOvP.s : pr.s);
+        float dxu = (gOvP.pcx - pr.pcx) * pr.s, dyu = (gOvP.pcy - pr.pcy) * pr.s;
+        bool  drift = !gOvHas || r1 < 0.85f || r1 > 1.18f || std::fabs(dxu) > 0.2f * sw || std::fabs(dyu) > 0.2f * sh;
+        if ((hsh != gOvHash || drift) && !gOvTex.pending) {
+            gOvBuf.assign(size_t(kOvW) * kOvW, 0u);
+            float kx = float(kOvW) / Wu, ky = float(kOvW) / Hu;
+            auto  fill = [&](float x0, float y0, float x1, float y1, uint32_t col) {
+                int ix0 = std::max(0, int(std::floor((x0 - u0) * kx))), ix1 = std::min(kOvW, int(std::ceil((x1 - u0) * kx)));
+                int iy0 = std::max(0, int(std::floor((y0 - v0) * ky))), iy1 = std::min(kOvW, int(std::ceil((y1 - v0) * ky)));
+                for (int yy = iy0; yy < iy1; ++yy) for (int xx = ix0; xx < ix1; ++xx) gOvBuf[size_t(yy) * kOvW + size_t(xx)] = col;
+            };
+            auto packc = [](float r, float g, float b) { return 0xFF000000u | (uint32_t(std::clamp(r, 0.0f, 1.0f) * 255.0f) << 16) | (uint32_t(std::clamp(g, 0.0f, 1.0f) * 255.0f) << 8) | uint32_t(std::clamp(b, 0.0f, 1.0f) * 255.0f); };
+            for (auto const& st : gOvStrokes) {
+                uint32_t col = packc(kDrawCol[st.col % kDrawCols][0], kDrawCol[st.col % kDrawCols][1], kDrawCol[st.col % kDrawCols][2]);
+                float px0 = 0, py0 = 0; bool have = false;
+                for (auto const& q : st.pts) {
+                    float sx, sy; projWorld(pr, q[0], q[1], q[2], sx, sy);
+                    if (have) {
+                        float d = std::sqrt((sx - px0) * (sx - px0) + (sy - py0) * (sy - py0));
+                        int   n = std::clamp(int(d / 0.8f) + 1, 1, 600);
+                        for (int k = 0; k <= n; ++k) {
+                            float t = float(k) / float(n), cx = px0 + (sx - px0) * t, cy = py0 + (sy - py0) * t;
+                            if (cx > u0 - 4 && cx < u0 + Wu + 4 && cy > v0 - 4 && cy < v0 + Hu + 4) fill(cx - 1.0f, cy - 1.0f, cx + 1.0f, cy + 1.0f, col);
+                        }
                     }
+                    px0 = sx; py0 = sy; have = true;
                 }
             }
-            px0 = sx; py0 = sy; have = true;
+            auto bits = [&](uint8_t const* rows, float cx, float cy, float pxs, uint32_t col, bool outline) {
+                float x0 = cx - 3.5f * pxs, y0 = cy - 3.5f * pxs;
+                for (int pass = outline ? 0 : 1; pass < 2; ++pass)
+                    for (int r = 0; r < 7; ++r)
+                        for (int q = 0; q < 7; ++q)
+                            if (rows[r] & (1 << (6 - q))) {
+                                float e = pass == 0 ? 0.55f : 0.0f;
+                                fill(x0 + float(q) * pxs - e, y0 + float(r) * pxs - e, x0 + float(q + 1) * pxs + e, y0 + float(r + 1) * pxs + e, pass == 0 ? 0xFF000000u : col);
+                            }
+            };
+            if (gOvRoute) {
+                float fx, fy, ax, ay;
+                projWorld(pr, gOvRX, gOvRZ, gOvRH, fx, fy);
+                projWorld(pr, gSX, gSZ, gSY - 1.6f, ax, ay);
+                float d = std::sqrt((fx - ax) * (fx - ax) + (fy - ay) * (fy - ay));
+                int   n = std::clamp(int(d / 7.0f), 0, 400);
+                uint32_t oc = packc(1.0f, 0.62f, 0.12f);
+                for (int k = 1; k < n; ++k) {
+                    float t = float(k) / float(n), cx = ax + (fx - ax) * t, cy = ay + (fy - ay) * t;
+                    if (cx > u0 && cx < u0 + Wu && cy > v0 && cy < v0 + Hu) fill(cx - 1.0f, cy - 1.0f, cx + 1.0f, cy + 1.0f, oc);
+                }
+                for (int pass = 0; pass < 2; ++pass)
+                    for (int r = 0; r < 9; ++r)
+                        for (int q = 0; q < 9; ++q)
+                            if (kIcoFlag[r][q] == '#') {
+                                float e = pass == 0 ? 0.55f : 0.0f, x0 = fx - 5.0f + float(q) * 1.3f, y0 = fy - 11.0f + float(r) * 1.3f;
+                                fill(x0 - e, y0 - e, x0 + 1.3f + e, y0 + 1.3f + e, pass == 0 ? 0xFF000000u : packc(1.0f, 0.55f, 0.1f));
+                            }
+            }
+            for (auto const& m : gOvMarkers) {
+                float sx, sy; projWorld(pr, m.x, m.z, m.h, sx, sy);
+                int t = std::clamp(m.type, 0, kMarkerTypes - 1);
+                bits(kMarkBits[t], sx, sy - 4.0f, 1.5f, packc(kMarkCol[t][0], kMarkCol[t][1], kMarkCol[t][2]), true);
+            }
+            if (uploadImage(client, gOvTex, gOvBuf, kOvW)) { gOvTex.pending = true; gOvTex.pendFrame = gFrame; gOvHash = hsh; gOvPendP = pr; gOvHas = true; }
         }
-    }
-    // route: dotted line from the player + flag
-    if (gOvRoute) {
-        float fx, fy, ax, ay;
-        projWorld(pr, gOvRX, gOvRZ, gOvRH, fx, fy);
-        projWorld(pr, gSX, gSZ, gSY - 1.6f, ax, ay);
-        float d = std::sqrt((fx - ax) * (fx - ax) + (fy - ay) * (fy - ay));
-        int   n = std::clamp(int(d / 7.0f), 0, 300);
-        for (int k = 1; k < n; ++k) {
-            float t = float(k) / float(n), cx = ax + (fx - ax) * t, cy = ay + (fy - ay) * t;
-            if (cx > -5 && cx < sw + 5 && cy > -5 && cy < sh + 5) rect(ctx, cx - 1.0f, cy - 1.0f, cx + 1.0f, cy + 1.0f, ::mce::Color{1.0f, 0.62f, 0.12f, 1.0f}, 0.95f);
+        if (gOvTex.pending && gFrame - gOvTex.pendFrame >= 2) { gOvTex.cur = 1 - gOvTex.cur; gOvTex.pending = false; gOvP = gOvPendP; }
+        if (gOvTex.created[gOvTex.cur] && gOvP.s > 0) {
+            float rr = pr.s / gOvP.s;
+            float qx = sw * 0.5f + (u0 - sw * 0.5f) * rr + (gOvP.pcx - pr.pcx) * pr.s;
+            float qy = sh * 0.5f + (v0 - sh * 0.5f) * rr + (gOvP.pcy - pr.pcy) * pr.s;
+            drawTileTex(ctx, gOvTex, qx, qy, Wu * rr, Hu * rr, 0.0f, 0.0f, 1.0f, 1.0f);
         }
-        if (fx > -10 && fx < sw + 10 && fy > -10 && fy < sh + 10) {
-            BtnR fb{fx - 5.0f, fy - 10.0f, fx + 7.0f, fy + 2.0f};
-            drawIcon(ctx, kIcoFlag, fb, ::mce::Color{0.0f, 0.0f, 0.0f, 1.0f});
-            BtnR fb2{fx - 5.7f, fy - 10.7f, fx + 6.3f, fy + 1.3f};
-            drawIcon(ctx, kIcoFlag, fb2, ::mce::Color{1.0f, 0.55f, 0.1f, 1.0f});
-        }
-    }
-    // markers
-    for (auto const& m : gOvMarkers) {
-        float sx, sy; projWorld(pr, m.x, m.z, m.h, sx, sy);
-        if (sx < -10 || sx > sw + 10 || sy < -10 || sy > sh + 10) continue;
-        int t = std::clamp(m.type, 0, kMarkerTypes - 1);
-        drawBits(ctx, kMarkBits[t], sx, sy - 4.0f, 1.5f, ::mce::Color{kMarkCol[t][0], kMarkCol[t][1], kMarkCol[t][2], 1.0f}, true);
-    }
+    } else { gOvHash = 0; gOvHas = false; }
     // ghost of the marker that is about to be placed
     if (mv && gTool == 2 && gMarkType >= 0 && my > 26.0f && my < sh - 34.0f) {
         int t = gMarkType;
@@ -3803,7 +3885,7 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
             drawBaked(ctx, gBig, x - sc.u0 * float(nb) * k, y - sc.v0 * float(nb) * k, k * float(nb));
         }
         if (texOk) {
-            fogTick(client, gFogBig, 192, tx, tz, gZoom, false, dtf, true);
+            fogTick(client, gFogBig, 256, tx, tz, gZoom * 1.5f, false, dtf, true);
             fogDraw(ctx, gFogBig, sw * 0.5f, sh * 0.5f, size / gZoom, tx, tz, 0.0f, 0.0f, sw, sh, sw, sh, false);
         }
         // player marker: smoothed position relative to the same view window
@@ -3834,7 +3916,7 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
             POINT cp2{}; RECT cr2{};
             bool  mv2 = gHwnd && GetCursorPos(&cp2) && ScreenToClient(gHwnd, &cp2) && GetClientRect(gHwnd, &cr2) && cr2.right > 0 && cr2.bottom > 0;
             float mx2 = mv2 ? float(cp2.x) * sw / float(cr2.right) : 0.0f, my2 = mv2 ? float(cp2.y) * sh / float(cr2.bottom) : 0.0f;
-            bigMapOverlayDraw(ctx, sw, sh, size, tx, tz, gBigSH, mx2, my2, mv2);
+            bigMapOverlayDraw(ctx, client, sw, sh, size, tx, tz, gBigSH, mx2, my2, mv2);
         }
     } else {
         constexpr float SIZE   = 76.0f;
