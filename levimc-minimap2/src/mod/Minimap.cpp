@@ -3680,7 +3680,7 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
         if (!gCfgRead) readConfig();
         Scroll sc{};
         bool   texOk = false;
-        if (!gMouseReleased || gDragging || down(VK_LBUTTON) || down(VK_RBUTTON) || gFrame % 600 == 0) { client.releaseMouse(); gMouseReleased = true; } // free the cursor once (a call every frame made it creep)
+        { client.releaseMouse(); gMouseReleased = true; } // every frame: the game takes the cursor back otherwise (buttons and markers need a free cursor) // free the cursor once (a call every frame made it creep)
         rect(ctx, 0, 0, sw, sh, toColor(FOG), 1.0f);
         if (gTexEnabled && !gTexFailed) {
             tileTick(tx, tz, true);
