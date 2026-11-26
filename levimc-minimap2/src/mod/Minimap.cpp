@@ -566,26 +566,30 @@ void updateCache(::BlockSource& region, int px, int pz) {
     QueryPerformanceCounter(&q0);
     double kBudgetMs = loadingBusy() ? 1.2 : 3.0; // keep frames short while the saved map streams in
     int              budget    = 24;
-    for (auto const& [dx, dz] : chunkOffsets()) {
-        if (budget <= 0) break;
-        {
-            LARGE_INTEGER qn;
-            QueryPerformanceCounter(&qn);
-            if (double(qn.QuadPart - q0.QuadPart) * 1000.0 / double(qf.QuadPart) > kBudgetMs) break;
+    // pass 0: chunks never scanned (retried every 8 frames: while flying fast the client keeps a chunk only briefly);
+    // pass 1: rescans of known chunks, only with the budget that is left
+    for (int pass = 0; pass < 2; ++pass)
+        for (auto const& [dx, dz] : chunkOffsets()) {
+            if (budget <= 0) return;
+            {
+                LARGE_INTEGER qn;
+                QueryPerformanceCounter(&qn);
+                if (double(qn.QuadPart - q0.QuadPart) * 1000.0 / double(qf.QuadPart) > kBudgetMs) return;
+            }
+            int cx = pcx + dx, cz = pcz + dz;
+            if (!regionReady(cx >> 5, cz >> 5, true)) continue; // never create chunks in a region that is not loaded (the file would be overwritten)
+            ChunkData* cdp;
+            {
+                std::lock_guard<std::mutex> lk(gMapMx);
+                cdp = &gCache[key(cx, cz)];
+            }
+            auto& cd = *cdp;
+            if ((pass == 0) == cd.scanned) continue;
+            bool need = cd.scanned ? (gFrame - cd.lastScan >= (dx * dx + dz * dz <= 36 ? 600u : 3600u)) : (gFrame - cd.lastTry >= 8 || cd.lastTry == 0);
+            if (!need) continue;
+            cd.lastTry = gFrame;
+            if (scanChunk(region, cx, cz, cd)) --budget;
         }
-        int  cx = pcx + dx, cz = pcz + dz;
-        if (!regionReady(cx >> 5, cz >> 5, true)) continue; // never create chunks in a region that is not loaded (the file would be overwritten)
-        ChunkData* cdp;
-        {
-            std::lock_guard<std::mutex> lk(gMapMx);
-            cdp = &gCache[key(cx, cz)];
-        }
-        auto& cd = *cdp;
-        bool need = cd.scanned ? (gFrame - cd.lastScan >= (dx * dx + dz * dz <= 36 ? 600u : 3600u)) : (gFrame - cd.lastTry >= 60 || cd.lastTry == 0);
-        if (!need) continue;
-        cd.lastTry = gFrame;
-        if (scanChunk(region, cx, cz, cd)) --budget;
-    }
 }
 
 
