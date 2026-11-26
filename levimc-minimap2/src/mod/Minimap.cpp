@@ -2770,23 +2770,38 @@ void contributeToParent(Tile const& c) {
 }
 
 // Video memory: tile textures that have not been drawn for a while are unloaded (the image stays on disk and is reloaded on demand).
-constexpr size_t kTexCap = 160;
+constexpr size_t kTexCap = 72; // live tile textures (each is double-buffered; the engine keeps a CPU copy of every uploaded image)
+size_t gLiveTexCount = 0;
 void evictTileTextures(::IClientInstance& client) {
-    if (gFrame % 120 != 0) return;
+    if (gFrame % 30 != 0) return;
+    {   // the second (hidden) buffer of a tile that is not being updated is only a duplicate: release it
+        auto tg0 = client.getTextureGroup();
+        if (tg0)
+            for (auto& kv : gTiles) {
+                Tile& t = kv.second;
+                int   o = 1 - t.tex.cur;
+                if (!t.tex.created[o] || t.tex.pending || !t.tex.created[t.tex.cur] || gFrame - t.pxFrame < 300) continue;
+                ::ResourceLocation loc(::Core::PathView(t.tex.name[o]), ::ResourceFileSystem::UserPackage);
+                tg0->unloadTexture(loc, false);
+                t.tex.created[o] = false;
+            }
+    }
     size_t                              live = 0;
     std::vector<std::pair<uint64_t, Tile*>> cand;
     for (auto& kv : gTiles) {
         Tile& t = kv.second;
         if (!t.tex.created[0] && !t.tex.created[1]) continue;
         ++live;
-        if (t.tex.pending || gFrame - t.lastUse < 600 || t.diskVer != t.pxVer || !gTileDisk.count(kv.first)) continue;
+        // a tile whose pixels are still in RAM can always be re-uploaded; one without them needs its stored copy on disk
+        if (t.tex.pending || gFrame - t.lastUse < 300 || (t.px.empty() && (t.diskVer != t.pxVer || !gTileDisk.count(kv.first)))) continue;
         cand.push_back({t.lastUse, &t});
     }
+    gLiveTexCount = live;
     if (live <= kTexCap || cand.empty()) return;
     auto tg = client.getTextureGroup();
     if (!tg) return;
     std::sort(cand.begin(), cand.end(), [](auto const& a, auto const& b) { return a.first < b.first; });
-    size_t n = std::min<size_t>(std::min<size_t>(live - kTexCap, 12), cand.size());
+    size_t n = std::min<size_t>(std::min<size_t>(live - kTexCap, 24), cand.size());
     for (size_t q = 0; q < n; ++q) {
         Tile& t = *cand[q].second;
         for (int k = 0; k < 2; ++k)
@@ -2872,7 +2887,7 @@ void tileTick(float tx, float tz, bool bigOpen) {
     if (gFrame % 60 == 0) {
         int cnt = 0;
         for (auto& kv : gTiles) if (!kv.second.px.empty()) ++cnt;
-        while (cnt > 96) {
+        while (cnt > 48) {
             Tile* old = nullptr;
             for (auto& kv : gTiles) {
                 Tile& t = kv.second;
@@ -3802,6 +3817,20 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
             std::snprintf(m, sizeof(m), "perf: %d hook calls, avg dt %.1f ms, max dt %.1f ms, uploads %llu, in-place failed %llu, max upload %.1f ms, bigmap=%d",
                           nDt, 1000.0f * sumDt / float(nDt), 1000.0f * maxDt, (unsigned long long)gPerfUploads, (unsigned long long)gPerfInPlaceFail, gPerfMaxUploadMs, int(gBigMap));
             DioramaMod::getInstance().getSelf().getLogger().info(std::string(m));
+            {   // memory report: shows which structure grows (process private bytes vs. what the mod itself holds)
+                struct PMC { DWORD cb, pf; SIZE_T peakWs, ws, a, b, c, d, pagefile, peakPf, priv; };
+                using Fn = BOOL(WINAPI*)(HANDLE, PMC*, DWORD);
+                static Fn fn = reinterpret_cast<Fn>(GetProcAddress(GetModuleHandleA("kernel32.dll"), "K32GetProcessMemoryInfo"));
+                PMC pm{}; pm.cb = sizeof(pm);
+                double privMb = (fn && fn(GetCurrentProcess(), &pm, sizeof(pm))) ? double(pm.priv) / 1048576.0 : -1.0;
+                size_t nCache, nKnown, nFogS, nFogB;
+                { std::lock_guard<std::mutex> lk(gMapMx); nCache = gCache.size(); nKnown = gKnown.size(); nFogS = gFogChunks.size(); nFogB = gFogChunksBig.size(); }
+                size_t nPx = 0; for (auto& kv : gTiles) if (!kv.second.px.empty()) ++nPx;
+                char mm[300];
+                std::snprintf(mm, sizeof(mm), "mem: process private %.0f MB, chunks in RAM %zu (~%.0f MB), regions %zu, known %zu, tiles %zu (px in RAM %zu, live textures %zu), fog %zu/%zu",
+                              privMb, nCache, double(nCache) * double(sizeof(ChunkData)) / 1048576.0, gRegions.size(), nKnown, gTiles.size(), nPx, gLiveTexCount, nFogS, nFogB);
+                DioramaMod::getInstance().getSelf().getLogger().info(std::string(mm));
+            }
             maxDt = sumDt = 0; nDt = 0; gPerfMaxUploadMs = 0;
         }
     }
