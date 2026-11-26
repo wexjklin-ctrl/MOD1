@@ -680,39 +680,43 @@ void putBytes(std::vector<uint8_t>& v, void const* p, size_t n) {
 
 // DBM7: header (magic, chunk count, raw size, compressed size) + one LZ4 block holding the DBM6 chunk records.
 // Next to it r.X.Z.idx: 1024-bit map of the chunks that have data, so the "known chunks" list loads without reading the region.
-bool writeRegion(int rx, int rz, std::function<ChunkData*(int, int)> const& get) {
-    if (gWorldKey.empty()) return false;
-    std::error_code ec;
-    std::filesystem::create_directories(worldDir(), ec);
-    std::vector<uint8_t> raw;
-    uint32_t             count = 0;
-    uint8_t              idx[128] = {};
+struct RegionRaw { std::vector<uint8_t> raw; uint32_t count = 0; uint8_t idx[128] = {}; };
+
+void buildRegionRaw(int rx, int rz, std::function<ChunkData*(int, int)> const& get, RegionRaw& out) {
+    out.raw.clear();
+    out.raw.reserve(size_t(4) << 20);
+    out.count = 0;
+    std::memset(out.idx, 0, sizeof(out.idx));
     for (int dz = 0; dz < 32; ++dz)
         for (int dx = 0; dx < 32; ++dx) {
             int  cx = rx * 32 + dx, cz = rz * 32 + dz;
             ChunkData* cp = get(cx, cz);
             if (!cp) continue;
             ChunkData& cd = *cp;
-            ++count;
-            putBytes(raw, &cx, 4); putBytes(raw, &cz, 4);
-            putBytes(raw, cd.color.data(), 256 * 4);
-            putBytes(raw, cd.height.data(), 256 * 2);
+            ++out.count;
+            putBytes(out.raw, &cx, 4); putBytes(out.raw, &cz, 4);
+            putBytes(out.raw, cd.color.data(), 256 * 4);
+            putBytes(out.raw, cd.height.data(), 256 * 2);
             uint16_t pn = uint16_t(cd.palN);
-            putBytes(raw, &pn, 2);
-            putBytes(raw, cd.pal.data(), size_t(pn) * 4);
-            putBytes(raw, cd.wallId.data(), 256 * NW);
+            putBytes(out.raw, &pn, 2);
+            putBytes(out.raw, cd.pal.data(), size_t(pn) * 4);
+            putBytes(out.raw, cd.wallId.data(), 256 * NW);
             cd.dirty = false;
-            for (int q = 0; q < 256; ++q) if (cd.color[q]) { int bit = dz * 32 + dx; idx[bit >> 3] |= uint8_t(1u << (bit & 7)); break; }
+            for (int q = 0; q < 256; ++q) if (cd.color[q]) { int bit = dz * 32 + dx; out.idx[bit >> 3] |= uint8_t(1u << (bit & 7)); break; }
         }
-    std::vector<uint8_t> comp = lz4Compress(raw.data(), raw.size());
-    auto                 path = regionFile(rx, rz);
+}
+
+// compress + write (safe on any thread: only touches the given paths)
+bool writeRegionRaw(std::filesystem::path const& path, std::filesystem::path const& idxPath, RegionRaw const& r) {
+    std::error_code      ec;
+    std::vector<uint8_t> comp = lz4Compress(r.raw.data(), r.raw.size());
     auto                 tmp  = path; tmp += ".tmp";
     {
         std::ofstream f(tmp, std::ios::binary | std::ios::trunc);
         if (!f) return false;
-        uint32_t rs = uint32_t(raw.size()), cs = uint32_t(comp.size());
+        uint32_t rs = uint32_t(r.raw.size()), cs = uint32_t(comp.size());
         f.write("DBM7", 4);
-        f.write(reinterpret_cast<char const*>(&count), 4);
+        f.write(reinterpret_cast<char const*>(&r.count), 4);
         f.write(reinterpret_cast<char const*>(&rs), 4);
         f.write(reinterpret_cast<char const*>(&cs), 4);
         f.write(reinterpret_cast<char const*>(comp.data()), std::streamsize(comp.size()));
@@ -720,11 +724,69 @@ bool writeRegion(int rx, int rz, std::function<ChunkData*(int, int)> const& get)
     }
     std::filesystem::rename(tmp, path, ec);
     if (ec) return false;
-    {
-        std::ofstream f(regionIdxFile(rx, rz), std::ios::binary | std::ios::trunc);
-        if (f) f.write(reinterpret_cast<char const*>(idx), 128);
-    }
+    std::ofstream f(idxPath, std::ios::binary | std::ios::trunc);
+    if (f) f.write(reinterpret_cast<char const*>(r.idx), 128);
     return true;
+}
+
+bool writeRegion(int rx, int rz, std::function<ChunkData*(int, int)> const& get) {
+    if (gWorldKey.empty()) return false;
+    std::error_code ec;
+    std::filesystem::create_directories(worldDir(), ec);
+    RegionRaw r;
+    buildRegionRaw(rx, rz, get, r);
+    return writeRegionRaw(regionFile(rx, rz), regionIdxFile(rx, rz), r);
+}
+
+// ---- background writer for the periodic saves (the render thread only copies the chunk data) ----
+struct SaveJob { std::filesystem::path bin, idx; RegionRaw r; };
+struct Saver {
+    std::mutex              mx;
+    std::condition_variable cv;
+    std::deque<SaveJob>     q;
+    bool                    busy = false, started = false;
+};
+Saver gSaver;
+
+void saverMain() {
+    for (;;) {
+        SaveJob j;
+        {
+            std::unique_lock<std::mutex> lk(gSaver.mx);
+            gSaver.cv.wait(lk, [] { return !gSaver.q.empty(); });
+            j = std::move(gSaver.q.front()); gSaver.q.pop_front();
+            gSaver.busy = true;
+        }
+        try { writeRegionRaw(j.bin, j.idx, j.r); } catch (...) {}
+        std::lock_guard<std::mutex> lk(gSaver.mx);
+        gSaver.busy = false;
+    }
+}
+
+void saverDrain() { // wait until every queued write has reached the disk
+    for (;;) {
+        {
+            std::lock_guard<std::mutex> lk(gSaver.mx);
+            if (gSaver.q.empty() && !gSaver.busy) return;
+        }
+        Sleep(1);
+    }
+}
+
+void saveRegionAsync(int rx, int rz) {
+    if (gWorldKey.empty()) return;
+    std::error_code ec;
+    std::filesystem::create_directories(worldDir(), ec);
+    SaveJob j;
+    j.bin = regionFile(rx, rz); j.idx = regionIdxFile(rx, rz);
+    buildRegionRaw(rx, rz, [](int cx, int cz) -> ChunkData* { auto it = gCache.find(key(cx, cz)); return it == gCache.end() ? nullptr : &it->second; }, j.r);
+    gDiskRegions.insert(key(rx, rz));
+    {
+        std::lock_guard<std::mutex> lk(gSaver.mx);
+        gSaver.q.push_back(std::move(j));
+        if (!gSaver.started) { gSaver.started = true; std::thread(saverMain).detach(); }
+    }
+    gSaver.cv.notify_one();
 }
 
 void saveRegion(int rx, int rz) {
@@ -732,6 +794,7 @@ void saveRegion(int rx, int rz) {
 }
 
 void saveAll() {
+    saverDrain();
     for (int64_t k : gDirtyRegions) {
         int rx = int(k >> 32), rz = int(int32_t(uint32_t(k & 0xFFFFFFFFu)));
         if (gRegions.count(k)) saveRegion(rx, rz); // only regions that are in RAM can be dirty
@@ -2416,6 +2479,7 @@ void pumpRegions() {
         for (auto const& kv : gRegions) if (kv.second + 3 < gFrame && kv.second < bu) { bu = kv.second; best = kv.first; }
         if (bu == UINT64_MAX) break;
         int rx = int(best >> 32), rz = int(int32_t(uint32_t(best & 0xFFFFFFFFu)));
+        saverDrain(); // an older queued write must not land after this one
         if (gDirtyRegions.count(best)) { saveRegion(rx, rz); gDirtyRegions.erase(best); }
         {
             std::lock_guard<std::mutex> lk(gMapMx);
@@ -3584,11 +3648,11 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
     pumpLoads();
     updateCache(*region, px, pz);
     pumpRegions();
-    if (!gDirtyRegions.empty() && gFrame - gLastSaveFrame >= 240) {
+    if (!gDirtyRegions.empty() && gFrame - gLastSaveFrame >= 600) {
         gLastSaveFrame = gFrame;
         int64_t k = *gDirtyRegions.begin();
         gDirtyRegions.erase(gDirtyRegions.begin());
-        if (gRegions.count(k)) saveRegion(int(k >> 32), int(int32_t(uint32_t(k & 0xFFFFFFFFu)))); // never write a region that is not in RAM
+        if (gRegions.count(k)) saveRegionAsync(int(k >> 32), int(int32_t(uint32_t(k & 0xFFFFFFFFu)))); // never write a region that is not in RAM
     }
     pollInput();
     setBigMapHud(client, gBigMap);
