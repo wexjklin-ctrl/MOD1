@@ -130,6 +130,7 @@ std::unordered_set<int64_t>            gTileDisk;     // tile images that exist 
 constexpr size_t                       kRegionCap = 10;
 int64_t tkey(int l, int i, int j);
 bool    regionReady(int rx, int rz, bool allowLoad);
+bool    loadingBusy();
 std::mutex                             gMapMx; // guards the STRUCTURE of gCache (insert/clear on main thread vs. find on the bake worker)
 uint64_t                               gFrame   = 0;
 std::vector<std::pair<int, int>>        gChangedChunks; // chunks whose pixels changed (tile invalidation)
@@ -561,7 +562,7 @@ void updateCache(::BlockSource& region, int px, int pz) {
     LARGE_INTEGER qf, q0;
     QueryPerformanceFrequency(&qf);
     QueryPerformanceCounter(&q0);
-    constexpr double kBudgetMs = 3.0;
+    double kBudgetMs = loadingBusy() ? 1.2 : 3.0; // keep frames short while the saved map streams in
     int              budget    = 24;
     for (auto const& [dx, dz] : chunkOffsets()) {
         if (budget <= 0) break;
@@ -949,6 +950,8 @@ void loaderMain() {
     }
 }
 
+bool loadingBusy() { return gMerge.active || !gLoading.empty() || !gIndexReady.load(); }
+
 void idxQuiesce() { while (gIdxBusy.load()) Sleep(2); gIdxDone = false; }
 
 void loadQuiesce() { // drop queued/finished loads of the old world
@@ -985,7 +988,7 @@ void pumpLoads() {
                 std::filesystem::rename(regionFile(r.rx, r.rz), regionFile(r.rx, r.rz).string() + ".bad", ec);
                 gDiskRegions.erase(k); gLoading.erase(k); gRegions[k] = gFrame;
             } else {
-                gMerge.k = k; gMerge.sink = std::move(r.sink); gMerge.it = gMerge.sink.begin(); gMerge.active = true;
+                gMerge.k = k; gMerge.sink = std::move(r.sink); gMerge.active = true;
             }
         }
     }
@@ -993,17 +996,19 @@ void pumpLoads() {
         int                         n = 0;
         std::vector<int64_t>        added;
         std::unique_lock<std::mutex> lk(gMapMx);
-        while (gMerge.it != gMerge.sink.end() && n < 160) {
-            ChunkData& cd  = gMerge.it->second;
-            bool       any = false;
-            for (int q = 0; q < 256; ++q) if (cd.color[q]) { any = true; break; }
-            cd.scanned = false;
-            if (gCache.emplace(gMerge.it->first, std::move(cd)).second && any && gKnown.insert(gMerge.it->first).second) added.push_back(gMerge.it->first);
-            ++gMerge.it; ++n;
+        while (!gMerge.sink.empty() && n < 300) {
+            auto nh  = gMerge.sink.extract(gMerge.sink.begin()); // moves the node: no copy of the 27 KB chunk
+            bool any = false;
+            for (int q = 0; q < 256; ++q) if (nh.mapped().color[q]) { any = true; break; }
+            nh.mapped().scanned = false;
+            int64_t kk = nh.key();
+            auto    ir = gCache.insert(std::move(nh));
+            if (ir.inserted && any && gKnown.insert(kk).second) added.push_back(kk);
+            ++n;
         }
         lk.unlock();
         if (gTilesInit) for (int64_t k : added) markTilesForChunk(int(int32_t(uint32_t(uint64_t(k) >> 32))), int(int32_t(uint32_t(k & 0xFFFFFFFFu))), true);
-        if (gMerge.it == gMerge.sink.end()) {
+        if (gMerge.sink.empty()) {
             gRegions[gMerge.k] = gFrame; gLoading.erase(gMerge.k);
             gMerge.active = false; gMerge.sink.clear();
         }
@@ -2181,8 +2186,14 @@ void removeWheelHook() {
 bool down(int vk) { return (GetAsyncKeyState(vk) & 0x8000) != 0; }
 
 void pollInput() {
-    if (!windowFocused()) { gMWasDown = false; gF7WasDown = false; return; }
+    if (!windowFocused()) { gMWasDown = false; gF7WasDown = false; if (gBigMap) { gBigMap = false; gPanX = gPanZ = 0.0f; gDragging = false; gWheel = 0; } return; }
     installWheelHook();
+    {
+        static bool escWas = false;
+        bool        esc    = down(VK_ESCAPE);
+        if (esc && !escWas && gBigMap) { gBigMap = false; gPanX = gPanZ = 0.0f; gDragging = false; gWheel = 0; } // Esc closes the map (the game menu opens as usual)
+        escWas = esc;
+    }
     bool f7 = down(VK_F7);
     if (f7 && !gF7WasDown) gRound = !gRound;
     gF7WasDown = f7;
@@ -3681,6 +3692,20 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
     int groundPlayer = groundHeight(px, pz, int(pos.y) - 2);
 
     ovEnsureLoaded();
+    {
+        static bool        wasOpen = false, baseMenu = false;
+        static std::string baseName;
+        if (gBigMap) {
+            std::string tn; bool menu = false;
+            try { tn = client.getTopScreenName(); menu = client.isShowingMenu(); } catch (...) {}
+            if (!wasOpen) { baseName = tn; baseMenu = menu; gpu::bakeLog("big map opened: screen=" + tn + ", menu=" + (menu ? "1" : "0")); }
+            else if ((menu && !baseMenu) || tn != baseName) {
+                gpu::bakeLog("big map closed: screen is now " + tn + ", menu=" + (menu ? "1" : "0"));
+                gBigMap = false; gPanX = gPanZ = 0.0f; gDragging = false; gWheel = 0;
+            }
+        }
+        wasOpen = gBigMap;
+    }
     if (!gBigMap) {
         if (gOvDirty) ovSave();
         gTool = 0; gMarkType = -1; gMenuMarker = false; gDeleteMode = false; gLmbOwner = 0; gLmbPrev = false; gStrokeActive = false;
@@ -3701,7 +3726,12 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
                 if (GetLastInputInfo(&lii) && GetCursorPos(&cur)) {
                     bool physical = lii.dwTime != lastTick;
                     lastTick = lii.dwTime;
+                    RECT  r0{}; POINT cc{};
+                    bool  haveC = gHwnd && GetClientRect(gHwnd, &r0) && r0.right > 0;
+                    if (haveC) { cc = POINT{r0.right / 2, r0.bottom / 2}; haveC = ClientToScreen(gHwnd, &cc) != 0; }
+                    bool toCenter = have && haveC && std::abs(cur.x - cc.x) <= 2 && std::abs(cur.y - cc.y) <= 2 && std::abs(lastPos.x - cc.x) > r0.right / 10;
                     if (have && !physical && (cur.x != lastPos.x || cur.y != lastPos.y)) SetCursorPos(lastPos.x, lastPos.y); // game drift, not the user
+                    else if (toCenter) SetCursorPos(lastPos.x, lastPos.y); // the game re-centres the cursor at the side edges: put it back
                     else lastPos = cur;
                     have = true;
                 }
