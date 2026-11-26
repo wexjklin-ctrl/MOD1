@@ -3750,7 +3750,12 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
         if (!gCfgRead) readConfig();
         Scroll sc{};
         bool   texOk = false;
-        { client.releaseMouse(); gMouseReleased = true; } // every frame: the game takes the cursor back otherwise (buttons and markers need a free cursor) // free the cursor once (a call every frame made it creep)
+        { // every frame: the game takes the cursor back otherwise. The call itself nudges the cursor: put it back where it was
+            POINT before{}, after{};
+            bool  gb = GetCursorPos(&before);
+            client.releaseMouse(); gMouseReleased = true;
+            if (gb && GetCursorPos(&after) && (after.x != before.x || after.y != before.y)) SetCursorPos(before.x, before.y);
+        }
         rect(ctx, 0, 0, sw, sh, toColor(FOG), 1.0f);
         if (gTexEnabled && !gTexFailed) {
             tileTick(tx, tz, true);
