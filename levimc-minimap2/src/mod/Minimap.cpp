@@ -2002,7 +2002,13 @@ bool uploadImage(::IClientInstance& client, Tex& t, std::vector<uint32_t> const&
         if (!ok) ++gPerfInPlaceFail;
     }
     if (!ok) {
-        // new unique name (re-uploading an existing name is not safe)
+        // new unique name (re-uploading an existing name is not safe). The texture this slot held before is released,
+        // otherwise every failed in-place update leaks a whole image (1-4 MB) for the rest of the session.
+        if (t.created[h] && !t.name[h].empty()) {
+            ::ResourceLocation old(::Core::PathView(t.name[h]), ::ResourceFileSystem::UserPackage);
+            tg->unloadTexture(old, false);
+            t.created[h] = false;
+        }
         ++t.gen;
         t.name[h] = "textures/diorama_bedrock/" + std::string(&t == &gMiniTex ? "mini" : "big") + "_" + std::to_string(W) + "_" + std::to_string(t.gen) + "_" + std::to_string(++gTexSerial);
         ::mce::Image img(uint32_t(W), uint32_t(W), ::mce::ImageFormat::RGBA8Unorm, ::mce::ImageUsage::SRGB);
@@ -2822,7 +2828,7 @@ void tileTick(float tx, float tz, bool bigOpen) {
         t.propVer = t.pxVer;
     }
     // schedule bakes: nearest to the view first. The chunk data a tile needs is loaded from disk first (a few regions at a time).
-    if (gFrame % 4 == 0 && gRegions.size() <= kRegionCap + 6) {
+    if (gFrame % 4 == 0 && gRegions.size() <= kRegionCap + 4) {
         size_t queued;
         { std::lock_guard<std::mutex> lk(gTileMx); queued = gTileQueue.size(); }
         if (queued < 4) {
