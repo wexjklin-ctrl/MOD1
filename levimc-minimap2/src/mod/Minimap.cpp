@@ -3407,7 +3407,7 @@ void fogMasks(FogJob const& j, std::vector<float>& m) {
     fogBoxBlur(wideK, G, std::clamp(int(std::lround(18.0f * fogScale / cellB)), 2, 48));
     fogBoxBlur(lift, G, 1);
     m.resize(N * 3);
-    for (size_t i = 0; i < N; ++i) { m[i * 3] = 0.5f * (nearK[i] + wideK[i]); m[i * 3 + 1] = j.known[i]; m[i * 3 + 2] = lift[i]; }
+    for (size_t i = 0; i < N; ++i) { m[i * 3] = j.known[i] < 0.5f ? std::min(0.5f * (nearK[i] + wideK[i]), 0.25f) : 0.5f * (nearK[i] + wideK[i]); m[i * 3 + 1] = j.known[i]; m[i * 3 + 2] = lift[i]; }
 }
 
 void fogCompute(FogJob const& j, std::vector<uint32_t>& out) {
@@ -3423,7 +3423,7 @@ void fogCompute(FogJob const& j, std::vector<uint32_t>& out) {
     fogBoxBlur(wideK, G, std::clamp(int(std::lround(18.0f * fogScale / cellB)), 2, 48));
     fogBoxBlur(lift, G, 1);
     std::vector<float> soft(N);
-    for (size_t i = 0; i < N; ++i) soft[i] = 0.5f * (nearK[i] + wideK[i]);
+    for (size_t i = 0; i < N; ++i) soft[i] = j.known[i] < 0.5f ? std::min(0.5f * (nearK[i] + wideK[i]), 0.25f) : 0.5f * (nearK[i] + wideK[i]);
 
     auto bil = [&](std::vector<float> const& g, float fx, float fy) {
         fx = std::clamp(fx - 0.5f, 0.0f, float(G - 1)); fy = std::clamp(fy - 0.5f, 0.0f, float(G - 1));
@@ -3590,6 +3590,21 @@ void fogBuildMask(FogJob& j, int G, float cx, float cz, float blocks, bool round
             j.known[size_t(jy) * G + ix] = lk_;
             j.lift[size_t(jy) * G + ix]  = ll_;
         }
+    // grow the unknown area by one cell: small holes and the border get a full cloud instead of a thin veil
+    {
+        std::vector<float> o = j.known;
+        for (int y = 0; y < G; ++y)
+            for (int x = 0; x < G; ++x) {
+                size_t i = size_t(y) * G + x;
+                float  m = j.known[i];
+                if (x > 0) m = std::min(m, j.known[i - 1]);
+                if (x < G - 1) m = std::min(m, j.known[i + 1]);
+                if (y > 0) m = std::min(m, j.known[i - G]);
+                if (y < G - 1) m = std::min(m, j.known[i + G]);
+                o[i] = m;
+            }
+        j.known.swap(o);
+    }
 }
 
 // Uploads a finished fog image, swaps buffers and queues the next job. (cx,cz) = world point at the view centre.
