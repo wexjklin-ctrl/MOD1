@@ -2883,6 +2883,294 @@ void drawTileMap(::MinecraftUIRenderContext& ctx, ::IClientInstance& client, flo
 }
 
 
+// ---------- big map tools: draw, markers, route point, trash ----------
+struct OvMarker { int type; float x, z, h; };
+struct OvStroke { int col; std::vector<std::array<float, 3>> pts; };
+std::vector<OvMarker> gOvMarkers;
+std::vector<OvStroke> gOvStrokes;
+bool        gOvRoute = false;
+float       gOvRX = 0, gOvRZ = 0, gOvRH = 64;
+int         gTool = 0;            // 0 none, 1 draw, 2 marker, 3 route point
+int         gMarkType = -1, gDrawCol = 0, gLmbOwner = 0; // owner: 1 ui, 2 tool, 3 pan
+bool        gMenuMarker = false, gDeleteMode = false, gLmbPrev = false, gStrokeActive = false, gOvDirty = false;
+std::string gOvKey;
+
+constexpr int kMarkerTypes = 8;
+// 7x7 pixel shapes: house, star, diamond, cross, circle, heart, triangle, square
+const uint8_t kMarkBits[kMarkerTypes][7] = {
+    {0x08, 0x1C, 0x3E, 0x7F, 0x36, 0x36, 0x36}, {0x08, 0x08, 0x7F, 0x3E, 0x1C, 0x36, 0x22}, {0x08, 0x1C, 0x3E, 0x7F, 0x3E, 0x1C, 0x08},
+    {0x41, 0x22, 0x14, 0x08, 0x14, 0x22, 0x41}, {0x1C, 0x3E, 0x7F, 0x7F, 0x7F, 0x3E, 0x1C}, {0x36, 0x7F, 0x7F, 0x7F, 0x3E, 0x1C, 0x08},
+    {0x08, 0x08, 0x1C, 0x1C, 0x3E, 0x3E, 0x7F}, {0x7F, 0x41, 0x5D, 0x55, 0x5D, 0x41, 0x7F}};
+const float kMarkCol[kMarkerTypes][3] = {{0.88f, 0.25f, 0.25f}, {0.96f, 0.82f, 0.13f}, {0.19f, 0.82f, 0.94f}, {1.0f, 1.0f, 1.0f},
+                                         {0.25f, 0.88f, 0.38f}, {1.0f, 0.44f, 0.69f}, {1.0f, 0.56f, 0.13f}, {0.63f, 0.38f, 0.94f}};
+constexpr int   kDrawCols = 6;
+const float     kDrawCol[kDrawCols][3] = {{0.95f, 0.2f, 0.2f}, {0.98f, 0.8f, 0.1f}, {0.2f, 0.85f, 0.35f}, {0.2f, 0.7f, 0.98f}, {0.75f, 0.35f, 0.95f}, {1.0f, 1.0f, 1.0f}};
+// 9x9 button icons
+const char* const kIcoPencil[9] = {".......##", "......###", ".....###.", "....###..", "...###...", "..###....", ".###.....", ".##......", "##......."};
+const char* const kIcoPin[9]    = {"..#####..", ".#######.", ".###.###.", ".###.###.", ".#######.", "..#####..", "...###...", "....#....", "....#...."};
+const char* const kIcoFlag[9]   = {".#.......", ".######..", ".#######.", ".######..", ".#.......", ".#.......", ".#.......", ".#.......", "###......"};
+const char* const kIcoTrash[9]  = {"...###...", "#########", ".#######.", ".#.#.#.#.", ".#.#.#.#.", ".#.#.#.#.", ".#.#.#.#.", ".#######.", ".#######."};
+
+std::filesystem::path ovFile() { return worldDir() / "overlay.bin"; }
+
+void ovSave() {
+    gOvDirty = false;
+    if (gWorldKey.empty()) return;
+    std::error_code ec;
+    std::filesystem::create_directories(worldDir(), ec);
+    std::ofstream f(ovFile(), std::ios::binary | std::ios::trunc);
+    if (!f) return;
+    uint32_t nm = uint32_t(gOvMarkers.size()), ns = uint32_t(gOvStrokes.size());
+    f.write("OVL1", 4);
+    f.write(reinterpret_cast<char const*>(&nm), 4);
+    for (auto const& m : gOvMarkers) { int32_t t = m.type; f.write(reinterpret_cast<char const*>(&t), 4); f.write(reinterpret_cast<char const*>(&m.x), 12); }
+    f.write(reinterpret_cast<char const*>(&ns), 4);
+    for (auto const& st : gOvStrokes) {
+        int32_t c = st.col; uint32_t n = uint32_t(st.pts.size());
+        f.write(reinterpret_cast<char const*>(&c), 4); f.write(reinterpret_cast<char const*>(&n), 4);
+        f.write(reinterpret_cast<char const*>(st.pts.data()), std::streamsize(n) * 12);
+    }
+    uint32_t r = gOvRoute ? 1u : 0u;
+    f.write(reinterpret_cast<char const*>(&r), 4);
+    f.write(reinterpret_cast<char const*>(&gOvRX), 12);
+}
+
+void ovEnsureLoaded() {
+    if (gOvKey == gWorldKey) return;
+    gOvKey = gWorldKey; gOvDirty = false;
+    gOvMarkers.clear(); gOvStrokes.clear(); gOvRoute = false;
+    gTool = 0; gMarkType = -1; gMenuMarker = false; gDeleteMode = false;
+    if (gWorldKey.empty()) return;
+    std::ifstream f(ovFile(), std::ios::binary);
+    char          m[4] = {};
+    uint32_t      nm = 0, ns = 0, r = 0;
+    if (!f.read(m, 4) || std::memcmp(m, "OVL1", 4) != 0 || !f.read(reinterpret_cast<char*>(&nm), 4) || nm > 100000) return;
+    for (uint32_t i = 0; i < nm; ++i) { OvMarker mk{}; int32_t t = 0; if (!f.read(reinterpret_cast<char*>(&t), 4) || !f.read(reinterpret_cast<char*>(&mk.x), 12)) return; mk.type = t; gOvMarkers.push_back(mk); }
+    if (!f.read(reinterpret_cast<char*>(&ns), 4) || ns > 100000) return;
+    for (uint32_t i = 0; i < ns; ++i) {
+        OvStroke st; int32_t c = 0; uint32_t n = 0;
+        if (!f.read(reinterpret_cast<char*>(&c), 4) || !f.read(reinterpret_cast<char*>(&n), 4) || n > 1000000) return;
+        st.col = c; st.pts.resize(n);
+        if (!f.read(reinterpret_cast<char*>(st.pts.data()), std::streamsize(n) * 12)) return;
+        gOvStrokes.push_back(std::move(st));
+    }
+    if (f.read(reinterpret_cast<char*>(&r), 4) && f.read(reinterpret_cast<char*>(&gOvRX), 12)) gOvRoute = r != 0;
+}
+
+// surface height of a column from the chunk cache (INT_MIN when unknown)
+int cachedTop(int x, int z) {
+    auto it = gCache.find(key(floorDiv16(x), floorDiv16(z)));
+    if (it == gCache.end()) return INT_MIN;
+    int idx = (z & 15) * 16 + (x & 15);
+    return it->second.color[idx] ? int(it->second.height[idx]) + 1 : INT_MIN;
+}
+
+struct Proj { float sw, sh, s, pcx, pcy; };
+Proj makeProj(float sw, float sh, float size, float tx, float tz, float cH) {
+    Proj p; p.sw = sw; p.sh = sh;
+    p.s = size / (gZoom * float(PPC)); p.pcx = tx * float(PPC); p.pcy = tz * KY * float(PPC) - (cH - float(kHRef)) * kLiftPx;
+    return p;
+}
+void projWorld(Proj const& p, float X, float Z, float h, float& sx, float& sy) {
+    sx = p.sw * 0.5f + (X * float(PPC) - p.pcx) * p.s;
+    sy = p.sh * 0.5f + (Z * KY * float(PPC) - (h - float(kHRef)) * kLiftPx - p.pcy) * p.s;
+}
+// screen point -> world point on the terrain surface drawn there (a few iterations because of the height lift)
+void unprojScreen(Proj const& p, float cH, float mx, float my, float& X, float& Z, float& h) {
+    h = cH; X = 0; Z = 0;
+    for (int it = 0; it < 4; ++it) {
+        X = (p.pcx + (mx - p.sw * 0.5f) / p.s) / float(PPC);
+        Z = (p.pcy + (my - p.sh * 0.5f) / p.s + (h - float(kHRef)) * kLiftPx) / (KY * float(PPC));
+        int t = cachedTop(int(std::floor(X)), int(std::floor(Z)));
+        if (t == INT_MIN) break;
+        h = float(t);
+    }
+}
+
+struct BtnR { float x0, y0, x1, y1; };
+BtnR btnRect(int i, float sw, float sh) {
+    constexpr float B = 24.0f;
+    float y0 = sh - B - 4.0f;
+    float x0 = i == 3 ? sw - B - 8.0f : 8.0f + float(i) * (B + 6.0f);
+    return {x0, y0, x0 + B, y0 + B};
+}
+bool inR(BtnR const& r, float x, float y) { return x >= r.x0 && x <= r.x1 && y >= r.y0 && y <= r.y1; }
+BtnR markPanel(float sw, float sh) { BtnR b = btnRect(1, sw, sh); return {b.x0, b.y0 - 8.0f - 2 * 22.0f - 6.0f, b.x0 + 4 * 22.0f + 6.0f, b.y0 - 6.0f}; }
+BtnR colPanel(float sw, float sh) { BtnR b = btnRect(0, sw, sh); return {b.x0, b.y0 - 8.0f - 22.0f, b.x0 + float(kDrawCols) * 22.0f + 6.0f, b.y0 - 6.0f}; }
+
+void bigMapInput(float sw, float sh, float size, float mx, float my, bool mv, bool focused, float cH) {
+    bool lmb = mv && focused && down(VK_LBUTTON);
+    bool press = lmb && !gLmbPrev, release = !lmb && gLmbPrev;
+    gLmbPrev = lmb;
+    Proj pr = makeProj(sw, sh, size, gSX + gPanX, gSZ + gPanZ, cH);
+    if (press) {
+        gLmbOwner = 1;
+        BtnR bm = markPanel(sw, sh), bc = colPanel(sw, sh);
+        if (inR(btnRect(0, sw, sh), mx, my)) { gTool = gTool == 1 ? 0 : 1; gMenuMarker = false; gDeleteMode = false; }
+        else if (inR(btnRect(1, sw, sh), mx, my)) { gMenuMarker = !gMenuMarker; gDeleteMode = false; if (gMenuMarker) gTool = 0; }
+        else if (inR(btnRect(2, sw, sh), mx, my)) { gTool = gTool == 3 ? 0 : 3; gMenuMarker = false; gDeleteMode = false; }
+        else if (inR(btnRect(3, sw, sh), mx, my)) {
+            if (gTool != 0 || gMenuMarker || gMarkType >= 0) { if (gTool == 3) gOvRoute = false, gOvDirty = true; gTool = 0; gMenuMarker = false; gMarkType = -1; gDeleteMode = false; }
+            else gDeleteMode = !gDeleteMode;
+        } else if (gMenuMarker && inR(bm, mx, my)) {
+            int c = int((mx - bm.x0 - 3.0f) / 22.0f), r = int((my - bm.y0 - 3.0f) / 22.0f);
+            if (c >= 0 && c < 4 && r >= 0 && r < 2) { gMarkType = r * 4 + c; gTool = 2; gMenuMarker = false; }
+        } else if (gMenuMarker) gMenuMarker = false;
+        else if (gTool == 1 && inR(bc, mx, my)) {
+            int c = int((mx - bc.x0 - 3.0f) / 22.0f);
+            if (c >= 0 && c < kDrawCols) gDrawCol = c;
+        } else if (my > 26.0f && my < sh - 34.0f) {
+            float X, Z, h;
+            unprojScreen(pr, cH, mx, my, X, Z, h);
+            if (gDeleteMode) {
+                gLmbOwner = 2;
+                float bestD = 100.0f; int kind = 0; size_t bi = 0; // 1 marker, 2 route, 3 stroke
+                for (size_t i = 0; i < gOvMarkers.size(); ++i) {
+                    float sx, sy; projWorld(pr, gOvMarkers[i].x, gOvMarkers[i].z, gOvMarkers[i].h, sx, sy);
+                    float d = (sx - mx) * (sx - mx) + (sy - my) * (sy - my);
+                    if (d < bestD) { bestD = d; kind = 1; bi = i; }
+                }
+                if (gOvRoute) { float sx, sy; projWorld(pr, gOvRX, gOvRZ, gOvRH, sx, sy); float d = (sx - mx) * (sx - mx) + (sy - my) * (sy - my); if (d < bestD) { bestD = d; kind = 2; } }
+                for (size_t i = 0; i < gOvStrokes.size(); ++i)
+                    for (auto const& q : gOvStrokes[i].pts) {
+                        float sx, sy; projWorld(pr, q[0], q[1], q[2], sx, sy);
+                        float d = (sx - mx) * (sx - mx) + (sy - my) * (sy - my);
+                        if (d < std::min(bestD, 36.0f)) { bestD = d; kind = 3; bi = i; }
+                    }
+                if (kind == 1) gOvMarkers.erase(gOvMarkers.begin() + long(bi));
+                else if (kind == 2) gOvRoute = false;
+                else if (kind == 3) gOvStrokes.erase(gOvStrokes.begin() + long(bi));
+                if (kind) gOvDirty = true;
+            } else if (gTool == 1) {
+                gLmbOwner = 2; gStrokeActive = true;
+                OvStroke st; st.col = gDrawCol; st.pts.push_back({X, Z, h});
+                gOvStrokes.push_back(std::move(st));
+            } else if (gTool == 2 && gMarkType >= 0) {
+                gLmbOwner = 2; gOvMarkers.push_back({gMarkType, X, Z, h}); gOvDirty = true;
+            } else if (gTool == 3) {
+                gLmbOwner = 2; gOvRoute = true; gOvRX = X; gOvRZ = Z; gOvRH = h; gTool = 0; gOvDirty = true;
+            } else gLmbOwner = 3;
+        }
+    }
+    if (lmb && gStrokeActive && !gOvStrokes.empty() && my > 26.0f && my < sh - 34.0f) {
+        auto& st = gOvStrokes.back();
+        float lx, ly; projWorld(pr, st.pts.back()[0], st.pts.back()[1], st.pts.back()[2], lx, ly);
+        if ((lx - mx) * (lx - mx) + (ly - my) * (ly - my) > 2.5f && st.pts.size() < 20000) {
+            float X, Z, h; unprojScreen(pr, cH, mx, my, X, Z, h);
+            st.pts.push_back({X, Z, h});
+        }
+    }
+    if (release) {
+        if (gStrokeActive) { gStrokeActive = false; gOvDirty = true; if (!gOvStrokes.empty() && gOvStrokes.back().pts.size() < 2) gOvStrokes.pop_back(); }
+        gLmbOwner = 0;
+    }
+}
+
+void drawBits(::MinecraftUIRenderContext& ctx, uint8_t const* rows, float cx, float cy, float px, ::mce::Color const& c, bool outline) {
+    float x0 = cx - 3.5f * px, y0 = cy - 3.5f * px;
+    auto  pass = [&](float ox, float oy, ::mce::Color const& cc, float a) {
+        for (int r = 0; r < 7; ++r)
+            for (int q = 0; q < 7; ++q)
+                if (rows[r] & (1 << (6 - q))) rect(ctx, x0 + float(q) * px + ox, y0 + float(r) * px + oy, x0 + float(q + 1) * px + ox, y0 + float(r + 1) * px + oy, cc, a);
+    };
+    if (outline) { ::mce::Color k{0.0f, 0.0f, 0.0f, 1.0f}; pass(-0.7f, 0, k, 0.85f); pass(0.7f, 0, k, 0.85f); pass(0, -0.7f, k, 0.85f); pass(0, 0.7f, k, 0.85f); }
+    pass(0, 0, c, 1.0f);
+}
+
+void drawIcon(::MinecraftUIRenderContext& ctx, char const* const* ico, BtnR const& b, ::mce::Color const& c) {
+    float px = 1.6f, x0 = (b.x0 + b.x1) * 0.5f - 4.5f * px, y0 = (b.y0 + b.y1) * 0.5f - 4.5f * px;
+    for (int r = 0; r < 9; ++r)
+        for (int q = 0; q < 9; ++q)
+            if (ico[r][q] == '#') rect(ctx, x0 + float(q) * px, y0 + float(r) * px, x0 + float(q + 1) * px, y0 + float(r + 1) * px, c, 1.0f);
+}
+
+void bigMapOverlayDraw(::MinecraftUIRenderContext& ctx, float sw, float sh, float size, float tx, float tz, float cH, float mx, float my, bool mv) {
+    Proj pr = makeProj(sw, sh, size, tx, tz, cH);
+    // strokes
+    for (auto const& st : gOvStrokes) {
+        ::mce::Color c{kDrawCol[st.col % kDrawCols][0], kDrawCol[st.col % kDrawCols][1], kDrawCol[st.col % kDrawCols][2], 1.0f};
+        float px0 = 0, py0 = 0; bool have = false;
+        for (auto const& q : st.pts) {
+            float sx, sy; projWorld(pr, q[0], q[1], q[2], sx, sy);
+            if (have) {
+                bool off = (sx < -20 && px0 < -20) || (sx > sw + 20 && px0 > sw + 20) || (sy < -20 && py0 < -20) || (sy > sh + 20 && py0 > sh + 20);
+                if (!off) {
+                    float d = std::sqrt((sx - px0) * (sx - px0) + (sy - py0) * (sy - py0));
+                    int   n = std::clamp(int(d / 1.0f) + 1, 1, 400);
+                    for (int k = 0; k <= n; ++k) {
+                        float t = float(k) / float(n), cx = px0 + (sx - px0) * t, cy = py0 + (sy - py0) * t;
+                        rect(ctx, cx - 1.0f, cy - 1.0f, cx + 1.0f, cy + 1.0f, c, 0.95f);
+                    }
+                }
+            }
+            px0 = sx; py0 = sy; have = true;
+        }
+    }
+    // route: dotted line from the player + flag
+    if (gOvRoute) {
+        float fx, fy, ax, ay;
+        projWorld(pr, gOvRX, gOvRZ, gOvRH, fx, fy);
+        projWorld(pr, gSX, gSZ, gSY - 1.6f, ax, ay);
+        float d = std::sqrt((fx - ax) * (fx - ax) + (fy - ay) * (fy - ay));
+        int   n = std::clamp(int(d / 7.0f), 0, 300);
+        for (int k = 1; k < n; ++k) {
+            float t = float(k) / float(n), cx = ax + (fx - ax) * t, cy = ay + (fy - ay) * t;
+            if (cx > -5 && cx < sw + 5 && cy > -5 && cy < sh + 5) rect(ctx, cx - 1.0f, cy - 1.0f, cx + 1.0f, cy + 1.0f, ::mce::Color{1.0f, 0.62f, 0.12f, 1.0f}, 0.95f);
+        }
+        if (fx > -10 && fx < sw + 10 && fy > -10 && fy < sh + 10) {
+            BtnR fb{fx - 5.0f, fy - 10.0f, fx + 7.0f, fy + 2.0f};
+            drawIcon(ctx, kIcoFlag, fb, ::mce::Color{0.0f, 0.0f, 0.0f, 1.0f});
+            BtnR fb2{fx - 5.7f, fy - 10.7f, fx + 6.3f, fy + 1.3f};
+            drawIcon(ctx, kIcoFlag, fb2, ::mce::Color{1.0f, 0.55f, 0.1f, 1.0f});
+        }
+    }
+    // markers
+    for (auto const& m : gOvMarkers) {
+        float sx, sy; projWorld(pr, m.x, m.z, m.h, sx, sy);
+        if (sx < -10 || sx > sw + 10 || sy < -10 || sy > sh + 10) continue;
+        int t = std::clamp(m.type, 0, kMarkerTypes - 1);
+        drawBits(ctx, kMarkBits[t], sx, sy - 4.0f, 1.5f, ::mce::Color{kMarkCol[t][0], kMarkCol[t][1], kMarkCol[t][2], 1.0f}, true);
+    }
+    // ghost of the marker that is about to be placed
+    if (mv && gTool == 2 && gMarkType >= 0 && my > 26.0f && my < sh - 34.0f) {
+        int t = gMarkType;
+        drawBits(ctx, kMarkBits[t], mx, my - 4.0f, 1.5f, ::mce::Color{kMarkCol[t][0], kMarkCol[t][1], kMarkCol[t][2], 0.6f}, false);
+    }
+    // bottom bar with the tool buttons
+    rect(ctx, 0, sh - 32.0f, sw, sh, ::mce::Color{0.02f, 0.03f, 0.05f, 1.0f}, 0.72f);
+    ::mce::Color ink{0.93f, 0.95f, 0.98f, 1.0f}, dark{0.06f, 0.08f, 0.11f, 1.0f}, act{0.22f, 0.36f, 0.55f, 1.0f}, red{0.80f, 0.14f, 0.14f, 1.0f};
+    char const* const* icons[4] = {kIcoPencil, kIcoPin, kIcoFlag, kIcoTrash};
+    for (int i = 0; i < 4; ++i) {
+        BtnR b = btnRect(i, sw, sh);
+        bool active = (i == 0 && gTool == 1) || (i == 1 && (gMenuMarker || gTool == 2)) || (i == 2 && gTool == 3);
+        bool hot    = mv && inR(b, mx, my);
+        ::mce::Color bg = (i == 3 && gDeleteMode) ? red : (active ? act : dark);
+        rect(ctx, b.x0 - 1, b.y0 - 1, b.x1 + 1, b.y1 + 1, ink, hot ? 0.9f : 0.45f);
+        rect(ctx, b.x0, b.y0, b.x1, b.y1, bg, 1.0f);
+        drawIcon(ctx, icons[i], b, ink);
+    }
+    if (gMenuMarker) {
+        BtnR p = markPanel(sw, sh);
+        rect(ctx, p.x0 - 1, p.y0 - 1, p.x1 + 1, p.y1 + 1, ink, 0.5f);
+        rect(ctx, p.x0, p.y0, p.x1, p.y1, dark, 0.96f);
+        for (int t = 0; t < kMarkerTypes; ++t) {
+            float cx = p.x0 + 3.0f + float(t % 4) * 22.0f + 11.0f, cy = p.y0 + 3.0f + float(t / 4) * 22.0f + 11.0f;
+            if (mv && mx >= cx - 11 && mx <= cx + 11 && my >= cy - 11 && my <= cy + 11) rect(ctx, cx - 11, cy - 11, cx + 11, cy + 11, act, 0.8f);
+            drawBits(ctx, kMarkBits[t], cx, cy, 2.0f, ::mce::Color{kMarkCol[t][0], kMarkCol[t][1], kMarkCol[t][2], 1.0f}, true);
+        }
+    }
+    if (gTool == 1) {
+        BtnR p = colPanel(sw, sh);
+        rect(ctx, p.x0 - 1, p.y0 - 1, p.x1 + 1, p.y1 + 1, ink, 0.5f);
+        rect(ctx, p.x0, p.y0, p.x1, p.y1, dark, 0.96f);
+        for (int c = 0; c < kDrawCols; ++c) {
+            float x0 = p.x0 + 3.0f + float(c) * 22.0f;
+            if (c == gDrawCol) rect(ctx, x0 - 1, p.y0 + 2, x0 + 21, p.y1 - 2, ink, 0.9f);
+            rect(ctx, x0 + 2, p.y0 + 5, x0 + 18, p.y1 - 5, ::mce::Color{kDrawCol[c][0], kDrawCol[c][1], kDrawCol[c][2], 1.0f}, 1.0f);
+        }
+    }
+}
+
 // ---------- animated volumetric fog overlay: port of Diorama fog.fsh (CPU, worker thread, one texture per view) ----------
 // Known share per cell comes from the chunk cache: freshly scanned chunks ease from 0 to 1 (the fog parts as chunks load);
 // chunks only remembered from disk keep a low haze that thins out as they are scanned again. The fog is a height field marched
@@ -3328,6 +3616,11 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
 
     int groundPlayer = groundHeight(px, pz, int(pos.y) - 2);
 
+    ovEnsureLoaded();
+    if (!gBigMap) {
+        if (gOvDirty) ovSave();
+        gTool = 0; gMarkType = -1; gMenuMarker = false; gDeleteMode = false; gLmbOwner = 0; gLmbPrev = false; gStrokeActive = false;
+    } else if (gOvDirty && gFrame % 120 == 0 && !gStrokeActive) ovSave();
     if (!gBigMap) tileTick(gSX, gSZ, false);
     evictTileTextures(client);
     if (gBigMap) {
@@ -3347,13 +3640,20 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
                 gPanZ += (my - sh * 0.5f) * (gZoom - nz) / (size * KY);
                 gZoom = nz;
             }
-            bool lmb = mv && down(VK_LBUTTON) && windowFocused();
-            if (lmb && my > 30.0f && my < sh - 22.0f) {
+            bool foc = windowFocused();
+            bigMapInput(sw, sh, size, mx, my, mv, foc, gBigSH < -1000.0f ? float(groundPlayer) : gBigSH);
+            bool rmb = mv && foc && down(VK_RBUTTON);
+            bool panNow = mv && foc && ((gLmbOwner == 3 && down(VK_LBUTTON)) || rmb);
+            if (panNow) {
                 if (gDragging) {
                     gPanX -= (mx - gLastMX) * gZoom / size;
                     gPanZ -= (my - gLastMY) * gZoom / (size * KY);
                 }
-                gDragging = true; gLastMX = mx; gLastMY = my;
+                gDragging = true;
+                // keep the cursor in the middle of the window so a long drag never runs out of screen
+                POINT c{cr.right / 2, cr.bottom / 2};
+                if (ClientToScreen(gHwnd, &c) && SetCursorPos(c.x, c.y)) { gLastMX = float(cr.right / 2) * sw / float(cr.right); gLastMY = float(cr.bottom / 2) * sh / float(cr.bottom); }
+                else { gLastMX = mx; gLastMY = my; }
             } else gDragging = false;
         }
         // bake geometry follows a ladder (x1.5): between rungs the baked picture is only cropped/scaled, so zooming never re-bakes
@@ -3377,7 +3677,7 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
         if (!gCfgRead) readConfig();
         Scroll sc{};
         bool   texOk = false;
-        if (!gMouseReleased || gDragging || down(VK_LBUTTON) || gFrame % 600 == 0) { client.releaseMouse(); gMouseReleased = true; } // free the cursor once (a call every frame made it creep)
+        if (!gMouseReleased || gDragging || down(VK_LBUTTON) || down(VK_RBUTTON) || gFrame % 600 == 0) { client.releaseMouse(); gMouseReleased = true; } // free the cursor once (a call every frame made it creep)
         rect(ctx, 0, 0, sw, sh, toColor(FOG), 1.0f);
         if (gTexEnabled && !gTexFailed) {
             tileTick(tx, tz, true);
@@ -3417,15 +3717,23 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
         char info[96];
         std::snprintf(info, sizeof(info), "%d, %d, %d   ЧАНКОВ: %d", px, int(pos.y), pz, int(gKnown.size()));
         drawPixText(ctx, info, tabW + 20.0f, 9, 1.5f, white);
-        // bottom hint
-        rect(ctx, 0, sh - 22, sw, sh, ::mce::Color{0.02f, 0.03f, 0.05f, 1.0f}, 0.72f);
-        drawPixText(ctx, "КОЛЕСО - МАСШТАБ   ЛКМ - ПЕРЕТАСКИВАНИЕ   HOME - В ЦЕНТР   M - ЗАКРЫТЬ", 8, sh - 16, 1.5f, white);
+        if (gOvRoute) {
+            char rt[48];
+            std::snprintf(rt, sizeof(rt), "ТОЧКА: %d", int(std::sqrt((gOvRX - gSX) * (gOvRX - gSX) + (gOvRZ - gSZ) * (gOvRZ - gSZ))));
+            drawPixText(ctx, rt, sw - textWidth(rt, 1.5f) - 10.0f, 9, 1.5f, ::mce::Color{1.0f, 0.62f, 0.12f, 1.0f});
+        }
+        {
+            POINT cp2{}; RECT cr2{};
+            bool  mv2 = gHwnd && GetCursorPos(&cp2) && ScreenToClient(gHwnd, &cp2) && GetClientRect(gHwnd, &cr2) && cr2.right > 0 && cr2.bottom > 0;
+            float mx2 = mv2 ? float(cp2.x) * sw / float(cr2.right) : 0.0f, my2 = mv2 ? float(cp2.y) * sh / float(cr2.bottom) : 0.0f;
+            bigMapOverlayDraw(ctx, sw, sh, size, tx, tz, gBigSH, mx2, my2, mv2);
+        }
     } else {
         constexpr float SIZE   = 76.0f;
         constexpr int   VIEW   = 64;          // blocks visible
         constexpr int   NB     = 84;          // blocks baked (10 block margin each side: rare re-bakes)
         float           x      = sw - SIZE - 8.0f;
-        float           y      = 10.0f;
+        float           y      = 7.0f;
         if (gap || gSmoothH < -1000.0f) gSmoothH = float(groundPlayer);
         { float dH = (float(groundPlayer) - gSmoothH) * (1.0f - std::exp(-dtf / 0.9f)); float mx = 5.0f * dtf; gSmoothH += std::clamp(dH, -mx, mx); }
         if (!gCfgRead) readConfig();
@@ -3461,6 +3769,16 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
             constexpr float kFogBlocks = 80.0f; // a margin around the 64 visible blocks, so a slightly old image still covers the window
             fogTick(client, gFogMini, 96, gSX, gSZ, kFogBlocks, gRound, dtf, false);
             fogDraw(ctx, gFogMini, x + SIZE * 0.5f, y + SIZE * 0.5f, SIZE / float(VIEW), gSX, gSZ, x, y, x + SIZE, y + SIZE, sw, sh, gRound);
+        }
+        if (gOvRoute) { // route point: dot at its position, or on the edge towards it
+            float cell = SIZE / float(VIEW), hx = SIZE * 0.5f - 3.0f;
+            float ox = (gOvRX - gSX) * cell, oy = (gOvRZ - gSZ) * KY * cell;
+            float k = std::max(std::fabs(ox) / hx, std::fabs(oy) / hx);
+            bool  inside = k <= 1.0f;
+            if (!inside) { ox /= k; oy /= k; }
+            float cx = x + SIZE * 0.5f + ox, cy = y + SIZE * 0.5f + oy;
+            rect(ctx, cx - 3.0f, cy - 3.0f, cx + 3.0f, cy + 3.0f, ::mce::Color{0.0f, 0.0f, 0.0f, 1.0f}, 0.9f);
+            rect(ctx, cx - 2.0f, cy - 2.0f, cx + 2.0f, cy + 2.0f, ::mce::Color{1.0f, 0.55f, 0.1f, 1.0f}, inside ? 1.0f : 0.8f);
         }
         if (!gRound) stoneBorder(ctx, x, y, SIZE);
     }
