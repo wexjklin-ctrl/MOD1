@@ -84,6 +84,7 @@ struct ChunkData {
     bool                      dirty    = false;
     uint64_t                  lastScan = 0;
     uint64_t                  lastTry  = 0;
+    uint8_t                   partial  = 0; // scans that found the chunk only partly loaded
 };
 
 inline bool colsKnown(uint32_t const* c) { int n = 0; for (int q = 0; q < 256; ++q) n += c[q] != 0; return n >= 200; }
@@ -528,7 +529,12 @@ bool scanChunk(::BlockSource& region, int cx, int cz, ChunkData& cd) {
             }
         }
     }
-    cd.scanned  = true;
+    {   // a chunk the client only received partly (fast flight) must be retried soon, not after 600-3600 frames
+        int nok = 0;
+        for (int q = 0; q < 256; ++q) nok += ok[q] ? 1 : 0;
+        if (nok < 240 && cd.partial < 60) { ++cd.partial; cd.scanned = false; }
+        else cd.scanned = true;
+    }
     cd.lastScan = gFrame;
     {
         bool any = false;
@@ -3568,6 +3574,7 @@ void fogBuildMask(FogJob& j, int G, float cx, float cz, float blocks, bool round
     ++gFogStamp;
     std::lock_guard<std::mutex> lk(gMapMx);
     int64_t lastKey = INT64_MIN; float lk_ = 0.0f, ll_ = 1.0f;
+    std::unordered_map<int64_t, char> rdyCache; // readiness is per tile, not per chunk: ~64x fewer tile lookups
     for (int jy = 0; jy < G; ++jy)
         for (int ix = 0; ix < G; ++ix) {
             float wx = cx + (float(ix) + 0.5f - float(G) * 0.5f) * cellB, wz = cz + (float(jy) + 0.5f - float(G) * 0.5f) * cellB / KY;
@@ -3577,7 +3584,13 @@ void fogBuildMask(FogJob& j, int G, float cx, float cz, float blocks, bool round
                 lastKey = kk; lk_ = 0.0f; ll_ = 1.0f;
                 if (gKnown.count(kk)) { // fog only over chunks without any map data
                     auto fi = chunks.find(kk);
-                    bool rdy = !gate || fogChunkReady(ccx, ccz);
+                    bool rdy = true;
+                    if (gate) {
+                        int64_t tk = key(fdiv(ccx * 16, kTileX), fdiv(ccz * 16, kTileZ));
+                        auto    ri = rdyCache.find(tk);
+                        if (ri == rdyCache.end()) ri = rdyCache.emplace(tk, fogChunkReady(ccx, ccz) ? 1 : 0).first;
+                        rdy = ri->second != 0;
+                    }
                     if (fi == chunks.end()) {
                         FogChunk fc;
                         fc.k = (rdy && gFrame - gFogEpoch >= 600) ? 1.0f : 0.0f;
@@ -3631,7 +3644,7 @@ void fogTick(::IClientInstance& client, FogView& v, int G, float cx, float cz, f
     }
     bool busy;
     { std::lock_guard<std::mutex> lk(gFogMx); busy = v.jobReady || v.running; }
-    if (!busy && gFrame - v.lastReq >= 3) {
+    if (!busy && gFrame - v.lastReq >= (gate ? 6u : 3u)) { // the big map rebuilds its mask less often (cost grows with the view)
         uint64_t now = GetTickCount64();
         float    el  = v.lastBuildTick ? float(now - v.lastBuildTick) / 1000.0f : 0.1f;
         v.lastBuildTick = now;
