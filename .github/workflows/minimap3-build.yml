@@ -1,0 +1,91 @@
+name: minimap3-build
+
+on:
+  push:
+    branches: [minimap3]
+    paths:
+      - "levimc-minimap3/**"
+      - "!levimc-minimap3/**/*.md"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: levimc-minimap3
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: xmake-io/github-action-setup-xmake@v1
+
+      - uses: actions/cache@v6
+        with:
+          path: |
+            ~/AppData/Local/.xmake
+          key: xmake-${{ hashFiles('levimc-minimap3/xmake.lua') }}
+          restore-keys: |
+            xmake-
+
+      - name: Setup LLVM
+        uses: ZhongRuoyu/setup-llvm@v0
+        with:
+          llvm-version: 22
+
+      - run: xmake repo -u
+
+      - run: xmake f -a x64 -m release -p windows -v --target_type=client -y
+
+      - name: Build
+        shell: bash
+        run: |
+          set -o pipefail
+          xmake -v -y 2>&1 | tee ../build.log
+
+      - name: Push build log on failure
+        if: failure()
+        shell: bash
+        run: |
+          cd ..
+          grep -n -i -B2 -A6 "error" build.log | head -300 > errors.txt || true
+          mkdir -p /tmp/l && cp errors.txt /tmp/l/
+          git config user.email ci@x; git config user.name ci
+          git checkout --orphan build-logs3
+          git rm -rf . -q || true
+          cp /tmp/l/errors.txt .
+          git add errors.txt
+          git commit -qm "build log ${{ github.sha }}"
+          git push -f origin build-logs3
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: minimap3-${{ github.sha }}-client-windows-x64
+          path: levimc-minimap3/bin/
+
+      - name: Zip mod
+        shell: pwsh
+        run: Compress-Archive -Path bin\* -DestinationPath ..\minimap3-client-windows-x64.zip -Force
+
+      - name: Publish release (visible in Releases tab)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd ..
+          TAG=minimap-3-latest
+          NOTES="Auto-build of commit ${{ github.sha }}. Unzip into the LeviMC mods folder."
+          ok=0
+          for i in 1 2 3; do
+            gh release delete $TAG --cleanup-tag -y || true
+            sleep 3
+            if gh release create $TAG minimap3-client-windows-x64.zip --prerelease --target "${{ github.sha }}" --title "Миникарта 3.0 (LeviMC)" --notes "$NOTES"; then ok=1; break; fi
+            sleep 5
+          done
+          if [ $ok -ne 1 ]; then
+            echo "create failed, falling back to clobber upload"
+            gh release upload $TAG minimap3-client-windows-x64.zip --clobber
+            gh release edit $TAG --notes "$NOTES" --prerelease
+          fi
