@@ -3630,6 +3630,18 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
         float y    = (sh - size) * 0.5f;
         // --- input: wheel zoom (toward the cursor), left-drag pan ---
         {
+            {
+                static DWORD lastTick = 0; static POINT lastPos{0, 0}; static bool have = false;
+                LASTINPUTINFO lii{sizeof(LASTINPUTINFO), 0};
+                POINT         cur{};
+                if (GetLastInputInfo(&lii) && GetCursorPos(&cur)) {
+                    bool physical = lii.dwTime != lastTick;
+                    lastTick = lii.dwTime;
+                    if (have && !physical && (cur.x != lastPos.x || cur.y != lastPos.y)) SetCursorPos(lastPos.x, lastPos.y); // game drift, not the user
+                    else lastPos = cur;
+                    have = true;
+                }
+            }
             POINT cp{}; RECT cr{};
             bool  mv = gHwnd && GetCursorPos(&cp) && ScreenToClient(gHwnd, &cp) && GetClientRect(gHwnd, &cr) && cr.right > 0 && cr.bottom > 0;
             float mx = mv ? float(cp.x) * sw / float(cr.right) : sw * 0.5f, my = mv ? float(cp.y) * sh / float(cr.bottom) : sh * 0.5f;
@@ -3650,13 +3662,7 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
                     gPanZ -= (my - gLastMY) * gZoom / (size * KY);
                 }
                 gDragging = true;
-                // normally the cursor is left alone; only when it nears the window edge it is moved back to the middle (endless drag)
                 gLastMX = mx; gLastMY = my;
-                bool nearEdge = cp.x < cr.right * 0.07f || cp.x > cr.right * 0.93f || cp.y < cr.bottom * 0.07f || cp.y > cr.bottom * 0.93f;
-                if (nearEdge) {
-                    POINT c{cr.right / 2, cr.bottom / 2};
-                    if (ClientToScreen(gHwnd, &c) && SetCursorPos(c.x, c.y)) { gLastMX = float(cr.right / 2) * sw / float(cr.right); gLastMY = float(cr.bottom / 2) * sh / float(cr.bottom); }
-                }
             } else gDragging = false;
         }
         // bake geometry follows a ladder (x1.5): between rungs the baked picture is only cropped/scaled, so zooming never re-bakes
