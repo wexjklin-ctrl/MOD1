@@ -3650,10 +3650,13 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
                     gPanZ -= (my - gLastMY) * gZoom / (size * KY);
                 }
                 gDragging = true;
-                // keep the cursor in the middle of the window so a long drag never runs out of screen
-                POINT c{cr.right / 2, cr.bottom / 2};
-                if (ClientToScreen(gHwnd, &c) && SetCursorPos(c.x, c.y)) { gLastMX = float(cr.right / 2) * sw / float(cr.right); gLastMY = float(cr.bottom / 2) * sh / float(cr.bottom); }
-                else { gLastMX = mx; gLastMY = my; }
+                // normally the cursor is left alone; only when it nears the window edge it is moved back to the middle (endless drag)
+                gLastMX = mx; gLastMY = my;
+                bool nearEdge = cp.x < cr.right * 0.07f || cp.x > cr.right * 0.93f || cp.y < cr.bottom * 0.07f || cp.y > cr.bottom * 0.93f;
+                if (nearEdge) {
+                    POINT c{cr.right / 2, cr.bottom / 2};
+                    if (ClientToScreen(gHwnd, &c) && SetCursorPos(c.x, c.y)) { gLastMX = float(cr.right / 2) * sw / float(cr.right); gLastMY = float(cr.bottom / 2) * sh / float(cr.bottom); }
+                }
             } else gDragging = false;
         }
         // bake geometry follows a ladder (x1.5): between rungs the baked picture is only cropped/scaled, so zooming never re-bakes
