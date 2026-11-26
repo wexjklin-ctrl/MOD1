@@ -85,6 +85,7 @@ struct ChunkData {
     uint64_t                  lastScan = 0;
     uint64_t                  lastTry  = 0;
     uint8_t                   partial  = 0; // scans that found the chunk only partly loaded
+    uint8_t                   lastNok  = 0; // columns found by the previous partial scan (retry only while this grows)
 };
 
 inline bool colsKnown(uint32_t const* c) { int n = 0; for (int q = 0; q < 256; ++q) n += c[q] != 0; return n >= 200; }
@@ -532,8 +533,10 @@ bool scanChunk(::BlockSource& region, int cx, int cz, ChunkData& cd) {
     {   // a chunk the client only received partly (fast flight) must be retried soon, not after 600-3600 frames
         int nok = 0;
         for (int q = 0; q < 256; ++q) nok += ok[q] ? 1 : 0;
-        if (nok < 240 && cd.partial < 60) { ++cd.partial; cd.scanned = false; }
+        // retry only while each scan finds more columns (a chunk that never gets complete must not be rescanned forever)
+        if (nok < 240 && cd.partial < 6 && (cd.partial == 0 || nok > int(cd.lastNok))) { ++cd.partial; cd.scanned = false; }
         else cd.scanned = true;
+        cd.lastNok = uint8_t(std::min(nok, 255));
     }
     cd.lastScan = gFrame;
     {
@@ -591,7 +594,7 @@ void updateCache(::BlockSource& region, int px, int pz) {
             }
             auto& cd = *cdp;
             if ((pass == 0) == cd.scanned) continue;
-            bool need = cd.scanned ? (gFrame - cd.lastScan >= (dx * dx + dz * dz <= 36 ? 600u : 3600u)) : (gFrame - cd.lastTry >= 8 || cd.lastTry == 0);
+            bool need = cd.scanned ? (gFrame - cd.lastScan >= (dx * dx + dz * dz <= 36 ? 600u : 3600u)) : (gFrame - cd.lastTry >= (cd.partial ? 24u : 8u) || cd.lastTry == 0);
             if (!need) continue;
             cd.lastTry = gFrame;
             if (scanChunk(region, cx, cz, cd)) --budget;
@@ -2819,22 +2822,22 @@ void tileTick(float tx, float tz, bool bigOpen) {
         t.propVer = t.pxVer;
     }
     // schedule bakes: nearest to the view first. The chunk data a tile needs is loaded from disk first (a few regions at a time).
-    if (gFrame % 12 == 0 && gRegions.size() <= kRegionCap + 6) {
+    if (gFrame % 4 == 0 && gRegions.size() <= kRegionCap + 6) {
         size_t queued;
         { std::lock_guard<std::mutex> lk(gTileMx); queued = gTileQueue.size(); }
-        if (queued < 3) {
+        if (queued < 4) {
             std::vector<std::pair<float, Tile*>> cand;
             for (auto& kv : gTiles) {
                 Tile& t = kv.second;
                 if (t.l != 0 || !t.content || t.queued) continue;
                 if (t.baked && !(t.stale && gFrame - t.staleFrame >= 45)) continue;
                 float dx = float(t.i * kTileX + kTileX / 2) - tx, dz = float(t.j * kTileZ + kTileZ / 2) - tz;
-                cand.push_back({dx * dx + dz * dz, &t});
+                cand.push_back({dx * dx + dz * dz + (t.baked ? 4.0e6f : 0.0f), &t}); // never-baked tiles (white holes) before refreshes of baked ones
             }
             std::sort(cand.begin(), cand.end(), [](auto const& a, auto const& b) { return a.first < b.first; });
-            size_t              take = std::min<size_t>(cand.size(), 3 - queued);
+            size_t              take = std::min<size_t>(cand.size(), 4 - queued);
             std::vector<Tile*>  pick;
-            for (size_t k = 0; k < cand.size() && k < 8 && pick.size() < take; ++k) {
+            for (size_t k = 0; k < cand.size() && k < 40 && pick.size() < take; ++k) { // not only the nearest few: tiles behind the player must not starve
                 Tile* t = cand[k].second;
                 bool  ready = true;
                 for (int rx = (kTileX * t->i - 72) >> 9; rx <= (kTileX * t->i + 164) >> 9; ++rx)
