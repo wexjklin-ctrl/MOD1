@@ -204,7 +204,7 @@ std::unordered_map<int64_t, uint64_t>  gRegions;      // regions currently loade
 std::unordered_set<int64_t>            gDiskRegions;  // region files that exist on disk
 std::vector<std::pair<int, int>>       gLegacyPending; // regions without an .idx sidecar: loaded once to build it
 std::unordered_set<int64_t>            gTileDisk;     // tile images that exist on disk
-size_t                                 gRegionCap = 6, gTexCap = 56, gPxCap = 48; // minimap3: caps adjusted at run time by the memory governor (budget 500 MB)
+size_t                                 gRegionCap = 12, gTexCap = 56, gPxCap = 48; // regions: one tile bake window touches up to 2x3 regions and several bakes run at once; fewer regions made far tiles starve (white holes) // minimap3: caps adjusted at run time by the memory governor (budget 500 MB)
 int64_t tkey(int l, int i, int j);
 bool    regionReady(int rx, int rz, bool allowLoad);
 bool    loadingBusy();
@@ -939,6 +939,11 @@ void saverMain() {
         std::lock_guard<std::mutex> lk(gSaver.mx);
         gSaver.busy = false;
     }
+}
+
+bool saverIdle() { // non-blocking: true when no write is queued or running
+    std::lock_guard<std::mutex> lk(gSaver.mx);
+    return gSaver.q.empty() && !gSaver.busy;
 }
 
 void saverDrain() { // wait until every queued write has reached the disk
@@ -2681,6 +2686,7 @@ void pumpRegions() {
         if (was) gTileCv.notify_all();
         return;
     }
+    if (!saverIdle()) return; // never block the frame waiting for the writer: try again next frame
     {
         // bakers read chunk data: stop them taking new jobs, evict once the running ones have finished (no longer waits for an empty queue)
         std::lock_guard<std::mutex> lk(gTileMx);
@@ -2693,8 +2699,12 @@ void pumpRegions() {
         for (auto const& kv : gRegions) if (kv.second + 3 < gFrame && kv.second < bu) { bu = kv.second; best = kv.first; }
         if (bu == UINT64_MAX) break;
         int rx = int(best >> 32), rz = int(int32_t(uint32_t(best & 0xFFFFFFFFu)));
-        saverDrain(); // an older queued write must not land after this one
-        if (gDirtyRegions.count(best)) { saveRegion(rx, rz); gDirtyRegions.erase(best); }
+        if (gDirtyRegions.count(best)) {
+            // write it in the background; the region stays in RAM and is dropped once the writer is idle again (a later frame)
+            gDirtyRegions.erase(best);
+            saveRegionAsync(rx, rz);
+            return;
+        }
         {
             std::lock_guard<std::mutex> lk(gMapMx);
             for (int dz = 0; dz < 32; ++dz)
@@ -3980,10 +3990,10 @@ void memoryGovernor() {
     double texB  = double(gLiveTexCount) * 3.0 * MB; // GPU image + the engine's CPU copy, hidden buffer mostly released
     double miscB = double(knownB) + double(fogS + fogB) * 80.0 + double(gTiles.size()) * double(sizeof(Tile) + 64) + 40.0 * MB; // 40 MB: minimap/fog textures, slots, queues
     double est   = (chunkB + pxB + texB + miscB) / MB;
-    if (est > kBudgetMB * 0.85) {
-        if (gRegionCap > 3) --gRegionCap; else if (gTexCap > 24) gTexCap -= 8; else if (gPxCap > 12) gPxCap -= 6;
-    } else if (est < kBudgetMB * 0.5) {
-        if (gRegionCap < 6) ++gRegionCap;
+    if (est > kBudgetMB * 0.85) {   // shed textures and pixels first; regions only down to 8 (below that tile baking starves)
+        if (gTexCap > 24) gTexCap -= 8; else if (gPxCap > 12) gPxCap -= 6; else if (gRegionCap > 8) --gRegionCap;
+    } else if (est < kBudgetMB * 0.6) {
+        if (gRegionCap < 12) ++gRegionCap;
         if (gTexCap < 56) gTexCap += 4;
         if (gPxCap < 48) gPxCap += 3;
     }
