@@ -81,7 +81,7 @@ jobs:
           for i in 1 2 3; do
             gh release delete $TAG --cleanup-tag -y || true
             sleep 3
-            if gh release create $TAG minimap3-client-windows-x64.zip --prerelease --target "${{ github.sha }}" --title "Миникарта 3.0 (LeviMC)" --notes "$NOTES"; then ok=1; break; fi
+            if gh release create $TAG minimap3-client-windows-x64.zip --prerelease --target "${{ github.sha }}" --title "RZ: Panorama" --notes "$NOTES"; then ok=1; break; fi
             sleep 5
           done
           if [ $ok -ne 1 ]; then
