@@ -624,6 +624,17 @@ std::filesystem::path rootDir() {
 
 std::filesystem::path worldDir() { return rootDir() / gWorldKey; }
 
+// the same perf:/mem: lines also go to %APPDATA%\minimap3\mem.log (own file, easy to find; cut when it passes 1 MB)
+void fileLog(std::string const& m) {
+    try {
+        auto p = rootDir() / "mem.log";
+        std::error_code ec;
+        auto sz = std::filesystem::exists(p, ec) ? std::filesystem::file_size(p, ec) : 0;
+        std::ofstream f(p, (sz > (1u << 20)) ? std::ios::trunc : std::ios::app);
+        f << GetTickCount64() / 1000 << "s " << m << "\n";
+    } catch (...) {}
+}
+
 std::filesystem::path regionFile(int rx, int rz) {
     return worldDir() / ("r." + std::to_string(rx) + "." + std::to_string(rz) + ".bin");
 }
@@ -3824,7 +3835,7 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
             char m[200];
             std::snprintf(m, sizeof(m), "perf: %d hook calls, avg dt %.1f ms, max dt %.1f ms, uploads %llu, in-place failed %llu, max upload %.1f ms, bigmap=%d",
                           nDt, 1000.0f * sumDt / float(nDt), 1000.0f * maxDt, (unsigned long long)gPerfUploads, (unsigned long long)gPerfInPlaceFail, gPerfMaxUploadMs, int(gBigMap));
-            DioramaMod::getInstance().getSelf().getLogger().info(std::string(m));
+            DioramaMod::getInstance().getSelf().getLogger().info(std::string(m)); fileLog(std::string(m));
             {   // memory report: shows which structure grows (process private bytes vs. what the mod itself holds)
                 struct PMC { DWORD cb, pf; SIZE_T peakWs, ws, a, b, c, d, pagefile, peakPf, priv; };
                 using Fn = BOOL(WINAPI*)(HANDLE, PMC*, DWORD);
@@ -3837,7 +3848,7 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
                 char mm[300];
                 std::snprintf(mm, sizeof(mm), "mem: process private %.0f MB, chunks in RAM %zu (~%.0f MB), regions %zu, known %zu, tiles %zu (px in RAM %zu, live textures %zu), fog %zu/%zu",
                               privMb, nCache, double(nCache) * double(sizeof(ChunkData)) / 1048576.0, gRegions.size(), nKnown, gTiles.size(), nPx, gLiveTexCount, nFogS, nFogB);
-                DioramaMod::getInstance().getSelf().getLogger().info(std::string(mm));
+                DioramaMod::getInstance().getSelf().getLogger().info(std::string(mm)); fileLog(std::string(mm));
             }
             maxDt = sumDt = 0; nDt = 0; gPerfMaxUploadMs = 0;
         }
