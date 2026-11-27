@@ -4308,3 +4308,4 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
 }
 
 } // namespace diorama_bedrock::minimap
+// RZ: Panorama (minimap3) - republish
