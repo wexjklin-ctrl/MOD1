@@ -3,5 +3,7 @@
     "entry": "${modFile}",
     "version": "${modVersion}",
     "type": "native",
-    "platform": "${modPlatform}"
+    "platform": "${modPlatform}",
+    "author": "RZ",
+    "description": "Install this mod by RZ to bring a panoramic minimap into your world! Admire your massive builds from high above and enjoy the full scale of your creations."
 }
