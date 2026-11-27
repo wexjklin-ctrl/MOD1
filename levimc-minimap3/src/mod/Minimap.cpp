@@ -698,6 +698,21 @@ std::vector<std::pair<int, int>> const& chunkOffsets() {
     return v;
 }
 
+// Per-section frame timing (like LeviOptimize's full-frame timing): average and worst single call per 600 frames, logged next to perf:
+enum Sec { S_LOAD, S_SCAN, S_REGIONS, S_GOV, S_TILE, S_FOG, S_UPLOAD, S_EVICT, S_COUNT };
+constexpr char const* kSecName[S_COUNT] = {"load", "scan", "regions", "governor", "tiles", "fog", "upload", "evict"};
+double gSecSum[S_COUNT] = {}, gSecMax[S_COUNT] = {};
+struct SecTimer {
+    Sec            s_;
+    LARGE_INTEGER  t0_;
+    explicit SecTimer(Sec s) : s_(s) { QueryPerformanceCounter(&t0_); }
+    ~SecTimer() {
+        LARGE_INTEGER t1, f; QueryPerformanceCounter(&t1); QueryPerformanceFrequency(&f);
+        double ms = 1000.0 * double(t1.QuadPart - t0_.QuadPart) / double(f.QuadPart);
+        gSecSum[s_] += ms; if (ms > gSecMax[s_]) gSecMax[s_] = ms;
+    }
+};
+
 void updateCache(::BlockSource& region, int px, int pz) {
     SecTimer _secT(S_SCAN);
     int pcx = floorDiv16(px), pcz = floorDiv16(pz);
@@ -766,21 +781,6 @@ void fileLog(std::string const& m) {
         f << GetTickCount64() / 1000 << "s " << m << "\n";
     } catch (...) {}
 }
-
-// Per-section frame timing (like LeviOptimize's full-frame timing): average and worst single call per 600 frames, logged next to perf:
-enum Sec { S_LOAD, S_SCAN, S_REGIONS, S_GOV, S_TILE, S_FOG, S_UPLOAD, S_EVICT, S_COUNT };
-constexpr char const* kSecName[S_COUNT] = {"load", "scan", "regions", "governor", "tiles", "fog", "upload", "evict"};
-double gSecSum[S_COUNT] = {}, gSecMax[S_COUNT] = {};
-struct SecTimer {
-    Sec            s_;
-    LARGE_INTEGER  t0_;
-    explicit SecTimer(Sec s) : s_(s) { QueryPerformanceCounter(&t0_); }
-    ~SecTimer() {
-        LARGE_INTEGER t1, f; QueryPerformanceCounter(&t1); QueryPerformanceFrequency(&f);
-        double ms = 1000.0 * double(t1.QuadPart - t0_.QuadPart) / double(f.QuadPart);
-        gSecSum[s_] += ms; if (ms > gSecMax[s_]) gSecMax[s_] = ms;
-    }
-};
 
 std::filesystem::path regionFile(int rx, int rz) {
     return worldDir() / ("r." + std::to_string(rx) + "." + std::to_string(rz) + ".bin");
