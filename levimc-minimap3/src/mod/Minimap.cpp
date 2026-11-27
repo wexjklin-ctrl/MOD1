@@ -1211,6 +1211,7 @@ bool regionReady(int rx, int rz, bool allowLoad) {
     if (!gIndexReady.load()) return false;
     if (!gDiskRegions.count(k)) { gRegions[k] = gFrame; return true; } // no file: empty region
     if (!allowLoad || k == gMigKey.load() || gLoading.count(k)) return false;
+    if (gRegions.size() + gLoading.size() >= gRegionCap + 4) return false; // bounded: resident + loading regions never run far over the cap
     gLoading.insert(k);
     {
         std::lock_guard<std::mutex> lk(gLoader.mx);
@@ -2694,9 +2695,17 @@ void pumpRegions() {
         if (gTileBusyN != 0) return;
     }
     struct HoldOff { ~HoldOff() { { std::lock_guard<std::mutex> lk(gTileMx); gEvictHold = false; } gTileCv.notify_all(); } } holdOff;
+    // regions that a queued (not yet started) bake will read must stay: evicting them made the tile bake white and mark itself done
+    std::unordered_set<int64_t> prot;
+    {
+        std::lock_guard<std::mutex> lk(gTileMx);
+        for (auto const& q : gTileQueue)
+            for (int rx = (kTileX * q.i - 72) >> 9; rx <= (kTileX * q.i + 164) >> 9; ++rx)
+                for (int rz = (kTileZ * q.j - 232) >> 9; rz <= (kTileZ * q.j + 484) >> 9; ++rz) prot.insert(key(rx, rz));
+    }
     while (gRegions.size() > gRegionCap) {
         int64_t best = 0; uint64_t bu = UINT64_MAX;
-        for (auto const& kv : gRegions) if (kv.second + 3 < gFrame && kv.second < bu) { bu = kv.second; best = kv.first; }
+        for (auto const& kv : gRegions) if (kv.second + 3 < gFrame && kv.second < bu && !prot.count(kv.first)) { bu = kv.second; best = kv.first; }
         if (bu == UINT64_MAX) break;
         int rx = int(best >> 32), rz = int(int32_t(uint32_t(best & 0xFFFFFFFFu)));
         if (gDirtyRegions.count(best)) {
