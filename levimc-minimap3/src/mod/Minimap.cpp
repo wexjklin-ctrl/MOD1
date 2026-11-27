@@ -150,12 +150,61 @@ void expandColumn(WallBlob const* b, int idx, uint8_t* out) {
 }
 
 std::unordered_map<int64_t, ChunkData> gCache;
-std::unordered_set<int64_t>            gKnown;        // chunks with map data (fog + counter), independent of what is in RAM
+// Chunks with map data (fog + counter), independent of what is in RAM. One 1024-bit mask per 32x32-chunk region instead of a hash node
+// per chunk (~48 B -> 0.125 B per chunk), so even a huge explored world costs little RAM.
+class KnownSet {
+    std::unordered_map<int64_t, std::array<uint64_t, 16>> m_;
+    size_t                                                n_ = 0;
+    static void split(int64_t k, int64_t& rk, int& bit) {
+        int cx = int(int32_t(uint32_t(uint64_t(k) >> 32))), cz = int(int32_t(uint32_t(uint64_t(k) & 0xFFFFFFFFu)));
+        rk  = (int64_t(cx >> 5) << 32) ^ int64_t(uint32_t(cz >> 5));
+        bit = ((cz & 31) << 5) | (cx & 31);
+    }
+public:
+    struct Res { bool second; };
+    Res insert(int64_t k) {
+        int64_t rk; int bit; split(k, rk, bit);
+        auto& a = m_[rk];
+        uint64_t& w = a[size_t(bit >> 6)]; uint64_t b = uint64_t(1) << (bit & 63);
+        if (w & b) return {false};
+        w |= b; ++n_; return {true};
+    }
+    size_t erase(int64_t k) {
+        int64_t rk; int bit; split(k, rk, bit);
+        auto it = m_.find(rk);
+        if (it == m_.end()) return 0;
+        uint64_t& w = it->second[size_t(bit >> 6)]; uint64_t b = uint64_t(1) << (bit & 63);
+        if (!(w & b)) return 0;
+        w &= ~b; --n_;
+        bool empty = true; for (uint64_t x : it->second) if (x) { empty = false; break; }
+        if (empty) m_.erase(it);
+        return 1;
+    }
+    size_t count(int64_t k) const {
+        int64_t rk; int bit; split(k, rk, bit);
+        auto it = m_.find(rk);
+        return it != m_.end() && ((it->second[size_t(bit >> 6)] >> (bit & 63)) & 1u) ? 1 : 0;
+    }
+    size_t size() const { return n_; }
+    size_t bytes() const { return m_.size() * (sizeof(std::array<uint64_t, 16>) + 64); }
+    void   clear() { m_.clear(); n_ = 0; }
+    template <class F> void forEach(F&& f) const {
+        for (auto const& kv : m_) {
+            int rcx = int(int32_t(uint32_t(uint64_t(kv.first) >> 32))), rcz = int(int32_t(uint32_t(uint64_t(kv.first) & 0xFFFFFFFFu)));
+            for (int bit = 0; bit < 1024; ++bit)
+                if ((kv.second[size_t(bit >> 6)] >> (bit & 63)) & 1u) {
+                    int cx = (rcx << 5) | (bit & 31), cz = (rcz << 5) | (bit >> 5);
+                    f((int64_t(cx) << 32) ^ int64_t(uint32_t(cz)));
+                }
+        }
+    }
+};
+KnownSet                               gKnown;
 std::unordered_map<int64_t, uint64_t>  gRegions;      // regions currently loaded into gCache -> last use frame (main thread only)
 std::unordered_set<int64_t>            gDiskRegions;  // region files that exist on disk
 std::vector<std::pair<int, int>>       gLegacyPending; // regions without an .idx sidecar: loaded once to build it
 std::unordered_set<int64_t>            gTileDisk;     // tile images that exist on disk
-constexpr size_t                       kRegionCap = 8; // minimap3: bounded like the Java mod (it keeps <=4096 chunk snapshots)
+size_t                                 gRegionCap = 6, gTexCap = 56, gPxCap = 48; // minimap3: caps adjusted at run time by the memory governor (budget 500 MB)
 int64_t tkey(int l, int i, int j);
 bool    regionReady(int rx, int rz, bool allowLoad);
 bool    loadingBusy();
@@ -2609,7 +2658,7 @@ void pumpRegions() {
             gMig.cv.notify_one();
         }
     }
-    if (gRegions.size() <= kRegionCap) {
+    if (gRegions.size() <= gRegionCap) {
         bool was; { std::lock_guard<std::mutex> lk(gTileMx); was = gEvictHold; gEvictHold = false; }
         if (was) gTileCv.notify_all();
         return;
@@ -2621,7 +2670,7 @@ void pumpRegions() {
         if (gTileBusyN != 0) return;
     }
     struct HoldOff { ~HoldOff() { { std::lock_guard<std::mutex> lk(gTileMx); gEvictHold = false; } gTileCv.notify_all(); } } holdOff;
-    while (gRegions.size() > kRegionCap) {
+    while (gRegions.size() > gRegionCap) {
         int64_t best = 0; uint64_t bu = UINT64_MAX;
         for (auto const& kv : gRegions) if (kv.second + 3 < gFrame && kv.second < bu) { bu = kv.second; best = kv.first; }
         if (bu == UINT64_MAX) break;
@@ -2854,7 +2903,7 @@ void initTilesFromCache() {
     {
         std::lock_guard<std::mutex> lk(gMapMx);
         cs.reserve(gKnown.size());
-        for (int64_t k : gKnown) cs.push_back({int(int32_t(uint32_t(uint64_t(k) >> 32))), int(int32_t(uint32_t(k & 0xFFFFFFFFu)))});
+        gKnown.forEach([&](int64_t k) { cs.push_back({int(int32_t(uint32_t(uint64_t(k) >> 32))), int(int32_t(uint32_t(k & 0xFFFFFFFFu)))}); });
     }
     for (auto const& c : cs) markTilesForChunk(c.first, c.second, true);
     gTilesInit = true;
@@ -2884,7 +2933,6 @@ void contributeToParent(Tile const& c) {
 }
 
 // Video memory: tile textures that have not been drawn for a while are unloaded (the image stays on disk and is reloaded on demand).
-constexpr size_t kTexCap = 72; // live tile textures (each is double-buffered; the engine keeps a CPU copy of every uploaded image)
 size_t gLiveTexCount = 0;
 void evictTileTextures(::IClientInstance& client) {
     if (gFrame % 30 != 0) return;
@@ -2911,11 +2959,11 @@ void evictTileTextures(::IClientInstance& client) {
         cand.push_back({t.lastUse, &t});
     }
     gLiveTexCount = live;
-    if (live <= kTexCap || cand.empty()) return;
+    if (live <= gTexCap || cand.empty()) return;
     auto tg = client.getTextureGroup();
     if (!tg) return;
     std::sort(cand.begin(), cand.end(), [](auto const& a, auto const& b) { return a.first < b.first; });
-    size_t n = std::min<size_t>(std::min<size_t>(live - kTexCap, 24), cand.size());
+    size_t n = std::min<size_t>(std::min<size_t>(live - gTexCap, 24), cand.size());
     for (size_t q = 0; q < n; ++q) {
         Tile& t = *cand[q].second;
         for (int k = 0; k < 2; ++k)
@@ -2957,7 +3005,7 @@ void tileTick(float tx, float tz, bool bigOpen) {
         t.propVer = t.pxVer;
     }
     // schedule bakes: nearest to the view first. The chunk data a tile needs is loaded from disk first (a few regions at a time).
-    if (gFrame % 4 == 0 && gRegions.size() <= kRegionCap + 4) {
+    if (gFrame % 4 == 0 && gRegions.size() <= gRegionCap + 4) {
         size_t queued;
         { std::lock_guard<std::mutex> lk(gTileMx); queued = gTileQueue.size(); }
         if (queued < 4) {
@@ -3001,7 +3049,7 @@ void tileTick(float tx, float tz, bool bigOpen) {
     if (gFrame % 60 == 0) {
         int cnt = 0;
         for (auto& kv : gTiles) if (!kv.second.px.empty()) ++cnt;
-        while (cnt > 48) {
+        while (size_t(cnt) > gPxCap) {
             Tile* old = nullptr;
             for (auto& kv : gTiles) {
                 Tile& t = kv.second;
@@ -3881,6 +3929,49 @@ void reset() {
 }
 
 bool gHudHidden = false;
+// ---- memory governor: the mod keeps its own RAM under a fixed budget (500 MB) ----
+// Every structure is bounded: regions (gRegionCap), tile pixels (gPxCap), live textures (gTexCap), the known-chunk set is a bitmask per region,
+// stale fog entries are pruned. The estimate below is checked every 120 frames and the caps are tightened when it nears the budget.
+constexpr double kBudgetMB = 500.0;
+void memoryGovernor() {
+    if (gFrame % 120 != 0) return;
+    constexpr double MB = 1048576.0;
+    double chunkB = 0; size_t nc = 0, fogS = 0, fogB = 0;
+    uint64_t knownB = 0;
+    {
+        std::lock_guard<std::mutex> lk(gMapMx);
+        for (auto const& kv : gCache) {
+            chunkB += double(sizeof(ChunkData));
+            if (auto const* w = kv.second.walls.get()) chunkB += double(sizeof(WallBlob) + w->bytes.capacity() + 32);
+        }
+        nc = gCache.size();
+        auto prune = [](std::unordered_map<int64_t, FogChunk>& m) { // a pruned entry comes back fully faded: no visual change
+            if (gFogStamp < 400) return;
+            for (auto it = m.begin(); it != m.end();) { if (it->second.stamp + 400 < gFogStamp) it = m.erase(it); else ++it; }
+        };
+        prune(gFogChunks); prune(gFogChunksBig);
+        fogS = gFogChunks.size(); fogB = gFogChunksBig.size();
+        knownB = gKnown.bytes();
+    }
+    double pxB = 0; for (auto const& kv : gTiles) pxB += double(kv.second.px.capacity()) * 4.0;
+    double texB  = double(gLiveTexCount) * 3.0 * MB; // GPU image + the engine's CPU copy, hidden buffer mostly released
+    double miscB = double(knownB) + double(fogS + fogB) * 80.0 + double(gTiles.size()) * double(sizeof(Tile) + 64) + 40.0 * MB; // 40 MB: minimap/fog textures, slots, queues
+    double est   = (chunkB + pxB + texB + miscB) / MB;
+    if (est > kBudgetMB * 0.85) {
+        if (gRegionCap > 3) --gRegionCap; else if (gTexCap > 24) gTexCap -= 8; else if (gPxCap > 12) gPxCap -= 6;
+    } else if (est < kBudgetMB * 0.5) {
+        if (gRegionCap < 6) ++gRegionCap;
+        if (gTexCap < 56) gTexCap += 4;
+        if (gPxCap < 48) gPxCap += 3;
+    }
+    if (gFrame % 600 == 0) {
+        char b[260];
+        std::snprintf(b, sizeof(b), "budget: est %.0f of %.0f MB (chunks %.0f [%zu], tile px %.0f, textures %.0f, other %.0f), caps regions %zu, textures %zu, tile px %zu",
+                      est, kBudgetMB, chunkB / MB, nc, pxB / MB, texB / MB, miscB / MB, gRegionCap, gTexCap, gPxCap);
+        DioramaMod::getInstance().getSelf().getLogger().info(std::string(b)); fileLog(std::string(b));
+    }
+}
+
 void setBigMapHud(::IClientInstance& client, bool hide) {
     if (gHudHidden == hide) return;
     gHudHidden = hide;
@@ -3916,6 +4007,7 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
     pumpLoads();
     updateCache(*region, px, pz);
     pumpRegions();
+    memoryGovernor();
     if (!gDirtyRegions.empty() && gFrame - gLastSaveFrame >= 600) {
         gLastSaveFrame = gFrame;
         int64_t k = *gDirtyRegions.begin();
