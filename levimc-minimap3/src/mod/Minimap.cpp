@@ -74,10 +74,18 @@ constexpr int NW = 96; // per-block wall profile down to 96 blocks below the top
 struct IdDepth { constexpr int operator[](int k) const { return k; } };
 constexpr IdDepth kWallDepth{}; // depth of profile entry k is k
 
+// Wall profile of one chunk, stored sparsely (minimap3). Per column only the explicit entries are kept: len bits 0..6 = count,
+// bit 7 = the tail repeats the last explicit entry (otherwise the tail is 0 = air). Immutable once published: a rescan builds a new
+// blob and swaps the pointer, so bake threads always see one consistent version.
+struct WallBlob {
+    std::array<uint16_t, 256> off{};
+    std::array<uint8_t, 256>  len{};
+    std::vector<uint8_t>      bytes;
+};
 struct ChunkData {
     std::array<uint32_t, 256> color{}; // 0 = unknown, else 0xFFRRGGBB
     std::array<int16_t, 256>  height{};
-    std::array<uint8_t, 256 * NW> wallId{}; // palette index per (column, depth); 0 = air gap
+    std::shared_ptr<WallBlob> walls;   // palette index per (column, depth); null = no walls yet
     std::array<uint32_t, 256>     pal{};    // per-chunk palette of wall colours (+shape in alpha); pal[0] = 0 (air)
     int                           palN = 1;
     bool                      scanned  = false;
@@ -90,11 +98,17 @@ struct ChunkData {
 
 inline bool colsKnown(uint32_t const* c) { int n = 0; for (int q = 0; q < 256; ++q) n += c[q] != 0; return n >= 200; }
 
+inline uint8_t const kZeroByte = 0;
 struct WRef { // view of one column's wall profile
     uint8_t const*  id  = nullptr;
     uint32_t const* pal = nullptr;
+    uint8_t         len = 0;
     explicit operator bool() const { return id != nullptr; }
-    uint32_t operator[](int k) const { return pal[id[k]]; }
+    uint32_t operator[](int k) const {
+        int n = len & 0x7F;
+        if (k < n) return pal[id[k]];
+        return ((len & 0x80) && n) ? pal[id[n - 1]] : 0u;
+    }
 };
 
 uint8_t encodePal(ChunkData& cd, uint32_t v) {
@@ -110,19 +124,29 @@ uint8_t encodePal(ChunkData& cd, uint32_t v) {
     }
     return uint8_t(best);
 }
-// stores one column profile; returns true when it differs from what was stored
-bool storeWall(ChunkData& cd, int idx, uint32_t const* w) {
-    uint8_t ids[NW];
-    int     prevK = -1; uint8_t prevId = 0;
+// colour profile of one column -> palette ids (ids[NW])
+void encodeColumn(ChunkData& cd, uint32_t const* w, uint8_t* ids) {
     for (int k = 0; k < NW; ++k) {
         if (k > 0 && w[k] == w[k - 1]) { ids[k] = ids[k - 1]; continue; }
-        (void)prevK; (void)prevId;
         ids[k] = encodePal(cd, w[k]);
     }
-    uint8_t* dst = &cd.wallId[size_t(idx) * NW];
-    if (std::memcmp(dst, ids, NW) == 0) return false;
-    std::memcpy(dst, ids, NW);
-    return true;
+}
+// ids[NW] -> canonical compact form: appends the explicit entries to dst, returns the len byte
+uint8_t compactColumn(uint8_t const* ids, std::vector<uint8_t>& dst) {
+    uint8_t last = ids[NW - 1];
+    int     m    = NW - 1;
+    while (m > 0 && ids[m - 1] == last) --m; // ids[m..NW-1] all equal `last`
+    int n = last == 0 ? m : m + 1;
+    for (int k = 0; k < n; ++k) dst.push_back(ids[k]);
+    return uint8_t(n | (last != 0 ? 0x80 : 0));
+}
+void expandColumn(WallBlob const* b, int idx, uint8_t* out) {
+    std::memset(out, 0, NW);
+    if (!b) return;
+    int     n    = b->len[idx] & 0x7F;
+    uint8_t const* src = b->bytes.data() + b->off[idx];
+    for (int k = 0; k < n; ++k) out[k] = src[k];
+    if ((b->len[idx] & 0x80) && n) for (int k = n; k < NW; ++k) out[k] = src[n - 1];
 }
 
 std::unordered_map<int64_t, ChunkData> gCache;
@@ -147,6 +171,53 @@ int     floorDiv16(int v) { return v >> 4; }
 uint32_t pack(float r, float g, float b) {
     auto c = [](float v) { return uint32_t(std::clamp(v, 0.0f, 1.0f) * 255.0f + 0.5f); };
     return 0xFF000000u | (c(r) << 16) | (c(g) << 8) | c(b);
+}
+
+// Replaced wall blobs stay alive for a while: a bake thread may still hold a pointer into one (freed from the main thread, ~10 s later).
+std::vector<std::pair<uint64_t, std::shared_ptr<WallBlob>>> gRetiredWalls;
+void pumpRetiredWalls() {
+    if (gRetiredWalls.empty()) return;
+    size_t w = 0;
+    for (size_t i = 0; i < gRetiredWalls.size(); ++i)
+        if (gFrame - gRetiredWalls[i].first <= 600) { if (w != i) gRetiredWalls[w] = std::move(gRetiredWalls[i]); ++w; }
+    gRetiredWalls.resize(w);
+}
+// Builds the compact walls of a chunk from freshly scanned columns (ok[idx]; the rest keep their old profile).
+// colChanged[idx] = this column's profile differs from the stored one. Returns true when anything changed.
+bool commitWalls(ChunkData& cd, uint8_t const* ids, bool const* ok, bool* colChanged) {
+    WallBlob const* old = cd.walls.get();
+    auto            nb  = std::make_shared<WallBlob>();
+    nb->bytes.reserve(size_t(256) * 28);
+    uint8_t tmp[NW];
+    bool    any = false;
+    for (int idx = 0; idx < 256; ++idx) {
+        uint8_t const* src;
+        if (ok[idx]) src = ids + size_t(idx) * NW;
+        else { expandColumn(old, idx, tmp); src = tmp; }
+        size_t before = nb->bytes.size();
+        nb->off[size_t(idx)] = uint16_t(before);
+        nb->len[size_t(idx)] = compactColumn(src, nb->bytes);
+        bool ch = ok[idx];
+        if (old) {
+            int n = nb->len[size_t(idx)] & 0x7F;
+            ch = ok[idx] && (old->len[size_t(idx)] != nb->len[size_t(idx)] ||
+                             std::memcmp(old->bytes.data() + old->off[size_t(idx)], nb->bytes.data() + before, size_t(n)) != 0);
+        }
+        colChanged[idx] = ch;
+        any |= ch;
+    }
+    if (!any && old) return false;
+    nb->bytes.shrink_to_fit();
+    if (cd.walls) gRetiredWalls.emplace_back(gFrame, std::move(cd.walls));
+    cd.walls = std::move(nb);
+    return true;
+}
+// whole chunk from 256 x NW palette ids (disk format)
+void setWallsFromFull(ChunkData& cd, uint8_t const* full) {
+    bool ok[256], ch[256];
+    for (int i = 0; i < 256; ++i) ok[i] = true;
+    cd.walls.reset();
+    commitWalls(cd, full, ok, ch);
 }
 
 // Chunk lookup with a one-entry cache (neighbouring cells almost always share a chunk).
@@ -505,6 +576,9 @@ bool scanChunk(::BlockSource& region, int cx, int cz, ChunkData& cd) {
     int chunkMinH = INT_MAX;
     for (int q = 0; q < 256; ++q) if (ok[q]) chunkMinH = std::min(chunkMinH, int(hs[q]));
     // pass 2: wall profile, only as deep as the wall below the column can be seen (height difference to the southern neighbour)
+    static thread_local std::vector<uint8_t> idsBuf;
+    idsBuf.assign(size_t(256) * NW, 0);
+    bool     okc[256] = {}; uint32_t ncol[256] = {}; int16_t nh[256] = {};
     for (int lz = 0; lz < 16; ++lz) {
         for (int lx = 0; lx < 16; ++lx) {
             int idx = lz * 16 + lx;
@@ -521,10 +595,18 @@ bool scanChunk(::BlockSource& region, int cx, int cz, ChunkData& cd) {
             uint32_t col = 0; int16_t h = 0;
             uint32_t w[NW];
             if (!scanColumn(region, cx * 16 + lx, cz * 16 + lz, col, h, w, need, lc)) continue;
-            bool wallChanged = storeWall(cd, idx, w);
-            if (cd.color[idx] != col || cd.height[idx] != h || wallChanged) {
-                cd.color[idx]  = col;
-                cd.height[idx] = h;
+            encodeColumn(cd, w, &idsBuf[size_t(idx) * NW]);
+            okc[idx] = true; ncol[idx] = col; nh[idx] = h;
+        }
+    }
+    {   // sparse wall storage: one rebuild per chunk, only when some profile really changed
+        bool wch[256];
+        commitWalls(cd, idsBuf.data(), okc, wch);
+        for (int idx = 0; idx < 256; ++idx) {
+            if (!okc[idx]) continue;
+            if (cd.color[idx] != ncol[idx] || cd.height[idx] != nh[idx] || wch[idx]) {
+                cd.color[idx]  = ncol[idx];
+                cd.height[idx] = nh[idx];
                 changed        = true;
                 cd.dirty       = true;
             }
@@ -727,7 +809,11 @@ void buildRegionRaw(int rx, int rz, std::function<ChunkData*(int, int)> const& g
             uint16_t pn = uint16_t(cd.palN);
             putBytes(out.raw, &pn, 2);
             putBytes(out.raw, cd.pal.data(), size_t(pn) * 4);
-            putBytes(out.raw, cd.wallId.data(), 256 * NW);
+            {   // disk format stays the full 256 x NW ids (LZ4 squeezes the repeats); expand the sparse columns
+                size_t at = out.raw.size();
+                out.raw.resize(at + size_t(256) * NW);
+                for (int q = 0; q < 256; ++q) expandColumn(cd.walls.get(), q, &out.raw[at + size_t(q) * NW]);
+            }
             cd.dirty = false;
             if (colsKnown(cd.color.data())) { int bit = dz * 32 + dx; out.idx[bit >> 3] |= uint8_t(1u << (bit & 7)); }
         }
@@ -842,8 +928,10 @@ void loadRegionStream(std::istream& f, char ver, uint32_t count, ChunkSink* sink
             uint16_t pn = 0;
             if (!f.read(reinterpret_cast<char*>(&pn), 2) || pn < 1 || pn > 255) break;
             if (!f.read(reinterpret_cast<char*>(cd.pal.data()), pn * 4)) break;
-            if (!f.read(reinterpret_cast<char*>(cd.wallId.data()), 256 * NW)) break;
+            std::vector<uint8_t> full(size_t(256) * NW);
+            if (!f.read(reinterpret_cast<char*>(full.data()), std::streamsize(full.size()))) break;
             cd.palN = pn;
+            setWallsFromFull(cd, full.data());
         } else {
             // old formats: wall profile of 32/16/8 u32 entries per column; convert (top colour for the whole depth when unknown)
             int oldN = ver == '5' ? 32 : (ver == '4' ? 16 : (ver == '3' ? 8 : 0));
@@ -853,6 +941,7 @@ void loadRegionStream(std::istream& f, char ver, uint32_t count, ChunkSink* sink
             std::vector<uint32_t> old(size_t(256) * size_t(std::max(oldN, 1)), 0u);
             if (oldN && !f.read(reinterpret_cast<char*>(old.data()), std::streamsize(old.size() * 4))) break;
             int const* dt = oldN == 32 ? d5 : (oldN == 16 ? d4 : d3);
+            std::vector<uint8_t> fullIds(size_t(256) * NW, 0);
             for (int i2 = 0; i2 < 256; ++i2) {
                 uint32_t w[NW];
                 for (int k = 0; k < NW; ++k) {
@@ -861,8 +950,9 @@ void loadRegionStream(std::istream& f, char ver, uint32_t count, ChunkSink* sink
                     while (o + 1 < oldN && dt[o + 1] <= k) ++o;
                     w[k] = old[size_t(i2) * size_t(oldN) + size_t(o)];
                 }
-                storeWall(cd, i2, w);
+                encodeColumn(cd, w, &fullIds[size_t(i2) * NW]);
             }
+            setWallsFromFull(cd, fullIds.data());
         }
         cd.scanned = false; // will be refreshed when the chunk is loaded again
         bool any = false;
@@ -1193,7 +1283,11 @@ bool sample(Sampler& s, int x, int z, uint32_t& col, int& h, WRef* wall = nullpt
     if (!c->color[idx]) return false;
     col = c->color[idx];
     h   = c->height[idx];
-    if (wall) *wall = WRef{&c->wallId[size_t(idx) * NW], c->pal.data()};
+    if (wall) {
+        WallBlob const* wb = c->walls.get();
+        if (wb && !wb->bytes.empty()) *wall = WRef{wb->bytes.data() + wb->off[size_t(idx)], c->pal.data(), wb->len[size_t(idx)]};
+        else *wall = WRef{&kZeroByte, c->pal.data(), 0};
+    }
     return true;
 }
 
@@ -2494,6 +2588,7 @@ void tileQuiesce() {
 
 // Region housekeeping (main thread, every frame): finish legacy regions, drop the least recently used regions from RAM.
 void pumpRegions() {
+    pumpRetiredWalls();
     if (gMigDone.exchange(false)) {
         std::vector<int64_t> kn;
         { std::lock_guard<std::mutex> lk(gMig.mx); kn.swap(gMig.known); }
@@ -2910,11 +3005,16 @@ void tileTick(float tx, float tz, bool bigOpen) {
             Tile* old = nullptr;
             for (auto& kv : gTiles) {
                 Tile& t = kv.second;
-                if (t.px.empty() || !t.shown || t.upVer != t.pxVer || t.propVer != t.pxVer || t.diskVer != t.pxVer || t.tex.pending) continue;
+                if (t.px.empty() || t.propVer != t.pxVer || t.diskVer != t.pxVer || t.tex.pending) continue;
+                bool uploaded = t.shown && t.upVer == t.pxVer;
+                if (!uploaded && gFrame - t.lastUse < 120) continue; // wanted soon: keep the pixels for the upload
                 if (!old || t.lastUse < old->lastUse) old = &t;
             }
             if (!old) break;
-            old->px.clear(); old->freed = true; old->px.shrink_to_fit();
+            bool wasUp = old->shown && old->upVer == old->pxVer;
+            old->px.clear(); old->px.shrink_to_fit();
+            if (wasUp) old->freed = true; // its texture stays; the stored image comes back when needed
+            else { old->freed = false; old->diskTried = false; } // never uploaded: the draw path loads it from disk again
             --cnt;
         }
     }
@@ -3849,7 +3949,7 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
                 size_t nPx = 0; for (auto& kv : gTiles) if (!kv.second.px.empty()) ++nPx;
                 char mm[300];
                 std::snprintf(mm, sizeof(mm), "mem: process private %.0f MB, chunks in RAM %zu (~%.0f MB), regions %zu, known %zu, tiles %zu (px in RAM %zu, live textures %zu), fog %zu/%zu",
-                              privMb, nCache, double(nCache) * double(sizeof(ChunkData)) / 1048576.0, gRegions.size(), nKnown, gTiles.size(), nPx, gLiveTexCount, nFogS, nFogB);
+                              privMb, nCache, double(nCache) * (double(sizeof(ChunkData)) + 7000.0) / 1048576.0, gRegions.size(), nKnown, gTiles.size(), nPx, gLiveTexCount, nFogS, nFogB);
                 DioramaMod::getInstance().getSelf().getLogger().info(std::string(mm)); fileLog(std::string(mm));
             }
             maxDt = sumDt = 0; nDt = 0; gPerfMaxUploadMs = 0;
