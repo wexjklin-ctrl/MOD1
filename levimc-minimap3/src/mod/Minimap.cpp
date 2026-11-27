@@ -3830,6 +3830,8 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
     {
         static float maxDt = 0, sumDt = 0;
         static int   nDt = 0;
+        static bool once = false;
+        if (!once) { once = true; fileLog(std::string("minimap3 started, build ") + __DATE__ + " " + __TIME__ + ", dll in use"); }
         maxDt = std::max(maxDt, dtf); sumDt += dtf; ++nDt;
         if (nDt >= 600) {
             char m[200];
