@@ -699,6 +699,7 @@ std::vector<std::pair<int, int>> const& chunkOffsets() {
 }
 
 void updateCache(::BlockSource& region, int px, int pz) {
+    SecTimer _secT(S_SCAN);
     int pcx = floorDiv16(px), pcz = floorDiv16(pz);
     // time budget instead of a fixed chunk count: new chunks appear much faster when scanning is cheap, frames stay short when it is not
     LARGE_INTEGER qf, q0;
@@ -765,6 +766,21 @@ void fileLog(std::string const& m) {
         f << GetTickCount64() / 1000 << "s " << m << "\n";
     } catch (...) {}
 }
+
+// Per-section frame timing (like LeviOptimize's full-frame timing): average and worst single call per 600 frames, logged next to perf:
+enum Sec { S_LOAD, S_SCAN, S_REGIONS, S_GOV, S_TILE, S_FOG, S_UPLOAD, S_EVICT, S_COUNT };
+constexpr char const* kSecName[S_COUNT] = {"load", "scan", "regions", "governor", "tiles", "fog", "upload", "evict"};
+double gSecSum[S_COUNT] = {}, gSecMax[S_COUNT] = {};
+struct SecTimer {
+    Sec            s_;
+    LARGE_INTEGER  t0_;
+    explicit SecTimer(Sec s) : s_(s) { QueryPerformanceCounter(&t0_); }
+    ~SecTimer() {
+        LARGE_INTEGER t1, f; QueryPerformanceCounter(&t1); QueryPerformanceFrequency(&f);
+        double ms = 1000.0 * double(t1.QuadPart - t0_.QuadPart) / double(f.QuadPart);
+        gSecSum[s_] += ms; if (ms > gSecMax[s_]) gSecMax[s_] = ms;
+    }
+};
 
 std::filesystem::path regionFile(int rx, int rz) {
     return worldDir() / ("r." + std::to_string(rx) + "." + std::to_string(rz) + ".bin");
@@ -1134,6 +1150,7 @@ void loadQuiesce() { // drop queued/finished loads of the old world
 
 // per frame: adopt the finished disk index, merge a slice of a loaded region into gCache
 void pumpLoads() {
+    SecTimer _secT(S_LOAD);
     if (gIdxDone.exchange(false)) {
         std::lock_guard<std::mutex> lk(gIdxMx);
         gDiskRegions.swap(gIdxRes.disk); gTileDisk.swap(gIdxRes.tiles); gLegacyPending.swap(gIdxRes.legacy);
@@ -2637,6 +2654,7 @@ void tileQuiesce() {
 
 // Region housekeeping (main thread, every frame): finish legacy regions, drop the least recently used regions from RAM.
 void pumpRegions() {
+    SecTimer _secT(S_REGIONS);
     pumpRetiredWalls();
     if (gMigDone.exchange(false)) {
         std::vector<int64_t> kn;
@@ -2935,6 +2953,7 @@ void contributeToParent(Tile const& c) {
 // Video memory: tile textures that have not been drawn for a while are unloaded (the image stays on disk and is reloaded on demand).
 size_t gLiveTexCount = 0;
 void evictTileTextures(::IClientInstance& client) {
+    SecTimer _secT(S_EVICT);
     if (gFrame % 30 != 0) return;
     {   // the second (hidden) buffer of a tile that is not being updated is only a duplicate: release it
         auto tg0 = client.getTextureGroup();
@@ -2979,6 +2998,7 @@ void evictTileTextures(::IClientInstance& client) {
 }
 
 void tileTick(float tx, float tz, bool bigOpen) {
+    SecTimer _secT(S_TILE);
     for (auto const& c : gChangedChunks) markTilesForChunk(c.first, c.second);
     gChangedChunks.clear();
     if (!bigOpen || !gTexEnabled || gTexFailed) return;
@@ -3091,6 +3111,7 @@ bool fogChunkReady(int cx, int cz) {
 }
 
 void tileUpload(::IClientInstance& client, Tile& t, int& uploads) {
+    SecTimer _secT(S_UPLOAD);
     if (t.tex.pending && gFrame - t.tex.pendFrame >= 2) { t.tex.cur = 1 - t.tex.cur; t.tex.pending = false; t.shown = true; }
     if (!t.tex.pending && !t.px.empty() && t.upVer != t.pxVer && gFrame - t.pxFrame >= (t.l ? 10u : 1u) && uploads < 3) {
         if (uploadImage(client, t.tex, t.px, kTW)) { t.tex.pending = true; t.tex.pendFrame = gFrame; t.upVer = t.pxVer; ++uploads; }
@@ -3817,6 +3838,7 @@ void fogBuildMask(FogJob& j, int G, float cx, float cz, float blocks, bool round
 
 // Uploads a finished fog image, swaps buffers and queues the next job. (cx,cz) = world point at the view centre.
 void fogTick(::IClientInstance& client, FogView& v, int G, float cx, float cz, float blocks, bool round, float dt, bool gate) {
+    SecTimer _secT(S_FOG);
     if (!gFogStarted) { gFogStarted = true; gFogStop = false; gFogThread = std::thread(fogWorkerMain); }
     static bool noiseSent = false;
     if (!noiseSent) { noiseSent = true; fogInitNoise(); gpu::fogSetNoise(gFogNoise.data(), kFogNT); }
@@ -3934,6 +3956,7 @@ bool gHudHidden = false;
 // stale fog entries are pruned. The estimate below is checked every 120 frames and the caps are tightened when it nears the budget.
 constexpr double kBudgetMB = 500.0;
 void memoryGovernor() {
+    SecTimer _secT(S_GOV);
     if (gFrame % 120 != 0) return;
     constexpr double MB = 1048576.0;
     double chunkB = 0; size_t nc = 0, fogS = 0, fogB = 0;
@@ -4043,6 +4066,14 @@ void draw(::MinecraftUIRenderContext& ctx, ::IClientInstance& client) {
                 std::snprintf(mm, sizeof(mm), "mem: process private %.0f MB, chunks in RAM %zu (~%.0f MB), regions %zu, known %zu, tiles %zu (px in RAM %zu, live textures %zu), fog %zu/%zu",
                               privMb, nCache, double(nCache) * (double(sizeof(ChunkData)) + 7000.0) / 1048576.0, gRegions.size(), nKnown, gTiles.size(), nPx, gLiveTexCount, nFogS, nFogB);
                 DioramaMod::getInstance().getSelf().getLogger().info(std::string(mm)); fileLog(std::string(mm));
+            }
+            {   // where the frame time goes: avg per frame / worst single call, in ms
+                std::string sec = "sections (avg/max ms):";
+                for (int q = 0; q < S_COUNT; ++q) {
+                    char c[64]; std::snprintf(c, sizeof(c), " %s %.2f/%.1f;", kSecName[q], gSecSum[q] / double(nDt), gSecMax[q]);
+                    sec += c; gSecSum[q] = gSecMax[q] = 0;
+                }
+                DioramaMod::getInstance().getSelf().getLogger().info(sec); fileLog(sec);
             }
             maxDt = sumDt = 0; nDt = 0; gPerfMaxUploadMs = 0;
         }
