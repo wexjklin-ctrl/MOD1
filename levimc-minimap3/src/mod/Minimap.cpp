@@ -131,7 +131,7 @@ std::unordered_map<int64_t, uint64_t>  gRegions;      // regions currently loade
 std::unordered_set<int64_t>            gDiskRegions;  // region files that exist on disk
 std::vector<std::pair<int, int>>       gLegacyPending; // regions without an .idx sidecar: loaded once to build it
 std::unordered_set<int64_t>            gTileDisk;     // tile images that exist on disk
-constexpr size_t                       kRegionCap = 10;
+constexpr size_t                       kRegionCap = 8; // minimap3: bounded like the Java mod (it keeps <=4096 chunk snapshots)
 int64_t tkey(int l, int i, int j);
 bool    regionReady(int rx, int rz, bool allowLoad);
 bool    loadingBusy();
@@ -2415,6 +2415,7 @@ std::vector<TileResult>  gTileDone;
 std::vector<std::thread> gTileThreads;
 int                      gTileBusyN = 0;
 bool                     gTileStop = false, gTileStarted = false;
+bool                     gEvictHold = false; // set by the main thread while it wants to evict regions: bakers finish their job and take no new one
 
 bool bakeTilePixels(int ti, int tj, uint64_t epoch, std::vector<uint32_t>& out) {
     Baked b;
@@ -2437,7 +2438,7 @@ void tileWorkerMain() {
         TileJob job;
         {
             std::unique_lock<std::mutex> lk(gTileMx);
-            gTileCv.wait(lk, [] { return gTileStop || !gTileQueue.empty(); });
+            gTileCv.wait(lk, [] { return gTileStop || (!gTileQueue.empty() && !gEvictHold); });
             if (gTileStop) return;
             job = gTileQueue.front();
             gTileQueue.erase(gTileQueue.begin());
@@ -2502,11 +2503,18 @@ void pumpRegions() {
             gMig.cv.notify_one();
         }
     }
-    if (gRegions.size() <= kRegionCap) return;
-    {
-        std::lock_guard<std::mutex> lk(gTileMx);
-        if (gTileBusyN != 0 || !gTileQueue.empty()) return; // bakers read chunk data: evict only while they are idle
+    if (gRegions.size() <= kRegionCap) {
+        bool was; { std::lock_guard<std::mutex> lk(gTileMx); was = gEvictHold; gEvictHold = false; }
+        if (was) gTileCv.notify_all();
+        return;
     }
+    {
+        // bakers read chunk data: stop them taking new jobs, evict once the running ones have finished (no longer waits for an empty queue)
+        std::lock_guard<std::mutex> lk(gTileMx);
+        gEvictHold = true;
+        if (gTileBusyN != 0) return;
+    }
+    struct HoldOff { ~HoldOff() { { std::lock_guard<std::mutex> lk(gTileMx); gEvictHold = false; } gTileCv.notify_all(); } } holdOff;
     while (gRegions.size() > kRegionCap) {
         int64_t best = 0; uint64_t bu = UINT64_MAX;
         for (auto const& kv : gRegions) if (kv.second + 3 < gFrame && kv.second < bu) { bu = kv.second; best = kv.first; }
