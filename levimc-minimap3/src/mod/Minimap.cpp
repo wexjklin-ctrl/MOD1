@@ -94,6 +94,7 @@ struct ChunkData {
     uint64_t                  lastTry  = 0;
     uint8_t                   partial  = 0; // scans that found the chunk only partly loaded
     uint8_t                   lastNok  = 0; // columns found by the previous partial scan (retry only while this grows)
+    uint64_t                  suspectSince = 0; // frame when a rescan first looked like a regression (stored buildings missing); 0 = none
 };
 
 inline bool colsKnown(uint32_t const* c) { int n = 0; for (int q = 0; q < 256; ++q) n += c[q] != 0; return n >= 200; }
@@ -648,6 +649,26 @@ bool scanChunk(::BlockSource& region, int cx, int cz, ChunkData& cd) {
             okc[idx] = true; ncol[idx] = col; nh[idx] = h;
         }
     }
+    {   // regression guard (servers: a returning chunk arrives bare for a moment and its buildings follow later): when a rescan of a chunk
+        // with stored data suddenly looks lower or very different without anything rising, keep the stored columns and look again soon.
+        // If it stays like that for 30 s the change is real (demolished) and is accepted.
+        int lowered = 0, raised = 0, diff = 0;
+        bool drop[256] = {};
+        for (int idx = 0; idx < 256; ++idx) {
+            if (!okc[idx] || cd.color[idx] == 0) continue;
+            if (nh[idx] > cd.height[idx]) ++raised;
+            if (ncol[idx] != cd.color[idx] || nh[idx] != cd.height[idx]) ++diff;
+            if (nh[idx] + 2 < cd.height[idx]) { ++lowered; drop[idx] = true; }
+        }
+        bool suspect = lowered >= 4 || (diff >= 32 && raised == 0);
+        if (suspect) {
+            if (cd.suspectSince == 0) cd.suspectSince = gFrame;
+            if (gFrame - cd.suspectSince < 1800) {
+                for (int idx = 0; idx < 256; ++idx)
+                    if (okc[idx] && cd.color[idx] != 0 && (drop[idx] || (lowered < 4 && (ncol[idx] != cd.color[idx] || nh[idx] != cd.height[idx])))) okc[idx] = false;
+            } else cd.suspectSince = 0; // stayed like that: accept
+        } else cd.suspectSince = 0;
+    }
     {   // sparse wall storage: one rebuild per chunk, only when some profile really changed
         bool wch[256];
         commitWalls(cd, idsBuf.data(), okc, wch);
@@ -741,7 +762,7 @@ void updateCache(::BlockSource& region, int px, int pz) {
             }
             auto& cd = *cdp;
             if ((pass == 0) == cd.scanned) continue;
-            bool need = cd.scanned ? (gFrame - cd.lastScan >= (dx * dx + dz * dz <= 36 ? 600u : 3600u)) : (gFrame - cd.lastTry >= (cd.partial ? 24u : 8u) || cd.lastTry == 0);
+            bool need = cd.scanned ? (gFrame - cd.lastScan >= (cd.suspectSince ? 120u : (dx * dx + dz * dz <= 36 ? 600u : 3600u))) : (gFrame - cd.lastTry >= (cd.partial ? 24u : 8u) || cd.lastTry == 0);
             if (!need) continue;
             cd.lastTry = gFrame;
             if (scanChunk(region, cx, cz, cd)) --budget;
